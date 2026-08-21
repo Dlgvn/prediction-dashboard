@@ -2,7 +2,7 @@
 
 ## Phases
 
-- [ ] **Phase 1: App Skeleton & Data Layer** - Running Reflex app with seeded historical price data in SQLite
+- [x] **Phase 1: App Skeleton & Data Layer** - Running Reflex app with seeded historical price data in SQLite (completed 2026-08-21)
 - [ ] **Phase 2: Model Research & Backtesting** - Forecasting models chosen and validated via holdout backtest, per series
 - [ ] **Phase 3: Forecasting Module & Derived Series** - Base/bull/bear forecasts and derived Diesel-MNT computed from validated models
 - [ ] **Phase 4: Data Entry UI & Historical View** - User manages monthly actuals in-app with validation and persistence
@@ -23,7 +23,7 @@
 Plans:
 - [x] 01-01-PLAN.md — Scaffold Reflex app in `app/` and define the PriceRow + AppSetting SQLite schema (wave 1)
 - [x] 01-02-PLAN.md — Seed 78 monthly rows from AN/Diesel CSVs with monthly-average collapse and idempotent upsert (wave 2)
-- [ ] 01-03-PLAN.md — DashboardState read path and read-only data table on the index page (wave 3)
+- [x] 01-03-PLAN.md — DashboardState read path and read-only data table on the index page (wave 3)
 
 **UI hint**: yes
 
@@ -78,7 +78,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. App Skeleton & Data Layer | 2/3 | In Progress|  |
+| 1. App Skeleton & Data Layer | 3/3 | Complete   | 2026-08-21 |
 | 2. Model Research & Backtesting | 0/? | Not started | - |
 | 3. Forecasting Module & Derived Series | 0/? | Not started | - |
 | 4. Data Entry UI & Historical View | 0/? | Not started | - |
