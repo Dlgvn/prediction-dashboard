@@ -1,0 +1,482 @@
+[
+  {
+    "target": "hdan",
+    "predictor": "baltic_an",
+    "t_stat": -2.7107,
+    "p": 0.1958,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "hdan",
+    "predictor": "ammonia",
+    "t_stat": -3.5879,
+    "p": 0.0254,
+    "n": 48,
+    "cointegrated": true
+  },
+  {
+    "target": "hdan",
+    "predictor": "urea_black_sea",
+    "t_stat": -2.2345,
+    "p": 0.4067,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "hdan",
+    "predictor": "urea_china",
+    "t_stat": -2.6642,
+    "p": 0.2127,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "hdan",
+    "predictor": "natural_gas_jkm",
+    "t_stat": -2.4115,
+    "p": 0.3194,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "hdan",
+    "predictor": "natural_gas_henry_hub",
+    "t_stat": -2.2603,
+    "p": 0.3935,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "hdan",
+    "predictor": "natural_gas_uk",
+    "t_stat": -2.4857,
+    "p": 0.2854,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "hdan",
+    "predictor": "natural_gas_netherlands",
+    "t_stat": -2.282,
+    "p": 0.3826,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "hdan",
+    "predictor": "corn_us",
+    "t_stat": -1.647,
+    "p": 0.7006,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "hdan",
+    "predictor": "corn_china",
+    "t_stat": -1.0164,
+    "p": 0.8997,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "hdan",
+    "predictor": "brent",
+    "t_stat": -1.5383,
+    "p": 0.7462,
+    "n": 47,
+    "cointegrated": false
+  },
+  {
+    "target": "hdan",
+    "predictor": "urals",
+    "t_stat": -1.5078,
+    "p": 0.7582,
+    "n": 46,
+    "cointegrated": false
+  },
+  {
+    "target": "hdan",
+    "predictor": "ppan",
+    "t_stat": -2.1016,
+    "p": 0.4756,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "hdan",
+    "predictor": "diesel_usd_ton",
+    "t_stat": -1.7758,
+    "p": 0.6414,
+    "n": 47,
+    "cointegrated": false
+  },
+  {
+    "target": "hdan",
+    "predictor": "fx_rate",
+    "t_stat": -1.9581,
+    "p": 0.5503,
+    "n": 47,
+    "cointegrated": false
+  },
+  {
+    "target": "ppan",
+    "predictor": "baltic_an",
+    "t_stat": -2.8356,
+    "p": 0.1546,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "ppan",
+    "predictor": "ammonia",
+    "t_stat": -3.4266,
+    "p": 0.0395,
+    "n": 48,
+    "cointegrated": true
+  },
+  {
+    "target": "ppan",
+    "predictor": "urea_black_sea",
+    "t_stat": -2.5021,
+    "p": 0.2782,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "ppan",
+    "predictor": "urea_china",
+    "t_stat": -3.0464,
+    "p": 0.0996,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "ppan",
+    "predictor": "natural_gas_jkm",
+    "t_stat": -3.0434,
+    "p": 0.1002,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "ppan",
+    "predictor": "natural_gas_henry_hub",
+    "t_stat": -2.7168,
+    "p": 0.1936,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "ppan",
+    "predictor": "natural_gas_uk",
+    "t_stat": -2.992,
+    "p": 0.1121,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "ppan",
+    "predictor": "natural_gas_netherlands",
+    "t_stat": -2.8594,
+    "p": 0.1475,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "ppan",
+    "predictor": "corn_us",
+    "t_stat": -2.7986,
+    "p": 0.1661,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "ppan",
+    "predictor": "corn_china",
+    "t_stat": -2.6853,
+    "p": 0.2049,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "ppan",
+    "predictor": "brent",
+    "t_stat": -1.2319,
+    "p": 0.8493,
+    "n": 47,
+    "cointegrated": false
+  },
+  {
+    "target": "ppan",
+    "predictor": "urals",
+    "t_stat": -1.6103,
+    "p": 0.7165,
+    "n": 46,
+    "cointegrated": false
+  },
+  {
+    "target": "ppan",
+    "predictor": "hdan",
+    "t_stat": -2.2056,
+    "p": 0.4215,
+    "n": 48,
+    "cointegrated": false
+  },
+  {
+    "target": "ppan",
+    "predictor": "diesel_usd_ton",
+    "t_stat": -0.6118,
+    "p": 0.9553,
+    "n": 47,
+    "cointegrated": false
+  },
+  {
+    "target": "ppan",
+    "predictor": "fx_rate",
+    "t_stat": -2.1429,
+    "p": 0.454,
+    "n": 47,
+    "cointegrated": false
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "baltic_an",
+    "t_stat": -1.8377,
+    "p": 0.6112,
+    "n": 76,
+    "cointegrated": false
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "ammonia",
+    "t_stat": -1.0052,
+    "p": 0.9019,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "urea_black_sea",
+    "t_stat": -1.799,
+    "p": 0.6302,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "urea_china",
+    "t_stat": -1.1731,
+    "p": 0.8648,
+    "n": 76,
+    "cointegrated": false
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "natural_gas_jkm",
+    "t_stat": -0.9719,
+    "p": 0.908,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "natural_gas_henry_hub",
+    "t_stat": -1.4577,
+    "p": 0.777,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "natural_gas_uk",
+    "t_stat": -0.9739,
+    "p": 0.9077,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "natural_gas_netherlands",
+    "t_stat": -0.8193,
+    "p": 0.9321,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "corn_us",
+    "t_stat": -0.8253,
+    "p": 0.9313,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "corn_china",
+    "t_stat": -2.3926,
+    "p": 0.3284,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "brent",
+    "t_stat": -1.5143,
+    "p": 0.7557,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "urals",
+    "t_stat": -1.6978,
+    "p": 0.6779,
+    "n": 76,
+    "cointegrated": false
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "hdan",
+    "t_stat": -2.2072,
+    "p": 0.4206,
+    "n": 47,
+    "cointegrated": false
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "ppan",
+    "t_stat": -2.3786,
+    "p": 0.3351,
+    "n": 47,
+    "cointegrated": false
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "fx_rate",
+    "t_stat": -2.1302,
+    "p": 0.4606,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "baltic_an",
+    "t_stat": -1.6104,
+    "p": 0.7165,
+    "n": 76,
+    "cointegrated": false
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "ammonia",
+    "t_stat": -1.3348,
+    "p": 0.819,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "urea_black_sea",
+    "t_stat": -1.1391,
+    "p": 0.8731,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "urea_china",
+    "t_stat": -1.4187,
+    "p": 0.791,
+    "n": 76,
+    "cointegrated": false
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "natural_gas_jkm",
+    "t_stat": -1.3835,
+    "p": 0.8031,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "natural_gas_henry_hub",
+    "t_stat": -1.3515,
+    "p": 0.8137,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "natural_gas_uk",
+    "t_stat": -1.1461,
+    "p": 0.8715,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "natural_gas_netherlands",
+    "t_stat": -1.376,
+    "p": 0.8056,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "corn_us",
+    "t_stat": -1.5646,
+    "p": 0.7356,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "corn_china",
+    "t_stat": -1.9074,
+    "p": 0.5762,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "brent",
+    "t_stat": -0.7281,
+    "p": 0.9435,
+    "n": 77,
+    "cointegrated": false
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "urals",
+    "t_stat": -0.6221,
+    "p": 0.9544,
+    "n": 76,
+    "cointegrated": false
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "hdan",
+    "t_stat": -2.4335,
+    "p": 0.3092,
+    "n": 47,
+    "cointegrated": false
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "ppan",
+    "t_stat": -1.2294,
+    "p": 0.85,
+    "n": 47,
+    "cointegrated": false
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "diesel_usd_ton",
+    "t_stat": -2.2136,
+    "p": 0.4173,
+    "n": 77,
+    "cointegrated": false
+  }
+]
