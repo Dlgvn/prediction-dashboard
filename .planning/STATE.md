@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
-stopped_at: Phase 1 planned (3 plans, revised for expanded seed sources)
-last_updated: "2026-08-21T03:45:12.568Z"
-last_activity: 2026-08-21 — Roadmap created
+status: executing
+stopped_at: Completed 01-01-PLAN.md
+last_updated: "2026-08-21T04:12:27.331Z"
+last_activity: 2026-08-21
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 3
-  completed_plans: 0
+  completed_plans: 1
   percent: 0
 ---
 
@@ -24,16 +24,16 @@ See: .planning/PROJECT.md (updated 2026-08-21)
 and see a chart with three price scenarios (bull/base/bear) for each of the four tracked
 series — without opening Excel.
 
-**Current focus:** Phase 1 — App Skeleton & Data Layer
+**Current focus:** Phase 01 — App Skeleton & Data Layer
 
 ## Current Position
 
-Phase: 1 of 5 (App Skeleton & Data Layer)
-Plan: 0 of ? in current phase
-Status: Ready to plan
-Last activity: 2026-08-21 — Roadmap created
+Phase: 01 (App Skeleton & Data Layer) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-08-21
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] 33%
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: -
 
 *Updated after each plan completion*
+| Phase 01 P01 | 35min | 3 tasks | 9 files |
 
 ## Accumulated Context
 
@@ -67,6 +68,8 @@ Recent decisions affecting current work:
 - Init: Fresh model design/research rather than porting the Excel workbook's exact coefficients
 - Init: v1 scenarios = base ± statistical spread; live news/sentiment integration deferred to v2
 - Init: No file-upload UI in v1 — manual in-app entry + Excel export instead
+- [Phase ?]: 01-01: markup_pct lives in AppSetting key/value table, never on PriceRow (D-04)
+- [Phase ?]: 01-01: 16-series PriceRow schema per D-05b/D-05c supersession (natural_gas split into 4 named benchmarks, urea split into black_sea/china)
 
 ### Pending Todos
 
@@ -90,6 +93,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-21T03:45:12.557Z
-Stopped at: Phase 1 planned (3 plans, revised for expanded seed sources)
-Resume file: .planning/phases/01-app-skeleton-data-layer/01-01-PLAN.md
+Last session: 2026-08-21T04:12:22.224Z
+Stopped at: Completed 01-01-PLAN.md
+Resume file: None
