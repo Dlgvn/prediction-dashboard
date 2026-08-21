@@ -52,11 +52,15 @@ amended to reflect this before execution.
   - `AN Data.csv` → **only** `hdan`, `ppan` (this file's other columns —
     Baltic AN, Ammonia, Urea, Natural_gas — are no longer used; superseded
     by the weekly file's longer history for those series)
-  - `AN price weekly.csv` → `baltic_an`, `ammonia`, `urea`,
-    `natural_gas_jkm`, `natural_gas_henry_hub`, `natural_gas_uk`,
-    `natural_gas_netherlands`, `corn_us`, `corn_china` (9 columns; history
-    back to 2013-01-11 per its earliest row, far longer than AN Data.csv's
-    2022-08 start)
+  - `AN price weekly.csv` → `baltic_an`, `ammonia`, `urea_black_sea`,
+    `urea_china`, `natural_gas_jkm`, `natural_gas_henry_hub`,
+    `natural_gas_uk`, `natural_gas_netherlands`, `corn_us`, `corn_china` (10
+    columns; history back to 2013-01-11 per its earliest row, far longer than
+    AN Data.csv's 2022-08 start). **D-05c (corrects D-05b):** the file's two
+    urea series (Black Sea Urea, China Urea) are BOTH kept as separate
+    columns (`urea_black_sea`, `urea_china`) — not collapsed to one `urea`
+    column with the other dropped. Mirrors the decision to keep all 4 natural
+    gas benchmarks separate rather than picking one.
   - `Diesel Data.csv` → `diesel_usd_ton`, `urals`, `fx_rate`, `brent` (Brent
     now sourced here instead of from AN Data.csv, since Diesel Data.csv's
     Brent history starts 2020-02 vs. AN Data.csv's 2022-08 — more history
@@ -65,10 +69,11 @@ amended to reflect this before execution.
     shortest-common range); each column is `NULL` for any month before its
     source file's coverage begins, per D-03.
   - **Schema impact:** the wide table now has 4 natural-gas columns instead
-    of 1, plus `corn_us`/`corn_china` — 15 series columns total instead of
-    the original 10 (`Date` + 10 in the original CONTEXT.md's canonical_refs
-    list). Update D-01's understanding of the schema accordingly; the shape
-    (wide, one row per month) is unchanged, only the column list grew.
+    of 1, plus `corn_us`/`corn_china`, plus 2 urea columns instead of 1 (per
+    D-05c) — 16 series columns total instead of the original 10 (`Date` + 10
+    in the original CONTEXT.md's canonical_refs list). Update D-01's
+    understanding of the schema accordingly; the shape (wide, one row per
+    month) is unchanged, only the column list grew.
 - **D-06b (supersedes D-06):** Both `AN Data.csv` and `AN price weekly.csv`
   have multiple entries within some months. Collapse to one row per month by
   **averaging** all entries within that month for both sources — D-06's
