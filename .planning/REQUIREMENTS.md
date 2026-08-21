@@ -82,7 +82,25 @@
 
 ## Traceability
 
-*Filled in by roadmap creation — maps each requirement to the phase that delivers it.*
+| Requirement | Phase | Status |
+|-------------|-------|--------|
+| DATA-01 | Phase 4 | Pending |
+| DATA-02 | Phase 4 | Pending |
+| DATA-03 | Phase 4 | Pending |
+| DATA-04 | Phase 4 | Pending |
+| DATA-05 | Phase 4 | Pending |
+| DATA-06 | Phase 5 | Pending |
+| FCST-01 | Phase 5 | Pending |
+| FCST-02 | Phase 3 | Pending |
+| FCST-03 | Phase 3 | Pending |
+| FCST-04 | Phase 3 | Pending |
+| FCST-05 | Phase 3 | Pending |
+| FCST-06 | Phase 5 | Pending |
+| FCST-07 | Phase 2 | Pending |
+| VIS-01 | Phase 4 | Pending |
+| VIS-02 | Phase 5 | Pending |
+| VIS-03 | Phase 5 | Pending |
+| EXPORT-01 | Phase 5 | Pending |
 
 ---
 *Requirements defined: 2026-08-21*
