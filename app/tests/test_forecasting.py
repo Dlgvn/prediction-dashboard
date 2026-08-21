@@ -15,6 +15,7 @@ from app.forecasting import (
     _forecast_predictor,
     _naive_forecast,
     _require_series,
+    forecast_hdan,
 )
 
 
@@ -151,3 +152,36 @@ def test_build_future_exog_raises_on_short_ammonia_history():
     assert "ammonia" in str(exc_info.value)
 
 
+def test_forecast_hdan_shape_and_finite(synthetic_history):
+    result = forecast_hdan(synthetic_history, horizon=12)
+    assert set(result.keys()) == {"base", "bull", "bear"}
+    for key in ("base", "bull", "bear"):
+        assert len(result[key]) == 12
+        assert np.isfinite(np.asarray(result[key])).all()
+
+
+def test_forecast_hdan_garch_unit_conversion(synthetic_history):
+    result = forecast_hdan(synthetic_history, horizon=12)
+    base0 = result["base"][0]
+    expected_half_width = base0 * 12.532726174302507 / 100
+    assert result["bull"][0] - base0 == pytest.approx(expected_half_width, rel=1e-9)
+
+
+def test_forecast_hdan_bull_base_bear_ordering(synthetic_history):
+    result = forecast_hdan(synthetic_history, horizon=12)
+    for i in range(12):
+        assert result["bull"][i] > result["base"][i] > result["bear"][i]
+
+
+def test_forecast_hdan_band_widens(synthetic_history):
+    result = forecast_hdan(synthetic_history, horizon=12)
+    half_widths = [result["bull"][i] - result["base"][i] for i in range(12)]
+    assert all(
+        half_widths[i] < half_widths[i + 1] for i in range(len(half_widths) - 1)
+    )
+
+
+def test_forecast_hdan_raises_on_missing_hdan_column(synthetic_history):
+    history = synthetic_history.drop(columns=["hdan"])
+    with pytest.raises(InsufficientHistoryError):
+        forecast_hdan(history, horizon=6)

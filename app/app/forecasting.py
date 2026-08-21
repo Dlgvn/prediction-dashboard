@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
+import statsmodels.api as sm
 from statsmodels.tsa.arima.model import ARIMA
 
 # ---------------------------------------------------------------------------
@@ -236,6 +237,59 @@ def _build_future_exog(history: pd.DataFrame, horizon: int) -> pd.DataFrame:
 
     frame = pd.DataFrame(columns)
     return frame[HDAN_PREDICTORS]
+
+
+def forecast_hdan(history: pd.DataFrame, horizon: int) -> dict:
+    """Forecast HDAN via its winning model: SARIMAX(0,1,0) + six lagged exog.
+
+    Model: SARIMAX(0,1,0)+exog, backtested mean 1-12 MAPE of 13.33%
+    (02-MODEL-DECISIONS.md). Volatility source: the frozen GARCH(1,1)
+    sigma per D-06b (`HDAN_GARCH_SIGMA_PCT`) -- this module never imports
+    `arch`; the sigma array is a static, previously-fit constant.
+
+    Per D-03, this function's output is the sole authoritative HDAN
+    number app-wide. Its result must never be reconciled against or
+    replaced by any value produced by the PPAN Direct-OLS VAR system's
+    internal `hdan` column -- that column exists only to help PPAN's own
+    system fit and is not a competing HDAN forecast.
+    """
+    y_series = _require_series(history, "hdan", horizon)
+
+    exog_hist = pd.DataFrame(
+        {p: history[p].shift(HDAN_PREDICTOR_LAGS[p]) for p in HDAN_PREDICTORS},
+        index=history.index,
+    )[HDAN_PREDICTORS]
+
+    combined = pd.concat([history["hdan"].rename("y"), exog_hist], axis=1).dropna()
+    if len(combined) < MIN_HISTORY_ROWS:
+        raise InsufficientHistoryError(
+            f"After aligning 'hdan' with its lagged predictors, only "
+            f"{len(combined)} rows remain, but at least {MIN_HISTORY_ROWS} "
+            "are required to fit HDAN's SARIMAX+exog model."
+        )
+    y_fit = combined["y"]
+    x_fit = combined[HDAN_PREDICTORS]
+
+    # enforce_stationarity/enforce_invertibility=False reproduce Phase 2's
+    # backtested configuration (_SARIMAXWrapper, run_arima_sarimax_wf.py
+    # lines 81-94) exactly -- do not change these.
+    fitted = sm.tsa.SARIMAX(
+        y_fit.to_numpy(),
+        exog=x_fit.to_numpy(),
+        order=HDAN_SARIMAX_ORDER,
+        enforce_stationarity=False,
+        enforce_invertibility=False,
+    ).fit(disp=False)
+
+    future_exog = _build_future_exog(history, horizon)
+    result = fitted.get_forecast(
+        steps=horizon, exog=future_exog[HDAN_PREDICTORS].to_numpy()
+    )
+
+    base = np.asarray(result.predicted_mean, dtype=float)
+    assert len(base) == horizon
+
+    return _apply_garch_spread(base, horizon)
 
 
 def _apply_se_spread(base, se) -> dict:
