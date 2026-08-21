@@ -59,7 +59,7 @@ Plans:
 
 Plans:
 - [x] 03-01-PLAN.md — Frozen Phase 2 constants, shared forecast primitives, test fixtures (wave 1)
-- [ ] 03-02-PLAN.md — HDAN SARIMAX(0,1,0)+exog with lag-aware future exog and GARCH band (wave 2)
+- [x] 03-02-PLAN.md — HDAN SARIMAX(0,1,0)+exog with lag-aware future exog and GARCH band (wave 2)
 - [ ] 03-03-PLAN.md — PPAN Direct-OLS multi-step system, Diesel-USD/FX Naive with ARIMA-SE bands (wave 3)
 - [ ] 03-04-PLAN.md — forecast_all dispatcher, derived Diesel-MNT, FCST-02..05 test suite (wave 4)
 
@@ -95,7 +95,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. App Skeleton & Data Layer | 3/3 | Complete   | 2026-08-21 |
 | 2. Model Research & Backtesting | 7/7 | Complete   | 2026-08-21 |
-| 3. Forecasting Module & Derived Series | 1/4 | In Progress|  |
+| 3. Forecasting Module & Derived Series | 2/4 | In Progress|  |
 | 4. Data Entry UI & Historical View | 0/? | Not started | - |
 | 5. Forecast UI, Scenario Chart & Excel Export | 0/? | Not started | - |
 

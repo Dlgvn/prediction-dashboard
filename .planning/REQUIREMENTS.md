@@ -21,14 +21,14 @@
 ### Forecasting & Scenarios
 
 - [ ] **FCST-01**: User can select a forecast horizon from 1 to 12 months
-- [ ] **FCST-02**: For the selected horizon, the app computes a base (point), bull, and
+- [x] **FCST-02**: For the selected horizon, the app computes a base (point), bull, and
       bear forecast value for each month, for HDAN, PPAN, Diesel-USD, and FX rate
 - [ ] **FCST-03**: Diesel purchasing price in MNT is computed as a derived series
       (Diesel-USD forecast × FX forecast × markup) at each horizon step, not modeled
       independently
-- [ ] **FCST-04**: Bull/bear spread is computed per series from that series' own
+- [x] **FCST-04**: Bull/bear spread is computed per series from that series' own
       backtested error/volatility (not one flat percentage applied to every series)
-- [ ] **FCST-05**: Bull/bear spread widens as the horizon extends further out, rather than
+- [x] **FCST-05**: Bull/bear spread widens as the horizon extends further out, rather than
       staying a fixed percentage regardless of how many months ahead the forecast is
 - [ ] **FCST-06**: Forecast values are shown in a table (exact numbers per month, per
       series, per scenario) in addition to any chart — not chart-only
@@ -91,7 +91,7 @@
 | DATA-05 | Phase 4 | Pending |
 | DATA-06 | Phase 5 | Pending |
 | FCST-01 | Phase 5 | Pending |
-| FCST-02 | Phase 3 | Pending |
+| FCST-02 | Phase 3 | Complete |
 | FCST-03 | Phase 3 | Pending |
 | FCST-04 | Phase 3 | Pending (foundation in 03-01; full per-series wiring in 03-02..03-04) |
 | FCST-05 | Phase 3 | Pending (foundation in 03-01; full per-series wiring in 03-02..03-04) |
