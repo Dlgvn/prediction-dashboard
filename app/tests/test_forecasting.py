@@ -1,14 +1,17 @@
 """Unit tests for app.forecasting primitives, GARCH unit conversion, SE widening."""
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from app.forecasting import (
     HDAN_GARCH_SIGMA_PCT,
+    HDAN_PREDICTORS,
     InsufficientHistoryError,
     _apply_garch_spread,
     _apply_se_spread,
     _arima_forecast_se,
+    _build_future_exog,
     _forecast_predictor,
     _naive_forecast,
     _require_series,
@@ -100,3 +103,51 @@ def test_apply_se_spread_shape_and_keys():
     assert set(spread.keys()) == {"base", "bull", "bear"}
     assert spread["bull"] == [11.0, 22.0, 33.0]
     assert spread["bear"] == [9.0, 18.0, 27.0]
+
+
+def test_build_future_exog_shape_order_and_no_nan(synthetic_history):
+    frame = _build_future_exog(synthetic_history, horizon=12)
+    assert list(frame.columns) == HDAN_PREDICTORS
+    assert len(frame) == 12
+    assert frame.isna().sum().sum() == 0
+
+
+def test_build_future_exog_lag1_predictor_uses_last_observed(synthetic_history):
+    frame = _build_future_exog(synthetic_history, horizon=12)
+    # ppan has lag 1
+    last_observed = float(synthetic_history["ppan"].dropna().iloc[-1])
+    assert frame["ppan"].iloc[0] == pytest.approx(last_observed)
+
+
+def test_future_exog_respects_ammonia_lag_3(synthetic_history):
+    """Regression test for the planner_correction in 03-02-PLAN.md.
+
+    03-RESEARCH.md Pattern 1 incorrectly claims the future exog frame can
+    simply reuse `_forecast_predictor`'s forward path directly for every
+    predictor. That is only true for lag-1 predictors. For `ammonia`
+    (lag 3), rows 0-2 of the future frame must equal the last three
+    OBSERVED ammonia values (T-2, T-1, T), and only row 3 onward should
+    come from the forecast path. Do NOT "simplify" this back to the
+    forward path -- that silently shifts ammonia's contribution three
+    months early with no exception raised.
+    """
+    frame = _build_future_exog(synthetic_history, horizon=12)
+    observed_tail = synthetic_history["ammonia"].dropna().iloc[-3:].to_numpy()
+    np.testing.assert_allclose(
+        frame["ammonia"].iloc[0:3].to_numpy(), observed_tail, rtol=1e-9
+    )
+
+    last_observed = float(synthetic_history["ammonia"].dropna().iloc[-1])
+    assert frame["ammonia"].iloc[3] != pytest.approx(last_observed, rel=1e-6)
+
+
+def test_build_future_exog_raises_on_short_ammonia_history():
+    short_history = pd.DataFrame(
+        {p: [1.0] * 30 for p in HDAN_PREDICTORS}, index=range(30)
+    )
+    short_history["ammonia"] = [1.0, 2.0] + [None] * 28
+    with pytest.raises(InsufficientHistoryError) as exc_info:
+        _build_future_exog(short_history, horizon=6)
+    assert "ammonia" in str(exc_info.value)
+
+

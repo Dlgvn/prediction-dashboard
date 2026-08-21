@@ -198,6 +198,46 @@ def _apply_garch_spread(base, horizon: int) -> dict:
     }
 
 
+def _build_future_exog(history: pd.DataFrame, horizon: int) -> pd.DataFrame:
+    """Build HDAN's lag-aware future exog frame for `horizon` steps ahead.
+
+    Fit-time convention (from `run_arima_sarimax_wf.build_sarimax_records`):
+    the exog value the model sees at time `t` for predictor `p` is
+    `history[p]` shifted by `p`'s own lag, i.e. the predictor's value at
+    `t - lag_p`. So at future step `h` (1-indexed) the exog value needed
+    for predictor `p` is that predictor's value at `T + h - lag_p`, where
+    `T` is the position of the last observed row. For lag-1 predictors this
+    means step h=1 uses the last observed actual and steps h>=2 use the
+    forecast path directly; for `ammonia` (lag 3) steps h=1..3 use the last
+    three *observed* actuals and only step h=4 onward uses the forecast
+    path -- using the forward path directly for ammonia would shift its
+    contribution three months early (see 03-02-PLAN.md planner_correction).
+    """
+    columns: dict[str, np.ndarray] = {}
+    for predictor in HDAN_PREDICTORS:
+        observed = _require_series(history, predictor, horizon)
+        lag = HDAN_PREDICTOR_LAGS[predictor]
+        t_last = len(observed) - 1
+
+        if t_last + 1 - lag < 0:
+            raise InsufficientHistoryError(
+                f"Predictor '{predictor}' has lag {lag} but only "
+                f"{t_last + 1} observed rows are available."
+            )
+
+        path = _forecast_predictor(observed, horizon)
+        extended = np.concatenate([observed.to_numpy(), path])
+
+        future_values = np.array(
+            [extended[t_last + h - lag] for h in range(1, horizon + 1)],
+            dtype=float,
+        )
+        columns[predictor] = future_values
+
+    frame = pd.DataFrame(columns)
+    return frame[HDAN_PREDICTORS]
+
+
 def _apply_se_spread(base, se) -> dict:
     """Apply an ARIMA forecast-SE spread to a base forecast.
 
