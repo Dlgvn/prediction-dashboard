@@ -32,7 +32,7 @@
       staying a fixed percentage regardless of how many months ahead the forecast is
 - [ ] **FCST-06**: Forecast values are shown in a table (exact numbers per month, per
       series, per scenario) in addition to any chart — not chart-only
-- [ ] **FCST-07**: Forecasting models are selected via a research/backtest process before
+- [x] **FCST-07**: Forecasting models are selected via a research/backtest process before
       being used — no un-backtested model is used in the shipped app (see Model Research
       phase)
 
@@ -96,7 +96,7 @@
 | FCST-04 | Phase 3 | Pending |
 | FCST-05 | Phase 3 | Pending |
 | FCST-06 | Phase 5 | Pending |
-| FCST-07 | Phase 2 | Pending |
+| FCST-07 | Phase 2 | Complete |
 | VIS-01 | Phase 4 | Pending |
 | VIS-02 | Phase 5 | Pending |
 | VIS-03 | Phase 5 | Pending |
