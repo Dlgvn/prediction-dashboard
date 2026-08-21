@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 2 planned (7 plans, 4 waves)
-last_updated: "2026-08-21T05:55:52.624Z"
+last_updated: "2026-08-21T06:00:03.933Z"
 last_activity: 2026-08-21
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 10
-  completed_plans: 4
+  completed_plans: 5
   percent: 20
 ---
 
@@ -29,11 +29,11 @@ series — without opening Excel.
 ## Current Position
 
 Phase: 02 (Model Research & Backtesting) — EXECUTING
-Plan: 2 of 7
+Plan: 3 of 7
 Status: Ready to execute
 Last activity: 2026-08-21
 
-Progress: [████░░░░░░] 40%
+Progress: [█████░░░░░] 50%
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [████░░░░░░] 40%
 | Phase 01 P01 | 35min | 3 tasks | 9 files |
 | Phase 01 P02 | 25min | 3 tasks | 2 files |
 | Phase 02 P01 | 12min | 2 tasks | 4 files |
+| Phase 02 P02 | 25min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -78,6 +79,8 @@ Recent decisions affecting current work:
 - [Phase ?]: DB-access boundary held entirely within state.py — DashboardState is the app's sole rx.session() call site
 - [Phase 02-01]: pandas 2.2.3/scikit-learn 1.7.2 installed, not STACK.md's 3.0.5/1.9.0 pins — research code written to pandas 2.x semantics
 - [Phase 02-01]: walk_forward.py is the single shared rolling-origin harness (model-agnostic) reused by every Phase 2 model runner; LeakageError raised eagerly, not just commented
+- [Phase ?]: 02-02: fx_rate re-tested (not assumed) against expanded predictor set — now shows real p<0.10/p<0.05 predictors, overturning prior no-predictor finding
+- [Phase ?]: 02-02: no target-pair cointegration found at p<0.05 — VECM_CANDIDATES empty, plan 02-05 proceeds with plain VAR
 
 ### Pending Todos
 
@@ -101,6 +104,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-21T05:55:18.343Z
+Last session: 2026-08-21T05:59:58.757Z
 Stopped at: Phase 2 planned (7 plans, 4 waves)
 Resume file: None
