@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 2 planned (7 plans, 4 waves)
-last_updated: "2026-08-21T06:03:38.925Z"
+last_updated: "2026-08-21T06:08:02.481Z"
 last_activity: 2026-08-21
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 10
-  completed_plans: 6
+  completed_plans: 7
   percent: 20
 ---
 
@@ -29,11 +29,11 @@ series — without opening Excel.
 ## Current Position
 
 Phase: 02 (Model Research & Backtesting) — EXECUTING
-Plan: 4 of 7
+Plan: 5 of 7
 Status: Ready to execute
 Last activity: 2026-08-21
 
-Progress: [██████░░░░] 60%
+Progress: [███████░░░] 70%
 
 ## Performance Metrics
 
@@ -60,6 +60,7 @@ Progress: [██████░░░░] 60%
 | Phase 02 P01 | 12min | 2 tasks | 4 files |
 | Phase 02 P02 | 25min | 2 tasks | 3 files |
 | Phase 02-model-research-backtesting P03 | 12min | 2 tasks | 3 files |
+| Phase 02-model-research-backtesting P04 | 20min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -84,6 +85,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 02-02: no target-pair cointegration found at p<0.05 — VECM_CANDIDATES empty, plan 02-05 proceeds with plain VAR
 - [Phase ?]: arch==8.0.0 approved at package-legitimacy checkpoint after manual PyPI/GitHub verification; SUS flag was a false positive
 - [Phase ?]: GARCH(1,1) only per Assumption A4, no EGARCH/GJR sweep
+- [Phase 02-04]: Baselines fitted on price levels not pct-change; ARIMA order fixed once by AIC and held fixed for the whole walk-forward run
 
 ### Pending Todos
 
@@ -107,6 +109,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-21T06:03:30.138Z
+Last session: 2026-08-21T06:07:14.675Z
 Stopped at: Phase 2 planned (7 plans, 4 waves)
 Resume file: None
