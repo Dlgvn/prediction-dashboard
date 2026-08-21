@@ -1,0 +1,1623 @@
+[
+  {
+    "target": "hdan",
+    "predictor": "baltic_an",
+    "lag": 1,
+    "F": 4.3522,
+    "p": 0.0428,
+    "n": 47,
+    "tier": "p05",
+    "p_statsmodels_crosscheck": 0.0428
+  },
+  {
+    "target": "hdan",
+    "predictor": "baltic_an",
+    "lag": 2,
+    "F": 3.6181,
+    "p": 0.0637,
+    "n": 47,
+    "tier": "p10"
+  },
+  {
+    "target": "hdan",
+    "predictor": "baltic_an",
+    "lag": 3,
+    "F": 0.0912,
+    "p": 0.7641,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "ammonia",
+    "lag": 1,
+    "F": 0.3211,
+    "p": 0.5738,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "ammonia",
+    "lag": 2,
+    "F": 4.161,
+    "p": 0.0474,
+    "n": 47,
+    "tier": "p05"
+  },
+  {
+    "target": "hdan",
+    "predictor": "ammonia",
+    "lag": 3,
+    "F": 4.434,
+    "p": 0.041,
+    "n": 47,
+    "tier": "p05"
+  },
+  {
+    "target": "hdan",
+    "predictor": "urea_black_sea",
+    "lag": 1,
+    "F": 4.8328,
+    "p": 0.0332,
+    "n": 47,
+    "tier": "p05"
+  },
+  {
+    "target": "hdan",
+    "predictor": "urea_black_sea",
+    "lag": 2,
+    "F": 0.1763,
+    "p": 0.6766,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "urea_black_sea",
+    "lag": 3,
+    "F": 0.1651,
+    "p": 0.6865,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "urea_china",
+    "lag": 1,
+    "F": 5.9255,
+    "p": 0.0191,
+    "n": 47,
+    "tier": "p05"
+  },
+  {
+    "target": "hdan",
+    "predictor": "urea_china",
+    "lag": 2,
+    "F": 0.5443,
+    "p": 0.4646,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "urea_china",
+    "lag": 3,
+    "F": 0.0004,
+    "p": 0.9834,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "natural_gas_jkm",
+    "lag": 1,
+    "F": 1.6907,
+    "p": 0.2003,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "natural_gas_jkm",
+    "lag": 2,
+    "F": 2.7784,
+    "p": 0.1026,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "natural_gas_jkm",
+    "lag": 3,
+    "F": 0.0005,
+    "p": 0.9822,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "natural_gas_henry_hub",
+    "lag": 1,
+    "F": 0.3114,
+    "p": 0.5796,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "natural_gas_henry_hub",
+    "lag": 2,
+    "F": 1.3167,
+    "p": 0.2574,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "natural_gas_henry_hub",
+    "lag": 3,
+    "F": 0.0059,
+    "p": 0.9391,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "natural_gas_uk",
+    "lag": 1,
+    "F": 0.761,
+    "p": 0.3877,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "natural_gas_uk",
+    "lag": 2,
+    "F": 1.1947,
+    "p": 0.2803,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "natural_gas_uk",
+    "lag": 3,
+    "F": 0.0039,
+    "p": 0.9503,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "natural_gas_netherlands",
+    "lag": 1,
+    "F": 1.0178,
+    "p": 0.3186,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "natural_gas_netherlands",
+    "lag": 2,
+    "F": 3.0661,
+    "p": 0.0869,
+    "n": 47,
+    "tier": "p10"
+  },
+  {
+    "target": "hdan",
+    "predictor": "natural_gas_netherlands",
+    "lag": 3,
+    "F": 0.2267,
+    "p": 0.6363,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "corn_us",
+    "lag": 1,
+    "F": 3.3601,
+    "p": 0.0736,
+    "n": 47,
+    "tier": "p10"
+  },
+  {
+    "target": "hdan",
+    "predictor": "corn_us",
+    "lag": 2,
+    "F": 0.7806,
+    "p": 0.3818,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "corn_us",
+    "lag": 3,
+    "F": 0.034,
+    "p": 0.8545,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "corn_china",
+    "lag": 1,
+    "F": 1.0759,
+    "p": 0.3053,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "corn_china",
+    "lag": 2,
+    "F": 0.2461,
+    "p": 0.6223,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "corn_china",
+    "lag": 3,
+    "F": 1.498,
+    "p": 0.2275,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "brent",
+    "lag": 1,
+    "F": 2.8425,
+    "p": 0.0989,
+    "n": 47,
+    "tier": "p10"
+  },
+  {
+    "target": "hdan",
+    "predictor": "brent",
+    "lag": 2,
+    "F": 1.8624,
+    "p": 0.1793,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "brent",
+    "lag": 3,
+    "F": 0.4639,
+    "p": 0.4994,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "urals",
+    "lag": 1,
+    "F": 3.196,
+    "p": 0.0807,
+    "n": 47,
+    "tier": "p10"
+  },
+  {
+    "target": "hdan",
+    "predictor": "urals",
+    "lag": 2,
+    "F": 0.6285,
+    "p": 0.4322,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "urals",
+    "lag": 3,
+    "F": 1.0662,
+    "p": 0.3075,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "ppan",
+    "lag": 1,
+    "F": 9.8532,
+    "p": 0.003,
+    "n": 47,
+    "tier": "p05"
+  },
+  {
+    "target": "hdan",
+    "predictor": "ppan",
+    "lag": 2,
+    "F": 0.8868,
+    "p": 0.3516,
+    "n": 46,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "ppan",
+    "lag": 3,
+    "F": 0.1589,
+    "p": 0.6922,
+    "n": 45,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "diesel_usd_ton",
+    "lag": 1,
+    "F": 0.247,
+    "p": 0.6216,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "diesel_usd_ton",
+    "lag": 2,
+    "F": 1.3994,
+    "p": 0.2432,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "diesel_usd_ton",
+    "lag": 3,
+    "F": 0.7982,
+    "p": 0.3765,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "fx_rate",
+    "lag": 1,
+    "F": 0.1134,
+    "p": 0.7379,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "fx_rate",
+    "lag": 2,
+    "F": 0.4043,
+    "p": 0.5281,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "hdan",
+    "predictor": "fx_rate",
+    "lag": 3,
+    "F": 0.1334,
+    "p": 0.7167,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "baltic_an",
+    "lag": 1,
+    "F": 4.2443,
+    "p": 0.0453,
+    "n": 47,
+    "tier": "p05"
+  },
+  {
+    "target": "ppan",
+    "predictor": "baltic_an",
+    "lag": 2,
+    "F": 0.6709,
+    "p": 0.4171,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "baltic_an",
+    "lag": 3,
+    "F": 0.2012,
+    "p": 0.6559,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "ammonia",
+    "lag": 1,
+    "F": 0.5961,
+    "p": 0.4442,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "ammonia",
+    "lag": 2,
+    "F": 2.0565,
+    "p": 0.1586,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "ammonia",
+    "lag": 3,
+    "F": 1.0057,
+    "p": 0.3214,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "urea_black_sea",
+    "lag": 1,
+    "F": 2.1253,
+    "p": 0.152,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "urea_black_sea",
+    "lag": 2,
+    "F": 1.3091,
+    "p": 0.2587,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "urea_black_sea",
+    "lag": 3,
+    "F": 0.4532,
+    "p": 0.5043,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "urea_china",
+    "lag": 1,
+    "F": 3.4712,
+    "p": 0.0691,
+    "n": 47,
+    "tier": "p10"
+  },
+  {
+    "target": "ppan",
+    "predictor": "urea_china",
+    "lag": 2,
+    "F": 1.5662,
+    "p": 0.2174,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "urea_china",
+    "lag": 3,
+    "F": 1.3409,
+    "p": 0.2531,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "natural_gas_jkm",
+    "lag": 1,
+    "F": 1.3128,
+    "p": 0.2581,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "natural_gas_jkm",
+    "lag": 2,
+    "F": 1.8926,
+    "p": 0.1759,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "natural_gas_jkm",
+    "lag": 3,
+    "F": 0.0006,
+    "p": 0.9803,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "natural_gas_henry_hub",
+    "lag": 1,
+    "F": 0.7809,
+    "p": 0.3817,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "natural_gas_henry_hub",
+    "lag": 2,
+    "F": 0.0052,
+    "p": 0.9429,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "natural_gas_henry_hub",
+    "lag": 3,
+    "F": 1.0863,
+    "p": 0.303,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "natural_gas_uk",
+    "lag": 1,
+    "F": 0.1158,
+    "p": 0.7353,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "natural_gas_uk",
+    "lag": 2,
+    "F": 1.1624,
+    "p": 0.2869,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "natural_gas_uk",
+    "lag": 3,
+    "F": 0.0747,
+    "p": 0.7859,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "natural_gas_netherlands",
+    "lag": 1,
+    "F": 0.1063,
+    "p": 0.7459,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "natural_gas_netherlands",
+    "lag": 2,
+    "F": 2.8267,
+    "p": 0.0998,
+    "n": 47,
+    "tier": "p10"
+  },
+  {
+    "target": "ppan",
+    "predictor": "natural_gas_netherlands",
+    "lag": 3,
+    "F": 0.0253,
+    "p": 0.8744,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "corn_us",
+    "lag": 1,
+    "F": 0.0354,
+    "p": 0.8515,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "corn_us",
+    "lag": 2,
+    "F": 0.0031,
+    "p": 0.956,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "corn_us",
+    "lag": 3,
+    "F": 0.0377,
+    "p": 0.8469,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "corn_china",
+    "lag": 1,
+    "F": 0.64,
+    "p": 0.428,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "corn_china",
+    "lag": 2,
+    "F": 0.0043,
+    "p": 0.9482,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "corn_china",
+    "lag": 3,
+    "F": 2.5799,
+    "p": 0.1154,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "brent",
+    "lag": 1,
+    "F": 3.0514,
+    "p": 0.0876,
+    "n": 47,
+    "tier": "p10"
+  },
+  {
+    "target": "ppan",
+    "predictor": "brent",
+    "lag": 2,
+    "F": 1.8505,
+    "p": 0.1806,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "brent",
+    "lag": 3,
+    "F": 1.768,
+    "p": 0.1905,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "urals",
+    "lag": 1,
+    "F": 2.601,
+    "p": 0.1139,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "urals",
+    "lag": 2,
+    "F": 0.6954,
+    "p": 0.4088,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "urals",
+    "lag": 3,
+    "F": 3.5183,
+    "p": 0.0673,
+    "n": 47,
+    "tier": "p10"
+  },
+  {
+    "target": "ppan",
+    "predictor": "hdan",
+    "lag": 1,
+    "F": 1.3349,
+    "p": 0.2542,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "hdan",
+    "lag": 2,
+    "F": 0.3117,
+    "p": 0.5795,
+    "n": 46,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "hdan",
+    "lag": 3,
+    "F": 1.0232,
+    "p": 0.3175,
+    "n": 45,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "diesel_usd_ton",
+    "lag": 1,
+    "F": 1.279,
+    "p": 0.2642,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "diesel_usd_ton",
+    "lag": 2,
+    "F": 0.6763,
+    "p": 0.4153,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "diesel_usd_ton",
+    "lag": 3,
+    "F": 2.1245,
+    "p": 0.1521,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "fx_rate",
+    "lag": 1,
+    "F": 0.4368,
+    "p": 0.5121,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "fx_rate",
+    "lag": 2,
+    "F": 0.0047,
+    "p": 0.9458,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "ppan",
+    "predictor": "fx_rate",
+    "lag": 3,
+    "F": 0.1351,
+    "p": 0.715,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "baltic_an",
+    "lag": 1,
+    "F": 1.5761,
+    "p": 0.2133,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "baltic_an",
+    "lag": 2,
+    "F": 3.3013,
+    "p": 0.0733,
+    "n": 77,
+    "tier": "p10"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "baltic_an",
+    "lag": 3,
+    "F": 3.606,
+    "p": 0.0615,
+    "n": 77,
+    "tier": "p10"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "ammonia",
+    "lag": 1,
+    "F": 7.4407,
+    "p": 0.008,
+    "n": 77,
+    "tier": "p05"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "ammonia",
+    "lag": 2,
+    "F": 6.7117,
+    "p": 0.0115,
+    "n": 77,
+    "tier": "p05"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "ammonia",
+    "lag": 3,
+    "F": 0.8635,
+    "p": 0.3558,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "urea_black_sea",
+    "lag": 1,
+    "F": 3.0902,
+    "p": 0.0829,
+    "n": 77,
+    "tier": "p10"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "urea_black_sea",
+    "lag": 2,
+    "F": 2.7543,
+    "p": 0.1012,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "urea_black_sea",
+    "lag": 3,
+    "F": 4.6368,
+    "p": 0.0346,
+    "n": 77,
+    "tier": "p05"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "urea_china",
+    "lag": 1,
+    "F": 5.5838,
+    "p": 0.0208,
+    "n": 77,
+    "tier": "p05"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "urea_china",
+    "lag": 2,
+    "F": 10.1468,
+    "p": 0.0021,
+    "n": 77,
+    "tier": "p05"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "urea_china",
+    "lag": 3,
+    "F": 0.0634,
+    "p": 0.8019,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "natural_gas_jkm",
+    "lag": 1,
+    "F": 4.8317,
+    "p": 0.0311,
+    "n": 77,
+    "tier": "p05"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "natural_gas_jkm",
+    "lag": 2,
+    "F": 4.2467,
+    "p": 0.0428,
+    "n": 77,
+    "tier": "p05"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "natural_gas_jkm",
+    "lag": 3,
+    "F": 8.8821,
+    "p": 0.0039,
+    "n": 77,
+    "tier": "p05"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "natural_gas_henry_hub",
+    "lag": 1,
+    "F": 0.6955,
+    "p": 0.407,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "natural_gas_henry_hub",
+    "lag": 2,
+    "F": 3.3846,
+    "p": 0.0698,
+    "n": 77,
+    "tier": "p10"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "natural_gas_henry_hub",
+    "lag": 3,
+    "F": 2.1356,
+    "p": 0.1481,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "natural_gas_uk",
+    "lag": 1,
+    "F": 1.2123,
+    "p": 0.2744,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "natural_gas_uk",
+    "lag": 2,
+    "F": 0.2771,
+    "p": 0.6002,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "natural_gas_uk",
+    "lag": 3,
+    "F": 2.4376,
+    "p": 0.1227,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "natural_gas_netherlands",
+    "lag": 1,
+    "F": 4.1601,
+    "p": 0.045,
+    "n": 77,
+    "tier": "p05"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "natural_gas_netherlands",
+    "lag": 2,
+    "F": 0.5767,
+    "p": 0.45,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "natural_gas_netherlands",
+    "lag": 3,
+    "F": 8.5221,
+    "p": 0.0046,
+    "n": 77,
+    "tier": "p05"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "corn_us",
+    "lag": 1,
+    "F": 3.8183,
+    "p": 0.0545,
+    "n": 77,
+    "tier": "p10"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "corn_us",
+    "lag": 2,
+    "F": 3.5957,
+    "p": 0.0618,
+    "n": 77,
+    "tier": "p10"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "corn_us",
+    "lag": 3,
+    "F": 1.6167,
+    "p": 0.2075,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "corn_china",
+    "lag": 1,
+    "F": 0.0086,
+    "p": 0.9262,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "corn_china",
+    "lag": 2,
+    "F": 1.8844,
+    "p": 0.174,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "corn_china",
+    "lag": 3,
+    "F": 0.3806,
+    "p": 0.5392,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "brent",
+    "lag": 1,
+    "F": 0.411,
+    "p": 0.5235,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "brent",
+    "lag": 2,
+    "F": 3.1539,
+    "p": 0.0799,
+    "n": 76,
+    "tier": "p10"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "brent",
+    "lag": 3,
+    "F": 2.0254,
+    "p": 0.159,
+    "n": 75,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "urals",
+    "lag": 1,
+    "F": 0.3427,
+    "p": 0.5601,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "urals",
+    "lag": 2,
+    "F": 2.5356,
+    "p": 0.1156,
+    "n": 76,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "urals",
+    "lag": 3,
+    "F": 1.4485,
+    "p": 0.2327,
+    "n": 75,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "hdan",
+    "lag": 1,
+    "F": 4.4364,
+    "p": 0.0409,
+    "n": 47,
+    "tier": "p05"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "hdan",
+    "lag": 2,
+    "F": 1.1651,
+    "p": 0.2864,
+    "n": 46,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "hdan",
+    "lag": 3,
+    "F": 0.0008,
+    "p": 0.977,
+    "n": 45,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "ppan",
+    "lag": 1,
+    "F": 10.7053,
+    "p": 0.0021,
+    "n": 47,
+    "tier": "p05"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "ppan",
+    "lag": 2,
+    "F": 0.3078,
+    "p": 0.5819,
+    "n": 46,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "ppan",
+    "lag": 3,
+    "F": 0.2727,
+    "p": 0.6043,
+    "n": 45,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "fx_rate",
+    "lag": 1,
+    "F": 0.0325,
+    "p": 0.8574,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "fx_rate",
+    "lag": 2,
+    "F": 0.0084,
+    "p": 0.9274,
+    "n": 76,
+    "tier": "ns"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "fx_rate",
+    "lag": 3,
+    "F": 0.1829,
+    "p": 0.6702,
+    "n": 75,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "baltic_an",
+    "lag": 1,
+    "F": 0.012,
+    "p": 0.9129,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "baltic_an",
+    "lag": 2,
+    "F": 0.3628,
+    "p": 0.5488,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "baltic_an",
+    "lag": 3,
+    "F": 0.6735,
+    "p": 0.4145,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "ammonia",
+    "lag": 1,
+    "F": 2.2052,
+    "p": 0.1418,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "ammonia",
+    "lag": 2,
+    "F": 3.4066,
+    "p": 0.0689,
+    "n": 77,
+    "tier": "p10"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "ammonia",
+    "lag": 3,
+    "F": 0.7207,
+    "p": 0.3987,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "urea_black_sea",
+    "lag": 1,
+    "F": 6.289,
+    "p": 0.0143,
+    "n": 77,
+    "tier": "p05"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "urea_black_sea",
+    "lag": 2,
+    "F": 3.2559,
+    "p": 0.0752,
+    "n": 77,
+    "tier": "p10"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "urea_black_sea",
+    "lag": 3,
+    "F": 1.6019,
+    "p": 0.2096,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "urea_china",
+    "lag": 1,
+    "F": 0.6093,
+    "p": 0.4375,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "urea_china",
+    "lag": 2,
+    "F": 7.3434,
+    "p": 0.0084,
+    "n": 77,
+    "tier": "p05"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "urea_china",
+    "lag": 3,
+    "F": 0.1593,
+    "p": 0.6909,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "natural_gas_jkm",
+    "lag": 1,
+    "F": 3.8802,
+    "p": 0.0526,
+    "n": 77,
+    "tier": "p10"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "natural_gas_jkm",
+    "lag": 2,
+    "F": 0.1471,
+    "p": 0.7024,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "natural_gas_jkm",
+    "lag": 3,
+    "F": 0.8325,
+    "p": 0.3645,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "natural_gas_henry_hub",
+    "lag": 1,
+    "F": 0.0836,
+    "p": 0.7733,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "natural_gas_henry_hub",
+    "lag": 2,
+    "F": 1.3534,
+    "p": 0.2484,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "natural_gas_henry_hub",
+    "lag": 3,
+    "F": 0.0052,
+    "p": 0.9425,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "natural_gas_uk",
+    "lag": 1,
+    "F": 8.5536,
+    "p": 0.0046,
+    "n": 77,
+    "tier": "p05"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "natural_gas_uk",
+    "lag": 2,
+    "F": 3.0141,
+    "p": 0.0867,
+    "n": 77,
+    "tier": "p10"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "natural_gas_uk",
+    "lag": 3,
+    "F": 0.2403,
+    "p": 0.6254,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "natural_gas_netherlands",
+    "lag": 1,
+    "F": 4.3687,
+    "p": 0.04,
+    "n": 77,
+    "tier": "p05"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "natural_gas_netherlands",
+    "lag": 2,
+    "F": 1.3296,
+    "p": 0.2526,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "natural_gas_netherlands",
+    "lag": 3,
+    "F": 0.0095,
+    "p": 0.9225,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "corn_us",
+    "lag": 1,
+    "F": 3.5863,
+    "p": 0.0622,
+    "n": 77,
+    "tier": "p10"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "corn_us",
+    "lag": 2,
+    "F": 0.6291,
+    "p": 0.4302,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "corn_us",
+    "lag": 3,
+    "F": 0.4517,
+    "p": 0.5036,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "corn_china",
+    "lag": 1,
+    "F": 2.6377,
+    "p": 0.1086,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "corn_china",
+    "lag": 2,
+    "F": 0.0001,
+    "p": 0.9912,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "corn_china",
+    "lag": 3,
+    "F": 3.0695,
+    "p": 0.0839,
+    "n": 77,
+    "tier": "p10"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "brent",
+    "lag": 1,
+    "F": 0.0286,
+    "p": 0.8663,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "brent",
+    "lag": 2,
+    "F": 0.047,
+    "p": 0.8289,
+    "n": 76,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "brent",
+    "lag": 3,
+    "F": 0.0345,
+    "p": 0.8533,
+    "n": 75,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "urals",
+    "lag": 1,
+    "F": 0.328,
+    "p": 0.5686,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "urals",
+    "lag": 2,
+    "F": 0.0,
+    "p": 0.9948,
+    "n": 76,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "urals",
+    "lag": 3,
+    "F": 0.0399,
+    "p": 0.8422,
+    "n": 75,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "hdan",
+    "lag": 1,
+    "F": 0.0008,
+    "p": 0.9779,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "hdan",
+    "lag": 2,
+    "F": 0.4342,
+    "p": 0.5134,
+    "n": 46,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "hdan",
+    "lag": 3,
+    "F": 1.3528,
+    "p": 0.2513,
+    "n": 45,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "ppan",
+    "lag": 1,
+    "F": 0.0402,
+    "p": 0.8421,
+    "n": 47,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "ppan",
+    "lag": 2,
+    "F": 0.4928,
+    "p": 0.4865,
+    "n": 46,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "ppan",
+    "lag": 3,
+    "F": 0.2983,
+    "p": 0.5879,
+    "n": 45,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "diesel_usd_ton",
+    "lag": 1,
+    "F": 0.0114,
+    "p": 0.9152,
+    "n": 77,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "diesel_usd_ton",
+    "lag": 2,
+    "F": 1.2801,
+    "p": 0.2616,
+    "n": 76,
+    "tier": "ns"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "diesel_usd_ton",
+    "lag": 3,
+    "F": 20.5486,
+    "p": 0.0,
+    "n": 75,
+    "tier": "p05"
+  }
+]
