@@ -55,7 +55,13 @@ Plans:
   2. Diesel purchasing price in MNT is computed as a derived series (Diesel-USD forecast × FX forecast × markup), not modeled independently
   3. Bull/bear spread is computed per-series from that series' own backtested error/volatility, not one flat percentage for all series
   4. Bull/bear spread widens as the horizon extends further out
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 03-01-PLAN.md — Frozen Phase 2 constants, shared forecast primitives, test fixtures (wave 1)
+- [ ] 03-02-PLAN.md — HDAN SARIMAX(0,1,0)+exog with lag-aware future exog and GARCH band (wave 2)
+- [ ] 03-03-PLAN.md — PPAN Direct-OLS multi-step system, Diesel-USD/FX Naive with ARIMA-SE bands (wave 3)
+- [ ] 03-04-PLAN.md — forecast_all dispatcher, derived Diesel-MNT, FCST-02..05 test suite (wave 4)
 
 ### Phase 4: Data Entry UI & Historical View
 **Goal**: The user can manage monthly actual price data directly in the dashboard, with entries validated and reliably persisted.
@@ -89,7 +95,7 @@ Plans:
 |-------|----------------|--------|-----------|
 | 1. App Skeleton & Data Layer | 3/3 | Complete   | 2026-08-21 |
 | 2. Model Research & Backtesting | 7/7 | Complete   | 2026-08-21 |
-| 3. Forecasting Module & Derived Series | 0/? | Not started | - |
+| 3. Forecasting Module & Derived Series | 0/4 | Planned | - |
 | 4. Data Entry UI & Historical View | 0/? | Not started | - |
 | 5. Forecast UI, Scenario Chart & Excel Export | 0/? | Not started | - |
 
