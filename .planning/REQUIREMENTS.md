@@ -26,9 +26,9 @@
 - [ ] **FCST-03**: Diesel purchasing price in MNT is computed as a derived series
       (Diesel-USD forecast × FX forecast × markup) at each horizon step, not modeled
       independently
-- [x] **FCST-04**: Bull/bear spread is computed per series from that series' own
+- [ ] **FCST-04**: Bull/bear spread is computed per series from that series' own
       backtested error/volatility (not one flat percentage applied to every series)
-- [x] **FCST-05**: Bull/bear spread widens as the horizon extends further out, rather than
+- [ ] **FCST-05**: Bull/bear spread widens as the horizon extends further out, rather than
       staying a fixed percentage regardless of how many months ahead the forecast is
 - [ ] **FCST-06**: Forecast values are shown in a table (exact numbers per month, per
       series, per scenario) in addition to any chart — not chart-only
@@ -93,8 +93,8 @@
 | FCST-01 | Phase 5 | Pending |
 | FCST-02 | Phase 3 | Pending |
 | FCST-03 | Phase 3 | Pending |
-| FCST-04 | Phase 3 | Complete |
-| FCST-05 | Phase 3 | Complete |
+| FCST-04 | Phase 3 | Pending (foundation in 03-01; full per-series wiring in 03-02..03-04) |
+| FCST-05 | Phase 3 | Pending (foundation in 03-01; full per-series wiring in 03-02..03-04) |
 | FCST-06 | Phase 5 | Pending |
 | FCST-07 | Phase 2 | Complete |
 | VIS-01 | Phase 4 | Pending |
