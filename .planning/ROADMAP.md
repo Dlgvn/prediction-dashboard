@@ -3,7 +3,7 @@
 ## Phases
 
 - [x] **Phase 1: App Skeleton & Data Layer** - Running Reflex app with seeded historical price data in SQLite (completed 2026-08-21)
-- [ ] **Phase 2: Model Research & Backtesting** - Forecasting models chosen and validated via holdout backtest, per series
+- [x] **Phase 2: Model Research & Backtesting** - Forecasting models chosen and validated via holdout backtest, per series (completed 2026-08-21)
 - [ ] **Phase 3: Forecasting Module & Derived Series** - Base/bull/bear forecasts and derived Diesel-MNT computed from validated models
 - [ ] **Phase 4: Data Entry UI & Historical View** - User manages monthly actuals in-app with validation and persistence
 - [ ] **Phase 5: Forecast UI, Scenario Chart & Excel Export** - User views horizon-based scenario forecasts and exports data
@@ -44,7 +44,7 @@ Plans:
 - [x] 02-04-PLAN.md — Naive/MA/ETS baselines and ARIMA/SARIMAX walk-forward, iterative vs direct (wave 3)
 - [x] 02-05-PLAN.md — VAR systems and VECM where cointegrated, walk-forward (wave 3)
 - [x] 02-06-PLAN.md — RandomForest/GradientBoosting baselines with overfitting diagnostics (wave 3)
-- [ ] 02-07-PLAN.md — Rank all candidates, name winners, write report and Phase 3 hand-off (wave 4)
+- [x] 02-07-PLAN.md — Rank all candidates, name winners, write report and Phase 3 hand-off (wave 4)
 
 ### Phase 3: Forecasting Module & Derived Series
 **Goal**: Given historical data and a chosen horizon, the system produces base/bull/bear forecasts for each series and the derived Diesel-MNT series, using the models validated in Phase 2.
@@ -88,7 +88,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. App Skeleton & Data Layer | 3/3 | Complete   | 2026-08-21 |
-| 2. Model Research & Backtesting | 6/7 | In Progress|  |
+| 2. Model Research & Backtesting | 7/7 | Complete   | 2026-08-21 |
 | 3. Forecasting Module & Derived Series | 0/? | Not started | - |
 | 4. Data Entry UI & Historical View | 0/? | Not started | - |
 | 5. Forecast UI, Scenario Chart & Excel Export | 0/? | Not started | - |
