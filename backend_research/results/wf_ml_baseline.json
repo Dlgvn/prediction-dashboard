@@ -1,0 +1,823 @@
+[
+  {
+    "series": "hdan",
+    "model": "RandomForest",
+    "family": "ml",
+    "horizon_strategy": "direct",
+    "predictors": {
+      "ppan": 1,
+      "urea_china": 1,
+      "urea_black_sea": 1,
+      "ammonia": 3,
+      "baltic_an": 1,
+      "corn_us": 1
+    },
+    "mape_by_horizon": {
+      "1": 5.908968331412898,
+      "2": 3.6694096406458208,
+      "3": null,
+      "4": null,
+      "5": null,
+      "6": null,
+      "7": null,
+      "8": null,
+      "9": null,
+      "10": null,
+      "11": null,
+      "12": null
+    },
+    "mape_mean_1_12": 4.789188986029359,
+    "single_holdout_mape": 28.339542496976733,
+    "n_origins": 2,
+    "refit_every": 3,
+    "failed_origins": 0,
+    "notes": "hyperparameters: {'n_estimators': 300, 'max_depth': 4, 'min_samples_leaf': 3, 'random_state': 42}; refit_every=3; min_train shrunk from 48 to 43 (n=45 after dropna); direct multi-step, one regressor per horizon 1-12; features=['hdan_lag1', 'hdan_lag2', 'hdan_lag3', 'ppan_lag1', 'urea_china_lag1', 'urea_black_sea_lag1', 'ammonia_lag3', 'baltic_an_lag1', 'corn_us_lag1']; n=45 after dropna",
+    "naive_mape_mean_1_12": 25.416845417556345,
+    "margin_over_naive_pct_points": 20.627656431526987,
+    "feature_importances": {
+      "baltic_an_lag1": 0.45862455368988087,
+      "ppan_lag1": 0.1400859890208938,
+      "hdan_lag1": 0.10564669771055933,
+      "ammonia_lag3": 0.10338169760322156,
+      "urea_china_lag1": 0.07502278879584098,
+      "hdan_lag2": 0.06052902977616792,
+      "urea_black_sea_lag1": 0.030238683883393947,
+      "corn_us_lag1": 0.01338630603412693,
+      "hdan_lag3": 0.013084253485914677
+    },
+    "lag1_importance_share": 0.10564669771055933,
+    "overfit_flags": [
+      "small_sample",
+      "suspiciously_strong"
+    ]
+  },
+  {
+    "series": "hdan",
+    "model": "RandomForest",
+    "family": "ml",
+    "horizon_strategy": "iterative",
+    "predictors": {
+      "ppan": 1,
+      "urea_china": 1,
+      "urea_black_sea": 1,
+      "ammonia": 3,
+      "baltic_an": 1,
+      "corn_us": 1
+    },
+    "mape_by_horizon": {
+      "1": 5.908968331412898,
+      "2": 9.659606433881185,
+      "3": null,
+      "4": null,
+      "5": null,
+      "6": null,
+      "7": null,
+      "8": null,
+      "9": null,
+      "10": null,
+      "11": null,
+      "12": null
+    },
+    "mape_mean_1_12": 7.784287382647042,
+    "single_holdout_mape": 32.41194633871984,
+    "n_origins": 2,
+    "refit_every": 3,
+    "failed_origins": 0,
+    "notes": "hyperparameters: {'n_estimators': 300, 'max_depth': 4, 'min_samples_leaf': 3, 'random_state': 42}; refit_every=3; min_train shrunk from 48 to 43 (n=45 after dropna); iterative single-step regressor recursed to 12 steps; own lags cascade predicted values, non-target predictor features hold their last observed (already-lagged) value across the recursion since future values are unknown at the origin -- the honest production scenario; features=['hdan_lag1', 'hdan_lag2', 'hdan_lag3', 'ppan_lag1', 'urea_china_lag1', 'urea_black_sea_lag1', 'ammonia_lag3', 'baltic_an_lag1', 'corn_us_lag1']; n=45 after dropna",
+    "naive_mape_mean_1_12": 25.416845417556345,
+    "margin_over_naive_pct_points": 17.6325580349093,
+    "feature_importances": {
+      "baltic_an_lag1": 0.45862455368988087,
+      "ppan_lag1": 0.1400859890208938,
+      "hdan_lag1": 0.10564669771055933,
+      "ammonia_lag3": 0.10338169760322156,
+      "urea_china_lag1": 0.07502278879584098,
+      "hdan_lag2": 0.06052902977616792,
+      "urea_black_sea_lag1": 0.030238683883393947,
+      "corn_us_lag1": 0.01338630603412693,
+      "hdan_lag3": 0.013084253485914677
+    },
+    "lag1_importance_share": 0.10564669771055933,
+    "overfit_flags": [
+      "small_sample",
+      "suspiciously_strong"
+    ]
+  },
+  {
+    "series": "hdan",
+    "model": "GradientBoosting",
+    "family": "ml",
+    "horizon_strategy": "direct",
+    "predictors": {
+      "ppan": 1,
+      "urea_china": 1,
+      "urea_black_sea": 1,
+      "ammonia": 3,
+      "baltic_an": 1,
+      "corn_us": 1
+    },
+    "mape_by_horizon": {
+      "1": 17.840650266028117,
+      "2": 11.000327174920049,
+      "3": null,
+      "4": null,
+      "5": null,
+      "6": null,
+      "7": null,
+      "8": null,
+      "9": null,
+      "10": null,
+      "11": null,
+      "12": null
+    },
+    "mape_mean_1_12": 14.420488720474083,
+    "single_holdout_mape": 31.058041022095328,
+    "n_origins": 2,
+    "refit_every": 3,
+    "failed_origins": 0,
+    "notes": "hyperparameters: {'n_estimators': 200, 'max_depth': 2, 'learning_rate': 0.05, 'min_samples_leaf': 3, 'random_state': 42}; refit_every=3; min_train shrunk from 48 to 43 (n=45 after dropna); direct multi-step, one regressor per horizon 1-12; features=['hdan_lag1', 'hdan_lag2', 'hdan_lag3', 'ppan_lag1', 'urea_china_lag1', 'urea_black_sea_lag1', 'ammonia_lag3', 'baltic_an_lag1', 'corn_us_lag1']; n=45 after dropna",
+    "naive_mape_mean_1_12": 25.416845417556345,
+    "margin_over_naive_pct_points": 10.996356697082263,
+    "feature_importances": {
+      "baltic_an_lag1": 0.6057764907381543,
+      "ppan_lag1": 0.10144846973254106,
+      "ammonia_lag3": 0.09508277595399076,
+      "urea_black_sea_lag1": 0.0492150028501685,
+      "hdan_lag1": 0.04565760691240829,
+      "hdan_lag3": 0.04422445834988691,
+      "corn_us_lag1": 0.037870569299892964,
+      "urea_china_lag1": 0.01380787582485907,
+      "hdan_lag2": 0.006916750338098186
+    },
+    "lag1_importance_share": 0.04565760691240829,
+    "overfit_flags": [
+      "small_sample"
+    ]
+  },
+  {
+    "series": "hdan",
+    "model": "GradientBoosting",
+    "family": "ml",
+    "horizon_strategy": "iterative",
+    "predictors": {
+      "ppan": 1,
+      "urea_china": 1,
+      "urea_black_sea": 1,
+      "ammonia": 3,
+      "baltic_an": 1,
+      "corn_us": 1
+    },
+    "mape_by_horizon": {
+      "1": 17.840650266028117,
+      "2": 24.297411911284705,
+      "3": null,
+      "4": null,
+      "5": null,
+      "6": null,
+      "7": null,
+      "8": null,
+      "9": null,
+      "10": null,
+      "11": null,
+      "12": null
+    },
+    "mape_mean_1_12": 21.06903108865641,
+    "single_holdout_mape": 34.773025653834196,
+    "n_origins": 2,
+    "refit_every": 3,
+    "failed_origins": 0,
+    "notes": "hyperparameters: {'n_estimators': 200, 'max_depth': 2, 'learning_rate': 0.05, 'min_samples_leaf': 3, 'random_state': 42}; refit_every=3; min_train shrunk from 48 to 43 (n=45 after dropna); iterative single-step regressor recursed to 12 steps; own lags cascade predicted values, non-target predictor features hold their last observed (already-lagged) value across the recursion since future values are unknown at the origin -- the honest production scenario; features=['hdan_lag1', 'hdan_lag2', 'hdan_lag3', 'ppan_lag1', 'urea_china_lag1', 'urea_black_sea_lag1', 'ammonia_lag3', 'baltic_an_lag1', 'corn_us_lag1']; n=45 after dropna",
+    "naive_mape_mean_1_12": 25.416845417556345,
+    "margin_over_naive_pct_points": 4.347814328899936,
+    "feature_importances": {
+      "baltic_an_lag1": 0.6057764907381543,
+      "ppan_lag1": 0.10144846973254106,
+      "ammonia_lag3": 0.09508277595399076,
+      "urea_black_sea_lag1": 0.0492150028501685,
+      "hdan_lag1": 0.04565760691240829,
+      "hdan_lag3": 0.04422445834988691,
+      "corn_us_lag1": 0.037870569299892964,
+      "urea_china_lag1": 0.01380787582485907,
+      "hdan_lag2": 0.006916750338098186
+    },
+    "lag1_importance_share": 0.04565760691240829,
+    "overfit_flags": [
+      "small_sample"
+    ]
+  },
+  {
+    "series": "ppan",
+    "model": "RandomForest",
+    "family": "ml",
+    "horizon_strategy": "direct",
+    "predictors": {
+      "baltic_an": 1,
+      "urals": 3,
+      "urea_china": 1,
+      "brent": 1,
+      "natural_gas_netherlands": 2
+    },
+    "mape_by_horizon": {
+      "1": 10.481815093775898,
+      "2": 13.805607910566081,
+      "3": null,
+      "4": null,
+      "5": null,
+      "6": null,
+      "7": null,
+      "8": null,
+      "9": null,
+      "10": null,
+      "11": null,
+      "12": null
+    },
+    "mape_mean_1_12": 12.14371150217099,
+    "single_holdout_mape": 30.42569253757293,
+    "n_origins": 2,
+    "refit_every": 3,
+    "failed_origins": 0,
+    "notes": "hyperparameters: {'n_estimators': 300, 'max_depth': 4, 'min_samples_leaf': 3, 'random_state': 42}; refit_every=3; min_train shrunk from 48 to 42 (n=44 after dropna); direct multi-step, one regressor per horizon 1-12; features=['ppan_lag1', 'ppan_lag2', 'ppan_lag3', 'baltic_an_lag1', 'urals_lag3', 'urea_china_lag1', 'brent_lag1', 'natural_gas_netherlands_lag2']; n=44 after dropna",
+    "naive_mape_mean_1_12": 27.52787822684603,
+    "margin_over_naive_pct_points": 15.38416672467504,
+    "feature_importances": {
+      "baltic_an_lag1": 0.6822583477012625,
+      "urea_china_lag1": 0.1601146443837489,
+      "ppan_lag1": 0.055716147414202576,
+      "natural_gas_netherlands_lag2": 0.029928835925760757,
+      "ppan_lag3": 0.026081674772004453,
+      "urals_lag3": 0.019072633727986812,
+      "brent_lag1": 0.015554220510289127,
+      "ppan_lag2": 0.011273495564744938
+    },
+    "lag1_importance_share": 0.055716147414202576,
+    "overfit_flags": [
+      "small_sample",
+      "suspiciously_strong"
+    ]
+  },
+  {
+    "series": "ppan",
+    "model": "RandomForest",
+    "family": "ml",
+    "horizon_strategy": "iterative",
+    "predictors": {
+      "baltic_an": 1,
+      "urals": 3,
+      "urea_china": 1,
+      "brent": 1,
+      "natural_gas_netherlands": 2
+    },
+    "mape_by_horizon": {
+      "1": 10.481815093775898,
+      "2": 20.09962105255032,
+      "3": null,
+      "4": null,
+      "5": null,
+      "6": null,
+      "7": null,
+      "8": null,
+      "9": null,
+      "10": null,
+      "11": null,
+      "12": null
+    },
+    "mape_mean_1_12": 15.29071807316311,
+    "single_holdout_mape": 29.337441951815936,
+    "n_origins": 2,
+    "refit_every": 3,
+    "failed_origins": 0,
+    "notes": "hyperparameters: {'n_estimators': 300, 'max_depth': 4, 'min_samples_leaf': 3, 'random_state': 42}; refit_every=3; min_train shrunk from 48 to 42 (n=44 after dropna); iterative single-step regressor recursed to 12 steps; own lags cascade predicted values, non-target predictor features hold their last observed (already-lagged) value across the recursion since future values are unknown at the origin -- the honest production scenario; features=['ppan_lag1', 'ppan_lag2', 'ppan_lag3', 'baltic_an_lag1', 'urals_lag3', 'urea_china_lag1', 'brent_lag1', 'natural_gas_netherlands_lag2']; n=44 after dropna",
+    "naive_mape_mean_1_12": 27.52787822684603,
+    "margin_over_naive_pct_points": 12.237160153682922,
+    "feature_importances": {
+      "baltic_an_lag1": 0.6822583477012625,
+      "urea_china_lag1": 0.1601146443837489,
+      "ppan_lag1": 0.055716147414202576,
+      "natural_gas_netherlands_lag2": 0.029928835925760757,
+      "ppan_lag3": 0.026081674772004453,
+      "urals_lag3": 0.019072633727986812,
+      "brent_lag1": 0.015554220510289127,
+      "ppan_lag2": 0.011273495564744938
+    },
+    "lag1_importance_share": 0.055716147414202576,
+    "overfit_flags": [
+      "small_sample",
+      "suspiciously_strong"
+    ]
+  },
+  {
+    "series": "ppan",
+    "model": "GradientBoosting",
+    "family": "ml",
+    "horizon_strategy": "direct",
+    "predictors": {
+      "baltic_an": 1,
+      "urals": 3,
+      "urea_china": 1,
+      "brent": 1,
+      "natural_gas_netherlands": 2
+    },
+    "mape_by_horizon": {
+      "1": 16.095591877453586,
+      "2": 15.114759102923724,
+      "3": null,
+      "4": null,
+      "5": null,
+      "6": null,
+      "7": null,
+      "8": null,
+      "9": null,
+      "10": null,
+      "11": null,
+      "12": null
+    },
+    "mape_mean_1_12": 15.605175490188655,
+    "single_holdout_mape": 30.621641995690453,
+    "n_origins": 2,
+    "refit_every": 3,
+    "failed_origins": 0,
+    "notes": "hyperparameters: {'n_estimators': 200, 'max_depth': 2, 'learning_rate': 0.05, 'min_samples_leaf': 3, 'random_state': 42}; refit_every=3; min_train shrunk from 48 to 42 (n=44 after dropna); direct multi-step, one regressor per horizon 1-12; features=['ppan_lag1', 'ppan_lag2', 'ppan_lag3', 'baltic_an_lag1', 'urals_lag3', 'urea_china_lag1', 'brent_lag1', 'natural_gas_netherlands_lag2']; n=44 after dropna",
+    "naive_mape_mean_1_12": 27.52787822684603,
+    "margin_over_naive_pct_points": 11.922702736657376,
+    "feature_importances": {
+      "baltic_an_lag1": 0.7579820457175009,
+      "ppan_lag3": 0.09852793700486845,
+      "urals_lag3": 0.05052061930279042,
+      "urea_china_lag1": 0.0456734457303949,
+      "natural_gas_netherlands_lag2": 0.01586947041903596,
+      "ppan_lag1": 0.01483239214047493,
+      "brent_lag1": 0.013857922416434788,
+      "ppan_lag2": 0.002736167268499667
+    },
+    "lag1_importance_share": 0.01483239214047493,
+    "overfit_flags": [
+      "small_sample",
+      "suspiciously_strong"
+    ]
+  },
+  {
+    "series": "ppan",
+    "model": "GradientBoosting",
+    "family": "ml",
+    "horizon_strategy": "iterative",
+    "predictors": {
+      "baltic_an": 1,
+      "urals": 3,
+      "urea_china": 1,
+      "brent": 1,
+      "natural_gas_netherlands": 2
+    },
+    "mape_by_horizon": {
+      "1": 16.095591877453586,
+      "2": 27.835464774264395,
+      "3": null,
+      "4": null,
+      "5": null,
+      "6": null,
+      "7": null,
+      "8": null,
+      "9": null,
+      "10": null,
+      "11": null,
+      "12": null
+    },
+    "mape_mean_1_12": 21.96552832585899,
+    "single_holdout_mape": 28.403234937556686,
+    "n_origins": 2,
+    "refit_every": 3,
+    "failed_origins": 0,
+    "notes": "hyperparameters: {'n_estimators': 200, 'max_depth': 2, 'learning_rate': 0.05, 'min_samples_leaf': 3, 'random_state': 42}; refit_every=3; min_train shrunk from 48 to 42 (n=44 after dropna); iterative single-step regressor recursed to 12 steps; own lags cascade predicted values, non-target predictor features hold their last observed (already-lagged) value across the recursion since future values are unknown at the origin -- the honest production scenario; features=['ppan_lag1', 'ppan_lag2', 'ppan_lag3', 'baltic_an_lag1', 'urals_lag3', 'urea_china_lag1', 'brent_lag1', 'natural_gas_netherlands_lag2']; n=44 after dropna",
+    "naive_mape_mean_1_12": 27.52787822684603,
+    "margin_over_naive_pct_points": 5.562349900987041,
+    "feature_importances": {
+      "baltic_an_lag1": 0.7579820457175009,
+      "ppan_lag3": 0.09852793700486845,
+      "urals_lag3": 0.05052061930279042,
+      "urea_china_lag1": 0.0456734457303949,
+      "natural_gas_netherlands_lag2": 0.01586947041903596,
+      "ppan_lag1": 0.01483239214047493,
+      "brent_lag1": 0.013857922416434788,
+      "ppan_lag2": 0.002736167268499667
+    },
+    "lag1_importance_share": 0.01483239214047493,
+    "overfit_flags": [
+      "small_sample"
+    ]
+  },
+  {
+    "series": "diesel_usd_ton",
+    "model": "RandomForest",
+    "family": "ml",
+    "horizon_strategy": "direct",
+    "predictors": {
+      "urea_china": 2,
+      "ppan": 1,
+      "natural_gas_jkm": 3,
+      "natural_gas_netherlands": 3,
+      "ammonia": 1,
+      "urea_black_sea": 3
+    },
+    "mape_by_horizon": {
+      "1": 12.552137842894044,
+      "2": 11.246734323047434,
+      "3": null,
+      "4": null,
+      "5": null,
+      "6": null,
+      "7": null,
+      "8": null,
+      "9": null,
+      "10": null,
+      "11": null,
+      "12": null
+    },
+    "mape_mean_1_12": 11.89943608297074,
+    "single_holdout_mape": 9.319742266938132,
+    "n_origins": 2,
+    "refit_every": 3,
+    "failed_origins": 0,
+    "notes": "hyperparameters: {'n_estimators': 300, 'max_depth': 4, 'min_samples_leaf': 3, 'random_state': 42}; refit_every=3; min_train shrunk from 48 to 44 (n=46 after dropna); direct multi-step, one regressor per horizon 1-12; features=['diesel_usd_ton_lag1', 'diesel_usd_ton_lag2', 'diesel_usd_ton_lag3', 'urea_china_lag2', 'ppan_lag1', 'natural_gas_jkm_lag3', 'natural_gas_netherlands_lag3', 'ammonia_lag1', 'urea_black_sea_lag3']; n=46 after dropna",
+    "naive_mape_mean_1_12": 7.042184868435554,
+    "margin_over_naive_pct_points": -4.857251214535185,
+    "feature_importances": {
+      "ammonia_lag1": 0.6036280140039844,
+      "diesel_usd_ton_lag1": 0.15217633327745492,
+      "urea_black_sea_lag3": 0.054153786206055966,
+      "urea_china_lag2": 0.05187358648088424,
+      "diesel_usd_ton_lag2": 0.051027515776636445,
+      "natural_gas_jkm_lag3": 0.02754751824541635,
+      "diesel_usd_ton_lag3": 0.022319890635363028,
+      "ppan_lag1": 0.020722000371031148,
+      "natural_gas_netherlands_lag3": 0.016551355003173635
+    },
+    "lag1_importance_share": 0.15217633327745492,
+    "overfit_flags": [
+      "marginal_over_naive",
+      "small_sample"
+    ]
+  },
+  {
+    "series": "diesel_usd_ton",
+    "model": "RandomForest",
+    "family": "ml",
+    "horizon_strategy": "iterative",
+    "predictors": {
+      "urea_china": 2,
+      "ppan": 1,
+      "natural_gas_jkm": 3,
+      "natural_gas_netherlands": 3,
+      "ammonia": 1,
+      "urea_black_sea": 3
+    },
+    "mape_by_horizon": {
+      "1": 12.552137842894044,
+      "2": 12.741469430146454,
+      "3": null,
+      "4": null,
+      "5": null,
+      "6": null,
+      "7": null,
+      "8": null,
+      "9": null,
+      "10": null,
+      "11": null,
+      "12": null
+    },
+    "mape_mean_1_12": 12.64680363652025,
+    "single_holdout_mape": 8.384742434859739,
+    "n_origins": 2,
+    "refit_every": 3,
+    "failed_origins": 0,
+    "notes": "hyperparameters: {'n_estimators': 300, 'max_depth': 4, 'min_samples_leaf': 3, 'random_state': 42}; refit_every=3; min_train shrunk from 48 to 44 (n=46 after dropna); iterative single-step regressor recursed to 12 steps; own lags cascade predicted values, non-target predictor features hold their last observed (already-lagged) value across the recursion since future values are unknown at the origin -- the honest production scenario; features=['diesel_usd_ton_lag1', 'diesel_usd_ton_lag2', 'diesel_usd_ton_lag3', 'urea_china_lag2', 'ppan_lag1', 'natural_gas_jkm_lag3', 'natural_gas_netherlands_lag3', 'ammonia_lag1', 'urea_black_sea_lag3']; n=46 after dropna",
+    "naive_mape_mean_1_12": 7.042184868435554,
+    "margin_over_naive_pct_points": -5.604618768084696,
+    "feature_importances": {
+      "ammonia_lag1": 0.6036280140039844,
+      "diesel_usd_ton_lag1": 0.15217633327745492,
+      "urea_black_sea_lag3": 0.054153786206055966,
+      "urea_china_lag2": 0.05187358648088424,
+      "diesel_usd_ton_lag2": 0.051027515776636445,
+      "natural_gas_jkm_lag3": 0.02754751824541635,
+      "diesel_usd_ton_lag3": 0.022319890635363028,
+      "ppan_lag1": 0.020722000371031148,
+      "natural_gas_netherlands_lag3": 0.016551355003173635
+    },
+    "lag1_importance_share": 0.15217633327745492,
+    "overfit_flags": [
+      "marginal_over_naive",
+      "small_sample"
+    ]
+  },
+  {
+    "series": "diesel_usd_ton",
+    "model": "GradientBoosting",
+    "family": "ml",
+    "horizon_strategy": "direct",
+    "predictors": {
+      "urea_china": 2,
+      "ppan": 1,
+      "natural_gas_jkm": 3,
+      "natural_gas_netherlands": 3,
+      "ammonia": 1,
+      "urea_black_sea": 3
+    },
+    "mape_by_horizon": {
+      "1": 12.99735241516031,
+      "2": 10.863646524920867,
+      "3": null,
+      "4": null,
+      "5": null,
+      "6": null,
+      "7": null,
+      "8": null,
+      "9": null,
+      "10": null,
+      "11": null,
+      "12": null
+    },
+    "mape_mean_1_12": 11.930499470040589,
+    "single_holdout_mape": 9.419378929025584,
+    "n_origins": 2,
+    "refit_every": 3,
+    "failed_origins": 0,
+    "notes": "hyperparameters: {'n_estimators': 200, 'max_depth': 2, 'learning_rate': 0.05, 'min_samples_leaf': 3, 'random_state': 42}; refit_every=3; min_train shrunk from 48 to 44 (n=46 after dropna); direct multi-step, one regressor per horizon 1-12; features=['diesel_usd_ton_lag1', 'diesel_usd_ton_lag2', 'diesel_usd_ton_lag3', 'urea_china_lag2', 'ppan_lag1', 'natural_gas_jkm_lag3', 'natural_gas_netherlands_lag3', 'ammonia_lag1', 'urea_black_sea_lag3']; n=46 after dropna",
+    "naive_mape_mean_1_12": 7.042184868435554,
+    "margin_over_naive_pct_points": -4.8883146016050345,
+    "feature_importances": {
+      "ammonia_lag1": 0.6787485665928682,
+      "diesel_usd_ton_lag1": 0.12432353421408605,
+      "diesel_usd_ton_lag2": 0.06423210649997776,
+      "urea_black_sea_lag3": 0.0434629874065991,
+      "diesel_usd_ton_lag3": 0.04302655810833611,
+      "urea_china_lag2": 0.02684845963573639,
+      "natural_gas_jkm_lag3": 0.01133678519578519,
+      "natural_gas_netherlands_lag3": 0.006119602195987287,
+      "ppan_lag1": 0.0019014001506237586
+    },
+    "lag1_importance_share": 0.12432353421408607,
+    "overfit_flags": [
+      "marginal_over_naive",
+      "small_sample"
+    ]
+  },
+  {
+    "series": "diesel_usd_ton",
+    "model": "GradientBoosting",
+    "family": "ml",
+    "horizon_strategy": "iterative",
+    "predictors": {
+      "urea_china": 2,
+      "ppan": 1,
+      "natural_gas_jkm": 3,
+      "natural_gas_netherlands": 3,
+      "ammonia": 1,
+      "urea_black_sea": 3
+    },
+    "mape_by_horizon": {
+      "1": 12.99735241516031,
+      "2": 14.293795658401207,
+      "3": null,
+      "4": null,
+      "5": null,
+      "6": null,
+      "7": null,
+      "8": null,
+      "9": null,
+      "10": null,
+      "11": null,
+      "12": null
+    },
+    "mape_mean_1_12": 13.645574036780758,
+    "single_holdout_mape": 7.975085414295214,
+    "n_origins": 2,
+    "refit_every": 3,
+    "failed_origins": 0,
+    "notes": "hyperparameters: {'n_estimators': 200, 'max_depth': 2, 'learning_rate': 0.05, 'min_samples_leaf': 3, 'random_state': 42}; refit_every=3; min_train shrunk from 48 to 44 (n=46 after dropna); iterative single-step regressor recursed to 12 steps; own lags cascade predicted values, non-target predictor features hold their last observed (already-lagged) value across the recursion since future values are unknown at the origin -- the honest production scenario; features=['diesel_usd_ton_lag1', 'diesel_usd_ton_lag2', 'diesel_usd_ton_lag3', 'urea_china_lag2', 'ppan_lag1', 'natural_gas_jkm_lag3', 'natural_gas_netherlands_lag3', 'ammonia_lag1', 'urea_black_sea_lag3']; n=46 after dropna",
+    "naive_mape_mean_1_12": 7.042184868435554,
+    "margin_over_naive_pct_points": -6.6033891683452035,
+    "feature_importances": {
+      "ammonia_lag1": 0.6787485665928682,
+      "diesel_usd_ton_lag1": 0.12432353421408605,
+      "diesel_usd_ton_lag2": 0.06423210649997776,
+      "urea_black_sea_lag3": 0.0434629874065991,
+      "diesel_usd_ton_lag3": 0.04302655810833611,
+      "urea_china_lag2": 0.02684845963573639,
+      "natural_gas_jkm_lag3": 0.01133678519578519,
+      "natural_gas_netherlands_lag3": 0.006119602195987287,
+      "ppan_lag1": 0.0019014001506237586
+    },
+    "lag1_importance_share": 0.12432353421408607,
+    "overfit_flags": [
+      "marginal_over_naive",
+      "small_sample"
+    ]
+  },
+  {
+    "series": "fx_rate",
+    "model": "RandomForest",
+    "family": "ml",
+    "horizon_strategy": "direct",
+    "predictors": {
+      "diesel_usd_ton": 3,
+      "natural_gas_uk": 1,
+      "urea_china": 2,
+      "urea_black_sea": 1,
+      "natural_gas_netherlands": 1,
+      "natural_gas_jkm": 1
+    },
+    "mape_by_horizon": {
+      "1": 1.5247899916050194,
+      "2": 2.1228126640122373,
+      "3": 2.841570301412957,
+      "4": 3.7523338489750575,
+      "5": 4.011574740314256,
+      "6": 4.008467867540807,
+      "7": 4.679915729842365,
+      "8": 5.260567423163604,
+      "9": 5.37550429382747,
+      "10": 6.609999173672207,
+      "11": 6.926897598781308,
+      "12": 7.103084960847316
+    },
+    "mape_mean_1_12": 4.518126549499551,
+    "single_holdout_mape": 4.501947623264926,
+    "n_origins": 25,
+    "refit_every": 3,
+    "failed_origins": 0,
+    "notes": "hyperparameters: {'n_estimators': 300, 'max_depth': 4, 'min_samples_leaf': 3, 'random_state': 42}; refit_every=3; min_train=48; direct multi-step, one regressor per horizon 1-12; features=['fx_rate_lag1', 'fx_rate_lag2', 'fx_rate_lag3', 'diesel_usd_ton_lag3', 'natural_gas_uk_lag1', 'urea_china_lag2', 'urea_black_sea_lag1', 'natural_gas_netherlands_lag1', 'natural_gas_jkm_lag1']; n=73 after dropna",
+    "naive_mape_mean_1_12": 1.718421784032433,
+    "margin_over_naive_pct_points": -2.7997047654671183,
+    "feature_importances": {
+      "fx_rate_lag1": 0.3984559286093263,
+      "fx_rate_lag2": 0.30132704019976736,
+      "fx_rate_lag3": 0.25698869827618637,
+      "diesel_usd_ton_lag3": 0.03284739057257532,
+      "natural_gas_netherlands_lag1": 0.003097756046823231,
+      "urea_black_sea_lag1": 0.002637009084868149,
+      "urea_china_lag2": 0.0024277869641095924,
+      "natural_gas_uk_lag1": 0.0016439050175254281,
+      "natural_gas_jkm_lag1": 0.0005744852288182339
+    },
+    "lag1_importance_share": 0.3984559286093263,
+    "overfit_flags": [
+      "marginal_over_naive",
+      "small_sample"
+    ]
+  },
+  {
+    "series": "fx_rate",
+    "model": "RandomForest",
+    "family": "ml",
+    "horizon_strategy": "iterative",
+    "predictors": {
+      "diesel_usd_ton": 3,
+      "natural_gas_uk": 1,
+      "urea_china": 2,
+      "urea_black_sea": 1,
+      "natural_gas_netherlands": 1,
+      "natural_gas_jkm": 1
+    },
+    "mape_by_horizon": {
+      "1": 1.5247899916050194,
+      "2": 2.035762849254917,
+      "3": 2.5639667191806588,
+      "4": 2.985764288104136,
+      "5": 3.3467736555007983,
+      "6": 3.639841071933085,
+      "7": 3.9481308955606313,
+      "8": 4.284392519520336,
+      "9": 4.37306791624625,
+      "10": 4.424147528804393,
+      "11": 4.453016447739933,
+      "12": 4.5921788745164935
+    },
+    "mape_mean_1_12": 3.514319396497221,
+    "single_holdout_mape": 2.060742538529879,
+    "n_origins": 25,
+    "refit_every": 3,
+    "failed_origins": 0,
+    "notes": "hyperparameters: {'n_estimators': 300, 'max_depth': 4, 'min_samples_leaf': 3, 'random_state': 42}; refit_every=3; min_train=48; iterative single-step regressor recursed to 12 steps; own lags cascade predicted values, non-target predictor features hold their last observed (already-lagged) value across the recursion since future values are unknown at the origin -- the honest production scenario; features=['fx_rate_lag1', 'fx_rate_lag2', 'fx_rate_lag3', 'diesel_usd_ton_lag3', 'natural_gas_uk_lag1', 'urea_china_lag2', 'urea_black_sea_lag1', 'natural_gas_netherlands_lag1', 'natural_gas_jkm_lag1']; n=73 after dropna",
+    "naive_mape_mean_1_12": 1.718421784032433,
+    "margin_over_naive_pct_points": -1.7958976124647879,
+    "feature_importances": {
+      "fx_rate_lag1": 0.3984559286093263,
+      "fx_rate_lag2": 0.30132704019976736,
+      "fx_rate_lag3": 0.25698869827618637,
+      "diesel_usd_ton_lag3": 0.03284739057257532,
+      "natural_gas_netherlands_lag1": 0.003097756046823231,
+      "urea_black_sea_lag1": 0.002637009084868149,
+      "urea_china_lag2": 0.0024277869641095924,
+      "natural_gas_uk_lag1": 0.0016439050175254281,
+      "natural_gas_jkm_lag1": 0.0005744852288182339
+    },
+    "lag1_importance_share": 0.3984559286093263,
+    "overfit_flags": [
+      "marginal_over_naive",
+      "small_sample"
+    ]
+  },
+  {
+    "series": "fx_rate",
+    "model": "GradientBoosting",
+    "family": "ml",
+    "horizon_strategy": "direct",
+    "predictors": {
+      "diesel_usd_ton": 3,
+      "natural_gas_uk": 1,
+      "urea_china": 2,
+      "urea_black_sea": 1,
+      "natural_gas_netherlands": 1,
+      "natural_gas_jkm": 1
+    },
+    "mape_by_horizon": {
+      "1": 1.1537476636016155,
+      "2": 1.8709033267395414,
+      "3": 2.3910902123513837,
+      "4": 3.158938232374665,
+      "5": 4.094001966199618,
+      "6": 4.511310651252252,
+      "7": 4.909343312671034,
+      "8": 4.934479425766787,
+      "9": 4.935327525837142,
+      "10": 5.8207997065219175,
+      "11": 5.997460130139488,
+      "12": 6.353096307230193
+    },
+    "mape_mean_1_12": 4.17754153839047,
+    "single_holdout_mape": 4.552232436752605,
+    "n_origins": 25,
+    "refit_every": 3,
+    "failed_origins": 0,
+    "notes": "hyperparameters: {'n_estimators': 200, 'max_depth': 2, 'learning_rate': 0.05, 'min_samples_leaf': 3, 'random_state': 42}; refit_every=3; min_train=48; direct multi-step, one regressor per horizon 1-12; features=['fx_rate_lag1', 'fx_rate_lag2', 'fx_rate_lag3', 'diesel_usd_ton_lag3', 'natural_gas_uk_lag1', 'urea_china_lag2', 'urea_black_sea_lag1', 'natural_gas_netherlands_lag1', 'natural_gas_jkm_lag1']; n=73 after dropna",
+    "naive_mape_mean_1_12": 1.718421784032433,
+    "margin_over_naive_pct_points": -2.4591197543580368,
+    "feature_importances": {
+      "fx_rate_lag1": 0.4955273195748221,
+      "fx_rate_lag3": 0.28366789255604774,
+      "fx_rate_lag2": 0.2044643765292793,
+      "diesel_usd_ton_lag3": 0.007284128406055671,
+      "urea_black_sea_lag1": 0.0064549156520142354,
+      "urea_china_lag2": 0.002082436374861977,
+      "natural_gas_netherlands_lag1": 0.0003125074321461316,
+      "natural_gas_uk_lag1": 0.00013013562417792896,
+      "natural_gas_jkm_lag1": 7.628785059497126e-05
+    },
+    "lag1_importance_share": 0.4955273195748221,
+    "overfit_flags": [
+      "marginal_over_naive",
+      "small_sample"
+    ]
+  },
+  {
+    "series": "fx_rate",
+    "model": "GradientBoosting",
+    "family": "ml",
+    "horizon_strategy": "iterative",
+    "predictors": {
+      "diesel_usd_ton": 3,
+      "natural_gas_uk": 1,
+      "urea_china": 2,
+      "urea_black_sea": 1,
+      "natural_gas_netherlands": 1,
+      "natural_gas_jkm": 1
+    },
+    "mape_by_horizon": {
+      "1": 1.1537476636016155,
+      "2": 1.50754436791872,
+      "3": 1.8298086478955546,
+      "4": 2.1442922798523787,
+      "5": 2.4854046634845424,
+      "6": 2.9199228549303533,
+      "7": 3.3243308590654164,
+      "8": 3.7111317830513872,
+      "9": 3.928626449779844,
+      "10": 4.090652018617346,
+      "11": 4.3044297141676005,
+      "12": 4.488850113868742
+    },
+    "mape_mean_1_12": 2.990728451352792,
+    "single_holdout_mape": 1.2685009204511362,
+    "n_origins": 25,
+    "refit_every": 3,
+    "failed_origins": 0,
+    "notes": "hyperparameters: {'n_estimators': 200, 'max_depth': 2, 'learning_rate': 0.05, 'min_samples_leaf': 3, 'random_state': 42}; refit_every=3; min_train=48; iterative single-step regressor recursed to 12 steps; own lags cascade predicted values, non-target predictor features hold their last observed (already-lagged) value across the recursion since future values are unknown at the origin -- the honest production scenario; features=['fx_rate_lag1', 'fx_rate_lag2', 'fx_rate_lag3', 'diesel_usd_ton_lag3', 'natural_gas_uk_lag1', 'urea_china_lag2', 'urea_black_sea_lag1', 'natural_gas_netherlands_lag1', 'natural_gas_jkm_lag1']; n=73 after dropna",
+    "naive_mape_mean_1_12": 1.718421784032433,
+    "margin_over_naive_pct_points": -1.272306667320359,
+    "feature_importances": {
+      "fx_rate_lag1": 0.4955273195748221,
+      "fx_rate_lag3": 0.28366789255604774,
+      "fx_rate_lag2": 0.2044643765292793,
+      "diesel_usd_ton_lag3": 0.007284128406055671,
+      "urea_black_sea_lag1": 0.0064549156520142354,
+      "urea_china_lag2": 0.002082436374861977,
+      "natural_gas_netherlands_lag1": 0.0003125074321461316,
+      "natural_gas_uk_lag1": 0.00013013562417792896,
+      "natural_gas_jkm_lag1": 7.628785059497126e-05
+    },
+    "lag1_importance_share": 0.4955273195748221,
+    "overfit_flags": [
+      "marginal_over_naive",
+      "small_sample"
+    ]
+  }
+]
