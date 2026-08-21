@@ -35,7 +35,16 @@ Plans:
   1. Candidate models (ARIMA/SARIMAX/VAR plus at least one ML baseline) have been fit and backtested per series against genuine holdout data
   2. A research report names the winning model per series along with its backtested error (e.g. MAPE)
   3. No model reaches the shipped forecasting module without having gone through this backtest process
-**Plans**: TBD
+**Plans**: 7 plans
+
+Plans:
+- [ ] 02-01-PLAN.md — SQLite data loader, shared walk-forward harness, leakage unit tests (wave 1)
+- [ ] 02-02-PLAN.md — Granger causality + cointegration screen across the full predictor set (wave 2)
+- [ ] 02-03-PLAN.md — `arch` legitimacy gate and GARCH volatility per series (wave 2)
+- [ ] 02-04-PLAN.md — Naive/MA/ETS baselines and ARIMA/SARIMAX walk-forward, iterative vs direct (wave 3)
+- [ ] 02-05-PLAN.md — VAR systems and VECM where cointegrated, walk-forward (wave 3)
+- [ ] 02-06-PLAN.md — RandomForest/GradientBoosting baselines with overfitting diagnostics (wave 3)
+- [ ] 02-07-PLAN.md — Rank all candidates, name winners, write report and Phase 3 hand-off (wave 4)
 
 ### Phase 3: Forecasting Module & Derived Series
 **Goal**: Given historical data and a chosen horizon, the system produces base/bull/bear forecasts for each series and the derived Diesel-MNT series, using the models validated in Phase 2.
@@ -79,7 +88,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. App Skeleton & Data Layer | 3/3 | Complete   | 2026-08-21 |
-| 2. Model Research & Backtesting | 0/? | Not started | - |
+| 2. Model Research & Backtesting | 0/7 | Not started | - |
 | 3. Forecasting Module & Derived Series | 0/? | Not started | - |
 | 4. Data Entry UI & Historical View | 0/? | Not started | - |
 | 5. Forecast UI, Scenario Chart & Excel Export | 0/? | Not started | - |
