@@ -1,0 +1,16 @@
+# Research-phase-only dependencies for backend_research/ scripts.
+#
+# These are NOT runtime dependencies of the shipped Reflex app. Do not add
+# them to the app's own requirements file unless a Phase 3 decision
+# explicitly re-adopts one of them for production use (per STACK.md's
+# "research-phase-only, not a production dependency" rule).
+#
+# arch: GARCH volatility modelling, used by run_garch.py (plan 02-03).
+#       Verified legitimate at PyPI package-legitimacy checkpoint
+#       (Task 1, 02-03-PLAN.md) — https://pypi.org/project/arch/,
+#       maintained by bashtage (Kevin Sheppard).
+arch==8.0.0
+
+# scikit-learn: ML baseline forecaster comparison, pinned to the version
+# already installed in this environment per ENV.md.
+scikit-learn==1.7.2

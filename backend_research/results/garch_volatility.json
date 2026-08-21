@@ -1,0 +1,94 @@
+{
+  "hdan": {
+    "n_returns": 47,
+    "convergence_flag": 0,
+    "warnings": [],
+    "converged": true,
+    "viable": true,
+    "sigma_by_horizon": [
+      12.532726174302507,
+      12.583026997209927,
+      12.633127540913241,
+      12.6830301788432,
+      12.73273723791998,
+      12.782250999819277,
+      12.83157370219443,
+      12.880707539856434,
+      12.929654665913594,
+      12.978417192872477,
+      13.026997193701803,
+      13.075396702860736
+    ],
+    "stable_across_origins": true
+  },
+  "ppan": {
+    "n_returns": 47,
+    "convergence_flag": 0,
+    "warnings": [],
+    "converged": true,
+    "viable": true,
+    "sigma_by_horizon": [
+      12.49553437121511,
+      12.282533977445492,
+      12.128410430806442,
+      12.017334826514272,
+      11.937522230242232,
+      11.880299482881377,
+      11.839338684924376,
+      11.81005253875265,
+      11.789131129539149,
+      11.77419434709703,
+      11.763534897071766,
+      11.755930274890048
+    ],
+    "widening": false,
+    "note": "Horizon-1 sigma does not monotonically widen through horizon-12 within floating tolerance \u2014 reported as-is per PITFALLS.md Pitfall 3, not smoothed over.",
+    "stable_across_origins": true
+  },
+  "diesel_usd_ton": {
+    "n_returns": 76,
+    "convergence_flag": 0,
+    "warnings": [],
+    "converged": true,
+    "viable": true,
+    "sigma_by_horizon": [
+      5.096621225484017,
+      5.821055810061566,
+      6.464815045437155,
+      7.050033787126945,
+      7.590264766634571,
+      8.094520495721698,
+      8.569154268874197,
+      9.01884403412837,
+      9.447152509627582,
+      9.85686732022169,
+      10.250218348738123,
+      10.629022486815186
+    ],
+    "stable_across_origins": false,
+    "note": "Horizon-1 sigma is not stable across refit origins (>50% relative spread) \u2014 treat this series' GARCH volatility with caution."
+  },
+  "fx_rate": {
+    "n_returns": 76,
+    "convergence_flag": 0,
+    "warnings": [],
+    "converged": true,
+    "viable": true,
+    "sigma_by_horizon": [
+      0.21404871969941996,
+      0.29069183212165517,
+      0.3509795266386651,
+      0.4023325924862806,
+      0.44783523960708455,
+      0.489122979107618,
+      0.5271870403834497,
+      0.5626820260194774,
+      0.5960670677553658,
+      0.6276789275732849,
+      0.6577733066768455,
+      0.6865497868571565
+    ],
+    "stable_across_origins": false,
+    "note": "Horizon-1 sigma is not stable across refit origins (>50% relative spread) \u2014 treat this series' GARCH volatility with caution."
+  }
+}
