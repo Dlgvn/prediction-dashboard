@@ -20,3 +20,32 @@ def session():
     SQLModel.metadata.create_all(engine)
     with Session(engine) as sess:
         yield sess
+
+
+@pytest.fixture()
+def synthetic_history():
+    """Deterministic synthetic multi-series history for forecasting tests.
+
+    60 monthly rows, sorted ascending (oldest first), with every column
+    named in HDAN_PREDICTORS plus hdan, urals, diesel_usd_ton, fx_rate.
+    Each column has a mild upward trend plus noise so ARIMA fits converge
+    and trend-detection assertions are meaningful.
+    """
+    import numpy as np
+    import pandas as pd
+
+    from app.forecasting import HDAN_PREDICTORS
+
+    rng = np.random.default_rng(20260821)
+    n = 60
+    index = pd.date_range("2021-01-01", periods=n, freq="MS")
+
+    columns = list(HDAN_PREDICTORS) + ["hdan", "urals", "diesel_usd_ton", "fx_rate"]
+    data = {}
+    for i, col in enumerate(columns):
+        base = 100.0 + 10.0 * i
+        trend = np.linspace(0, 20, n)
+        noise = rng.normal(0, 1.5, n)
+        data[col] = base + trend + noise
+
+    return pd.DataFrame(data, index=index)
