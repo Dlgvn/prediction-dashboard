@@ -1,0 +1,102 @@
+[
+  {
+    "model": "naive",
+    "target": "HDAN",
+    "cadence": "weekly",
+    "mape": 3.44,
+    "n": 206
+  },
+  {
+    "model": "naive",
+    "target": "PPAN",
+    "cadence": "weekly",
+    "mape": 4.66,
+    "n": 206
+  },
+  {
+    "model": "VAR(HDAN,PPAN) order=4",
+    "target": "HDAN",
+    "cadence": "weekly",
+    "mape": 3.37,
+    "n": 205
+  },
+  {
+    "model": "VAR(HDAN,PPAN) order=4",
+    "target": "PPAN",
+    "cadence": "weekly",
+    "mape": 4.31,
+    "n": 205
+  },
+  {
+    "model": "OLS+Granger (monthly predictor set)",
+    "target": "HDAN",
+    "mape": 3.55,
+    "n": 203,
+    "predictors": {
+      "Baltic AN": 1,
+      "Ammonia": 2,
+      "Urea": 1
+    },
+    "r2": 0.018,
+    "cadence": "weekly"
+  },
+  {
+    "model": "OLS+Granger (monthly predictor set)",
+    "target": "PPAN",
+    "mape": 4.75,
+    "n": 203,
+    "predictors": {
+      "Baltic AN": 1,
+      "Urea": 1,
+      "Brent": 2
+    },
+    "r2": 0.02,
+    "cadence": "weekly"
+  },
+  {
+    "model": "OLS+Granger (+ new weekly drivers)",
+    "target": "HDAN",
+    "mape": 3.15,
+    "n": 203,
+    "predictors": {
+      "Baltic AN": 1,
+      "Ammonia": 2,
+      "Urea": 1,
+      "MidEastAmmonia_wk": 1,
+      "BlackSeaUrea_wk": 1,
+      "Gas_HenryHub": 2
+    },
+    "r2": 0.031,
+    "cadence": "weekly"
+  },
+  {
+    "model": "OLS+Granger (+ new weekly drivers)",
+    "target": "PPAN",
+    "mape": 3.98,
+    "n": 203,
+    "predictors": {
+      "Baltic AN": 1,
+      "Urea": 1,
+      "Brent": 2,
+      "MidEastAmmonia_wk": 1,
+      "ChinaUrea_wk": 1,
+      "Gas_JKM": 2
+    },
+    "r2": 0.044,
+    "cadence": "weekly"
+  },
+  {
+    "model": "VAR(HDAN,PPAN) order=4, 4-week-ahead",
+    "target": "HDAN",
+    "cadence": "weekly->monthly-horizon",
+    "mape": 10.35,
+    "n": 9
+  },
+  {
+    "model": "VAR(HDAN,PPAN) order=4, 4-week-ahead",
+    "target": "PPAN",
+    "cadence": "weekly->monthly-horizon",
+    "mape": 16.01,
+    "n": 9
+  }
+]

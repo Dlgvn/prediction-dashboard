@@ -6,6 +6,7 @@ import numpy as np
 
 AN_CSV = "/Users/dlgvnbyr/Desktop/Prediction Dashboard/AN Data.csv"
 DIESEL_CSV = "/Users/dlgvnbyr/Desktop/Prediction Dashboard/Diesel Data.csv"
+AN_WEEKLY_CSV = "/Users/dlgvnbyr/Desktop/Prediction Dashboard/AN price weekly.csv"
 
 def load_an_monthly():
     """Returns monthly DataFrame indexed by YM period: PPAN, HDAN, Baltic AN, Ammonia,
@@ -41,6 +42,46 @@ def load_diesel_monthly():
     out.columns = ['Diesel_usd_ton', 'Brent_usd_ton', 'FX_rate', 'Diesel_usd_liter',
                    'Purchase_mnt_liter', 'Urals_usd_bbl']
     return out
+
+def load_an_weekly():
+    """Returns native weekly DataFrame (no resampling) indexed by week-ending Date:
+    PPAN, HDAN, Baltic AN, Ammonia, Urea, Natural_gas, Brent. AN Data.csv rows are already
+    ~7 days apart -- this is the un-resampled counterpart to load_an_monthly()."""
+    df = pd.read_csv(AN_CSV)
+    df.columns = [c.strip() for c in df.columns]
+    df = df.drop(columns=['Unnamed: 10'], errors='ignore')
+    for c in ['PPAN', 'HDAN', 'Baltic AN', 'Ammonia', 'Urea', 'Natural_gas', 'Brent']:
+        df[c] = df[c].astype(str).str.replace(',', '').astype(float)
+    df['Date'] = pd.to_datetime(df['Date'])
+    df = df.sort_values('Date').set_index('Date')
+    return df[['PPAN', 'HDAN', 'Baltic AN', 'Ammonia', 'Urea', 'Natural_gas', 'Brent']]
+
+def load_weekly_drivers():
+    """Returns weekly DataFrame from AN price weekly.csv indexed by week-ending Date:
+    JKM/HenryHub/UK/Netherlands gas, US/China corn, Baltic AN, Middle East Ammonia,
+    Black Sea/China Urea. Dates are 'YYYY.MM.DD', descending; sparser columns (Urea/Ammonia
+    reporting lags) are forward-filled after sorting ascending."""
+    df = pd.read_csv(AN_WEEKLY_CSV)
+    df.columns = [c.strip() for c in df.columns]
+    df['Date'] = pd.to_datetime(df['Week Ending'], format='%Y.%m.%d')
+    df = df.drop(columns=['Week Ending']).sort_values('Date').set_index('Date')
+    for c in df.columns:
+        df[c] = pd.to_numeric(df[c], errors='coerce')
+    df = df.ffill()
+    df.columns = ['Gas_JKM', 'Gas_HenryHub', 'Gas_UK', 'Gas_Netherlands', 'Corn_US', 'Corn_China',
+                  'BalticAN_wk', 'MidEastAmmonia_wk', 'BlackSeaUrea_wk', 'ChinaUrea_wk']
+    return df
+
+def merged_weekly(tolerance_days=3):
+    """Joins load_an_weekly() and load_weekly_drivers() on nearest week-ending date within
+    +/- tolerance_days (the two files' week-ending conventions aren't guaranteed to align)."""
+    an = load_an_weekly()
+    drv = load_weekly_drivers()
+    merged = pd.merge_asof(
+        an.sort_index(), drv.sort_index(), left_index=True, right_index=True,
+        direction='nearest', tolerance=pd.Timedelta(days=tolerance_days),
+    )
+    return merged.dropna(subset=['BalticAN_wk'])
 
 def merged_monthly():
     """Inner-joins AN and Diesel monthly frames on their shared YM index.

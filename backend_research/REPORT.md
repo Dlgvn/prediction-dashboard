@@ -788,6 +788,63 @@ downstream reporting of forecast intervals, not hidden behind a nominal "95% int
 ]
 ```
 
+## Weekly cadence (Phase 1 follow-up, 2026-08-21)
+
+Follow-up to the analysis above, prompted by two things: (1) `AN Data.csv` turns out to already
+be **native weekly** for HDAN/PPAN (rows ~7 days apart) — the original research resampled it to
+monthly (last-of-month) without testing the native cadence directly; (2) a second file, `AN price
+weekly.csv`, supplies weekly drivers not previously available (JKM/Henry Hub/UK/Netherlands
+natural gas, US/China corn, Middle East Ammonia, Black Sea/China Urea). Together these directly
+address the "Baltic AN proxy for HDAN/PPAN is unvalidated" weekly-mode blocker in `.planning/STATE.md`.
+
+Code: `data_loader.load_an_weekly()`, `load_weekly_drivers()`, `merged_weekly()`;
+`run_weekly_candidates.py`; results in `results/weekly_candidates.json`.
+
+### One-step-ahead (week-over-week) MAPE
+
+| Model | HDAN | PPAN |
+|---|---|---|
+| Naive (last value) | 3.44% | 4.66% |
+| VAR(HDAN, PPAN), weekly, order=4 | 3.37% | 4.31% |
+| OLS+Granger, weekly, monthly's predictor set | 3.55% | 4.75% |
+| OLS+Granger, weekly, + new weekly drivers | **3.15%** | **3.98%** |
+
+Adding the new weekly drivers (Middle East Ammonia, Black Sea/China Urea, gas benchmarks) gives
+the best one-step MAPE for both series, beating naive and the weekly VAR. But this is a shallow
+win: R² is only 0.031 (HDAN) / 0.044 (PPAN), meaning these regressions explain very little
+variance week-to-week — most of the "accuracy" here is naive-like persistence (AN prices move
+little week-over-week), not real predictive signal. **Weekly one-step MAPE is not directly
+comparable to the monthly VAR's 9.49%/10.08%** — a week moves less than a month does by
+construction, so a lower number here doesn't mean a better model.
+
+### Horizon-matched comparison (rolled forward 4 weeks ≈ 1 month)
+
+To answer the actual question — does weekly-native data forecast ~1 month out at least as well
+as the existing monthly VAR — the weekly VAR(HDAN,PPAN) was rolled forward 4 steps and compared
+against actual prices 4 weeks later, on a rolling-origin basis:
+
+| Model | HDAN | PPAN |
+|---|---|---|
+| Monthly-native VAR(HDAN,PPAN) (existing result, 1-month-ahead) | 9.49% | 10.08% |
+| Weekly-native VAR(HDAN,PPAN), 4-week-ahead | 10.35% | **16.01%** |
+
+The weekly-rolled forecast is worse on both series, and substantially worse on PPAN — compounding
+four weekly one-step forecasts accumulates more error than fitting the monthly-native VAR
+directly, and the rolling-origin holdout here is thin (n=9 windows), so this comparison itself
+should be treated as indicative, not conclusive.
+
+### Go/no-go recommendation
+
+**No-go, for now.** The two weekly data sources close the *data availability* gap (native weekly
+HDAN/PPAN exists, and new weekly drivers exist), but the *modeling* result doesn't support
+switching to or adding a weekly forecast mode yet: the new drivers' one-step improvement is weak
+(low R²) and likely reflects AN price persistence rather than real signal, and the horizon-matched
+4-week rollup underperforms the existing monthly VAR, especially for PPAN. Two follow-ups worth
+doing before revisiting this: (a) test SARIMAX/exponential-smoothing at weekly cadence rather than
+only VAR/OLS, since the monthly SARIMAX exploration wasn't repeated here; (b) sanity-check whether
+`AN price weekly.csv`'s own Baltic AN series should replace `AN Data.csv`'s Baltic AN column, since
+they may be duplicate/overlapping sources rather than independent signal.
+
 ## Open decisions for review
 
 - [ ] HDAN/PPAN: keep current OLS+Granger, or replace with VAR/other winner? -> RECOMMEND: replace with bivariate VAR(HDAN, PPAN) — clear win on both series (9.49%/10.08% vs. 12.02%/12.07% OLS+Granger baseline), and adding Diesel or FX to the VAR only hurts PPAN.

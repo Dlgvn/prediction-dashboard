@@ -74,8 +74,13 @@ None yet.
 
 ### Blockers/Concerns
 
-- Weekly forecast mode is explicitly deferred to v2 pending a data-cadence-gap research pass
-  (Baltic AN proxy for HDAN/PPAN is unvalidated, no weekly Diesel/FX data exists at all).
+- Weekly forecast mode is explicitly deferred to v2. Update 2026-08-21: the data-availability
+  half of this blocker is resolved — `AN Data.csv` is native weekly for HDAN/PPAN, and
+  `AN price weekly.csv` adds real weekly drivers (Middle East Ammonia, Black Sea/China Urea, gas
+  benchmarks). But the backtest (backend_research/REPORT.md, "Weekly cadence" section) is a
+  no-go: weekly-native VAR rolled 4 weeks forward underperforms the existing monthly VAR
+  (10.35%/16.01% vs 9.49%/10.08% MAPE), so the deferral stands. No weekly Diesel/FX data exists
+  at all, unchanged.
 
 - Model family selection (ARIMA/SARIMAX/VAR vs. ML baseline) is genuinely open — Phase 2 must
   produce real backtest results, not a formality, before Phase 3 forecasting logic is built.
