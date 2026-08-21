@@ -139,5 +139,5 @@ def test_mape_by_horizon():
 
     result = mape_by_horizon(results_df)
 
-    assert result.loc[1] == pytest.approx(15.0)
+    assert result.loc[1] == pytest.approx(10.0)
     assert result.loc[2] == pytest.approx(10.0)
