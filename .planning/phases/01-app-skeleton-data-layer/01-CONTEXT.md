@@ -38,24 +38,47 @@ the data layer is populated correctly.
   for it should be created in this phase alongside the main schema.
 
 ### Seed merge strategy
-- **D-05:** Seeded rows keep full available history from both source files —
-  from `Diesel Data.csv`'s 2020-02 start — not trimmed to the shortest
-  common range. AN-family columns (HDAN, PPAN, Baltic_AN, Ammonia, Urea,
-  Natural_Gas, Brent) are `NULL` for months before `AN Data.csv`'s coverage
-  begins (2022-08), per D-03.
-- **D-06:** `AN Data.csv` has multiple entries within some months (weekly-ish
-  cadence). Collapse to one row per month by **averaging** all entries within
-  that month — not taking the last entry. (Note: this differs from the
-  approach sketched in the earlier `docs/plans/2026-08-21-reflex-dashboard-implementation.md`
-  Task 3, which used `.last()` — this phase's seed script should average
-  instead; update or ignore that earlier plan's specific code sample
-  accordingly.)
-- **D-07:** `AN price weekly.csv` is explicitly **not** seeded in this phase.
-  It doesn't map onto the monthly wide-table schema (different columns, no
-  HDAN/PPAN) and is only relevant to the weekly-mode/Baltic-AN-proxy research
-  question, which belongs to Phase 2 (or later, since weekly mode itself is
-  v2/deferred scope per REQUIREMENTS.md). Leave the CSV file where it is;
-  Phase 2's research can read it directly if needed.
+
+**SUPERSEDED 2026-08-21, mid-planning (after 01-01/01-02/01-03 PLAN.md were
+already written once) — see below.** D-05/D-06/D-07 as originally written are
+replaced by D-05b/D-06b/D-07b. The change: `AN price weekly.csv` (true
+weekly cadence, history back to 2013-01) has meaningfully longer history for
+the non-HDAN/PPAN AN-family series than `AN Data.csv` does, so those columns
+now come from the weekly file instead. Plans 01-01 and 01-02 need to be
+amended to reflect this before execution.
+
+- **D-05b (supersedes D-05):** Three source files feed the seed, each
+  contributing only the columns it's authoritative for:
+  - `AN Data.csv` → **only** `hdan`, `ppan` (this file's other columns —
+    Baltic AN, Ammonia, Urea, Natural_gas — are no longer used; superseded
+    by the weekly file's longer history for those series)
+  - `AN price weekly.csv` → `baltic_an`, `ammonia`, `urea`,
+    `natural_gas_jkm`, `natural_gas_henry_hub`, `natural_gas_uk`,
+    `natural_gas_netherlands`, `corn_us`, `corn_china` (9 columns; history
+    back to 2013-01-11 per its earliest row, far longer than AN Data.csv's
+    2022-08 start)
+  - `Diesel Data.csv` → `diesel_usd_ton`, `urals`, `fx_rate`, `brent` (Brent
+    now sourced here instead of from AN Data.csv, since Diesel Data.csv's
+    Brent history starts 2020-02 vs. AN Data.csv's 2022-08 — more history
+    for Phase 2's Diesel-on-Brent-lag model)
+  - Full available history is kept per source (still no trimming to a
+    shortest-common range); each column is `NULL` for any month before its
+    source file's coverage begins, per D-03.
+  - **Schema impact:** the wide table now has 4 natural-gas columns instead
+    of 1, plus `corn_us`/`corn_china` — 15 series columns total instead of
+    the original 10 (`Date` + 10 in the original CONTEXT.md's canonical_refs
+    list). Update D-01's understanding of the schema accordingly; the shape
+    (wide, one row per month) is unchanged, only the column list grew.
+- **D-06b (supersedes D-06):** Both `AN Data.csv` and `AN price weekly.csv`
+  have multiple entries within some months. Collapse to one row per month by
+  **averaging** all entries within that month for both sources — D-06's
+  averaging rule now applies uniformly across all multi-entry source files,
+  not just `AN Data.csv`.
+- **D-07b (supersedes D-07):** `AN price weekly.csv` **is** seeded in this
+  phase after all — it's now a primary source for 9 of the schema's columns,
+  not deferred to Phase 2. (D-07's original reasoning — "doesn't map onto the
+  schema, no HDAN/PPAN" — is now moot since D-05b only ever sources
+  HDAN/PPAN from `AN Data.csv`, not the weekly file.)
 
 ### Skeleton UI scope
 - **D-08:** Phase 1's page shows a **read-only table of the seeded data** —
