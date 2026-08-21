@@ -18,7 +18,13 @@
   1. Running the app locally starts a Reflex dashboard page without errors
   2. Historical price data from `AN Data.csv` and `Diesel Data.csv` is loaded into SQLite and queryable
   3. A database schema exists covering Date, HDAN, PPAN, Baltic_AN, Ammonia, Urea, Natural_Gas, Brent, Diesel_USD_ton, Urals, and FX_rate
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 01-01-PLAN.md — Scaffold Reflex app in `app/` and define the PriceRow + AppSetting SQLite schema (wave 1)
+- [ ] 01-02-PLAN.md — Seed 78 monthly rows from AN/Diesel CSVs with monthly-average collapse and idempotent upsert (wave 2)
+- [ ] 01-03-PLAN.md — DashboardState read path and read-only data table on the index page (wave 3)
+
 **UI hint**: yes
 
 ### Phase 2: Model Research & Backtesting
@@ -72,7 +78,7 @@
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. App Skeleton & Data Layer | 0/? | Not started | - |
+| 1. App Skeleton & Data Layer | 0/3 | Planned | - |
 | 2. Model Research & Backtesting | 0/? | Not started | - |
 | 3. Forecasting Module & Derived Series | 0/? | Not started | - |
 | 4. Data Entry UI & Historical View | 0/? | Not started | - |
