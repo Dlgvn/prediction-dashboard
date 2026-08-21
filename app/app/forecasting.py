@@ -136,3 +136,79 @@ def _require_series(
         )
 
     return cleaned
+
+
+# ---------------------------------------------------------------------------
+# Shared forecast primitives
+# ---------------------------------------------------------------------------
+
+
+def _naive_forecast(series: pd.Series, horizon: int) -> np.ndarray:
+    """Repeat the last non-null value of `series` for `horizon` steps."""
+    last_value = float(series.dropna().iloc[-1])
+    return np.full(horizon, last_value)
+
+
+def _arima_forecast_se(series: pd.Series, order: tuple, horizon: int) -> np.ndarray:
+    """Return per-horizon ARIMA forecast standard errors, in series units.
+
+    Deliberately returns ONLY `.se_mean` -- never `.predicted_mean`. The
+    point forecast for any given series comes from that series' actual
+    winning model (VAR / Naive / SARIMAX), never from this auxiliary ARIMA
+    fit; returning `.predicted_mean` here would silently swap in the
+    runner-up model's point forecast (Pitfall 3). Uses `.se_mean` (not
+    `.se`, which does not exist on this object, and not an in-sample
+    residual std, which would not widen with horizon and would violate
+    FCST-05).
+    """
+    fitted = ARIMA(series.dropna().to_numpy(), order=order).fit()
+    forecast_result = fitted.get_forecast(steps=horizon)
+    return np.asarray(forecast_result.se_mean)
+
+
+def _forecast_predictor(series: pd.Series, horizon: int) -> np.ndarray:
+    """Project an exogenous predictor forward via ARIMA (per D-02).
+
+    Never holds flat at the last value. Falls back to
+    PREDICTOR_ARIMA_FALLBACK_ORDER if the primary order's fit raises.
+    """
+    values = series.dropna().to_numpy()
+    try:
+        fitted = ARIMA(values, order=PREDICTOR_ARIMA_ORDER).fit()
+    except Exception:
+        fitted = ARIMA(values, order=PREDICTOR_ARIMA_FALLBACK_ORDER).fit()
+    return np.asarray(fitted.forecast(steps=horizon))
+
+
+def _apply_garch_spread(base, horizon: int) -> dict:
+    """Apply HDAN's frozen GARCH percent-return sigma to a base forecast.
+
+    `HDAN_GARCH_SIGMA_PCT` is in PERCENT-RETURN units (see the constant's
+    definition), so the offset divides by 100.0 to convert to a fraction
+    of `base` before scaling -- omitting this division is the classic
+    off-by-100 bug this helper guards against (Pitfall 1).
+    """
+    base_arr = np.asarray(base, dtype=float)
+    sigma_pct = np.asarray(HDAN_GARCH_SIGMA_PCT[:horizon], dtype=float)
+    offset = base_arr * sigma_pct / 100.0  # percent-return -> fraction of base
+    return {
+        "base": base_arr.tolist(),
+        "bull": (base_arr + offset).tolist(),
+        "bear": (base_arr - offset).tolist(),
+    }
+
+
+def _apply_se_spread(base, se) -> dict:
+    """Apply an ARIMA forecast-SE spread to a base forecast.
+
+    `se` (from `_arima_forecast_se`) is already in the series' own units,
+    so no unit conversion applies here (contrast with the GARCH path in
+    `_apply_garch_spread`, which converts from percent-return units).
+    """
+    base_arr = np.asarray(base, dtype=float)
+    se_arr = np.asarray(se, dtype=float)
+    return {
+        "base": base_arr.tolist(),
+        "bull": (base_arr + se_arr).tolist(),
+        "bear": (base_arr - se_arr).tolist(),
+    }
