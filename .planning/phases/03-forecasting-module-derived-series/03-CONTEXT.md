@@ -56,6 +56,14 @@ didn't validate.
   scale: ~164 rows per series, simple model orders (SARIMAX(0,1,0), small VAR, Naive),
   single occasional user — fit cost is milliseconds, not a real latency concern. Do not
   add caching infrastructure preemptively.
+- **D-06b (clarifies D-06's scope, added after research):** D-06's refit-every-request
+  rule applies to the four point-forecast models (HDAN SARIMAX, PPAN VAR, Diesel/FX
+  Naive) and the ARIMA-forecast-SE auxiliary fits, but NOT to HDAN's GARCH volatility
+  source. GARCH uses the **static** sigma values already computed in
+  `backend_research/results/garch_volatility.json` (Phase 2), not a live refit —
+  `arch` stays a research-phase-only dependency per `STACK.md` and is never imported by
+  the shipped `app/` package. If `garch_volatility.json`'s values need to change, that
+  happens by re-running Phase 2's research script, not at forecast request time.
 
 ### Module boundaries & organization
 - **D-07:** Per-series functions behind one dispatch function — `forecast_hdan()`,
