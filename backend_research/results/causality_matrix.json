@@ -1,0 +1,218 @@
+[
+  {
+    "target": "FX_rate",
+    "predictor": "Brent_usd_ton",
+    "lag": 1,
+    "F": 0.071,
+    "p": 0.791,
+    "n": 45,
+    "significant_p10": false
+  },
+  {
+    "target": "FX_rate",
+    "predictor": "Brent_usd_ton",
+    "lag": 2,
+    "F": 0.117,
+    "p": 0.7338,
+    "n": 44,
+    "significant_p10": false
+  },
+  {
+    "target": "FX_rate",
+    "predictor": "Brent_usd_ton",
+    "lag": 3,
+    "F": 0.098,
+    "p": 0.7561,
+    "n": 43,
+    "significant_p10": false
+  },
+  {
+    "target": "FX_rate",
+    "predictor": "HDAN",
+    "lag": 1,
+    "F": 0.0,
+    "p": 0.9848,
+    "n": 45,
+    "significant_p10": false
+  },
+  {
+    "target": "FX_rate",
+    "predictor": "HDAN",
+    "lag": 2,
+    "F": 0.455,
+    "p": 0.5037,
+    "n": 44,
+    "significant_p10": false
+  },
+  {
+    "target": "FX_rate",
+    "predictor": "HDAN",
+    "lag": 3,
+    "F": 1.519,
+    "p": 0.2249,
+    "n": 43,
+    "significant_p10": false
+  },
+  {
+    "target": "FX_rate",
+    "predictor": "PPAN",
+    "lag": 1,
+    "F": 0.02,
+    "p": 0.8878,
+    "n": 45,
+    "significant_p10": false
+  },
+  {
+    "target": "FX_rate",
+    "predictor": "PPAN",
+    "lag": 2,
+    "F": 0.567,
+    "p": 0.4556,
+    "n": 44,
+    "significant_p10": false
+  },
+  {
+    "target": "FX_rate",
+    "predictor": "PPAN",
+    "lag": 3,
+    "F": 0.294,
+    "p": 0.5904,
+    "n": 43,
+    "significant_p10": false
+  },
+  {
+    "target": "Diesel_usd_ton",
+    "predictor": "FX_rate",
+    "lag": 1,
+    "F": 1.107,
+    "p": 0.2987,
+    "n": 45,
+    "significant_p10": false
+  },
+  {
+    "target": "Diesel_usd_ton",
+    "predictor": "FX_rate",
+    "lag": 2,
+    "F": 0.439,
+    "p": 0.5111,
+    "n": 44,
+    "significant_p10": false
+  },
+  {
+    "target": "Diesel_usd_ton",
+    "predictor": "FX_rate",
+    "lag": 3,
+    "F": 0.696,
+    "p": 0.4091,
+    "n": 43,
+    "significant_p10": false
+  },
+  {
+    "target": "HDAN",
+    "predictor": "Diesel_usd_ton",
+    "lag": 1,
+    "F": 0.299,
+    "p": 0.5875,
+    "n": 45,
+    "significant_p10": false
+  },
+  {
+    "target": "HDAN",
+    "predictor": "Diesel_usd_ton",
+    "lag": 2,
+    "F": 3.565,
+    "p": 0.0661,
+    "n": 44,
+    "significant_p10": true
+  },
+  {
+    "target": "HDAN",
+    "predictor": "Diesel_usd_ton",
+    "lag": 3,
+    "F": 0.933,
+    "p": 0.3399,
+    "n": 43,
+    "significant_p10": false
+  },
+  {
+    "target": "PPAN",
+    "predictor": "Diesel_usd_ton",
+    "lag": 1,
+    "F": 0.0,
+    "p": 0.998,
+    "n": 45,
+    "significant_p10": false
+  },
+  {
+    "target": "PPAN",
+    "predictor": "Diesel_usd_ton",
+    "lag": 2,
+    "F": 1.783,
+    "p": 0.1892,
+    "n": 44,
+    "significant_p10": false
+  },
+  {
+    "target": "PPAN",
+    "predictor": "Diesel_usd_ton",
+    "lag": 3,
+    "F": 2.716,
+    "p": 0.1072,
+    "n": 43,
+    "significant_p10": false
+  },
+  {
+    "target": "HDAN",
+    "predictor": "PPAN",
+    "lag": 1,
+    "F": 9.066,
+    "p": 0.0044,
+    "n": 45,
+    "significant_p10": true
+  },
+  {
+    "target": "HDAN",
+    "predictor": "PPAN",
+    "lag": 2,
+    "F": 0.047,
+    "p": 0.829,
+    "n": 44,
+    "significant_p10": false
+  },
+  {
+    "target": "HDAN",
+    "predictor": "PPAN",
+    "lag": 3,
+    "F": 0.064,
+    "p": 0.8016,
+    "n": 43,
+    "significant_p10": false
+  },
+  {
+    "target": "PPAN",
+    "predictor": "HDAN",
+    "lag": 1,
+    "F": 0.674,
+    "p": 0.4164,
+    "n": 45,
+    "significant_p10": false
+  },
+  {
+    "target": "PPAN",
+    "predictor": "HDAN",
+    "lag": 2,
+    "F": 3.812,
+    "p": 0.0577,
+    "n": 44,
+    "significant_p10": true
+  },
+  {
+    "target": "PPAN",
+    "predictor": "HDAN",
+    "lag": 3,
+    "F": 0.269,
+    "p": 0.6067,
+    "n": 43,
+    "significant_p10": false
+  }
+]

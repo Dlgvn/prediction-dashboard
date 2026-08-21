@@ -1,0 +1,9 @@
+{
+  "series": "FX_rate_pct_change",
+  "n": 76,
+  "adf_stat": -2.9754428561918167,
+  "adf_pvalue": 0.03725224385036396,
+  "kpss_stat": 0.155399051336881,
+  "kpss_pvalue": 0.1,
+  "stationary_verdict": "stationary"
+}

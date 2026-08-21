@@ -1,0 +1,54 @@
+[
+  {
+    "cols": [
+      "HDAN",
+      "PPAN"
+    ],
+    "lag_order": 1,
+    "mape_by_series": {
+      "HDAN": 9.49,
+      "PPAN": 10.08
+    }
+  },
+  {
+    "cols": [
+      "HDAN",
+      "PPAN",
+      "Diesel_usd_ton"
+    ],
+    "lag_order": 1,
+    "mape_by_series": {
+      "HDAN": 10.17,
+      "PPAN": 13.64,
+      "Diesel_usd_ton": 3.43
+    }
+  },
+  {
+    "cols": [
+      "HDAN",
+      "PPAN",
+      "FX_rate"
+    ],
+    "lag_order": 1,
+    "mape_by_series": {
+      "HDAN": 9.46,
+      "PPAN": 10.58,
+      "FX_rate": 0.22
+    }
+  },
+  {
+    "cols": [
+      "HDAN",
+      "PPAN",
+      "Diesel_usd_ton",
+      "FX_rate"
+    ],
+    "lag_order": 1,
+    "mape_by_series": {
+      "HDAN": 10.31,
+      "PPAN": 13.85,
+      "Diesel_usd_ton": 3.39,
+      "FX_rate": 0.26
+    }
+  }
+]

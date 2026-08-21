@@ -1,0 +1,263 @@
+[
+  {
+    "model": "OLS",
+    "target": "HDAN",
+    "mape": 12.02,
+    "n": 45,
+    "predictors": {
+      "Baltic AN": 1,
+      "Ammonia": 2,
+      "Urea": 1
+    },
+    "r2": 0.318
+  },
+  {
+    "model": "OLS",
+    "target": "PPAN",
+    "mape": 12.07,
+    "n": 45,
+    "predictors": {
+      "Baltic AN": 1,
+      "Urea": 1,
+      "Brent": 2
+    },
+    "r2": 0.074
+  },
+  {
+    "model": "OLS",
+    "target": "Diesel_usd_ton",
+    "mape": 3.38,
+    "n": 74,
+    "predictors": {
+      "Brent_usd_ton": 2
+    },
+    "r2": 0.244
+  },
+  {
+    "model": "OLS",
+    "target": "FX_rate",
+    "mape": 0.25,
+    "n": 75,
+    "predictors": {},
+    "r2": 0.393
+  },
+  {
+    "model": "Lasso",
+    "target": "HDAN",
+    "mape": 19.78,
+    "n": 44,
+    "selected_features": [
+      "PPAN_lag1",
+      "PPAN_lag2",
+      "PPAN_lag3",
+      "Baltic AN_lag2",
+      "Baltic AN_lag3",
+      "Ammonia_lag1",
+      "Ammonia_lag2",
+      "Ammonia_lag3",
+      "Urea_lag1",
+      "Urea_lag2",
+      "Urea_lag3",
+      "Natural_gas_lag1",
+      "Natural_gas_lag2",
+      "Natural_gas_lag3",
+      "Brent_lag1",
+      "Brent_lag2",
+      "Brent_lag3"
+    ]
+  },
+  {
+    "model": "Ridge",
+    "target": "HDAN",
+    "mape": 19.91,
+    "n": 44,
+    "selected_features": [
+      "PPAN_lag1",
+      "PPAN_lag2",
+      "PPAN_lag3",
+      "Baltic AN_lag1",
+      "Baltic AN_lag2",
+      "Baltic AN_lag3",
+      "Ammonia_lag1",
+      "Ammonia_lag2",
+      "Ammonia_lag3",
+      "Urea_lag1",
+      "Urea_lag2",
+      "Urea_lag3",
+      "Natural_gas_lag1",
+      "Natural_gas_lag2",
+      "Natural_gas_lag3",
+      "Brent_lag1",
+      "Brent_lag2",
+      "Brent_lag3"
+    ]
+  },
+  {
+    "model": "ElasticNet",
+    "target": "HDAN",
+    "mape": 19.8,
+    "n": 44,
+    "selected_features": [
+      "PPAN_lag1",
+      "PPAN_lag2",
+      "PPAN_lag3",
+      "Baltic AN_lag2",
+      "Baltic AN_lag3",
+      "Ammonia_lag1",
+      "Ammonia_lag2",
+      "Ammonia_lag3",
+      "Urea_lag1",
+      "Urea_lag2",
+      "Urea_lag3",
+      "Natural_gas_lag1",
+      "Natural_gas_lag2",
+      "Natural_gas_lag3",
+      "Brent_lag1",
+      "Brent_lag2",
+      "Brent_lag3"
+    ]
+  },
+  {
+    "model": "Lasso",
+    "target": "PPAN",
+    "mape": 18.2,
+    "n": 44,
+    "selected_features": [
+      "HDAN_lag1",
+      "HDAN_lag2",
+      "HDAN_lag3",
+      "Baltic AN_lag2",
+      "Baltic AN_lag3",
+      "Ammonia_lag1",
+      "Ammonia_lag2",
+      "Ammonia_lag3",
+      "Urea_lag1",
+      "Urea_lag2",
+      "Urea_lag3",
+      "Natural_gas_lag1",
+      "Natural_gas_lag2",
+      "Natural_gas_lag3",
+      "Brent_lag1",
+      "Brent_lag2",
+      "Brent_lag3"
+    ]
+  },
+  {
+    "model": "Ridge",
+    "target": "PPAN",
+    "mape": 18.42,
+    "n": 44,
+    "selected_features": [
+      "HDAN_lag1",
+      "HDAN_lag2",
+      "HDAN_lag3",
+      "Baltic AN_lag1",
+      "Baltic AN_lag2",
+      "Baltic AN_lag3",
+      "Ammonia_lag1",
+      "Ammonia_lag2",
+      "Ammonia_lag3",
+      "Urea_lag1",
+      "Urea_lag2",
+      "Urea_lag3",
+      "Natural_gas_lag1",
+      "Natural_gas_lag2",
+      "Natural_gas_lag3",
+      "Brent_lag1",
+      "Brent_lag2",
+      "Brent_lag3"
+    ]
+  },
+  {
+    "model": "ElasticNet",
+    "target": "PPAN",
+    "mape": 18.25,
+    "n": 44,
+    "selected_features": [
+      "HDAN_lag1",
+      "HDAN_lag2",
+      "HDAN_lag3",
+      "Baltic AN_lag1",
+      "Baltic AN_lag2",
+      "Baltic AN_lag3",
+      "Ammonia_lag1",
+      "Ammonia_lag2",
+      "Ammonia_lag3",
+      "Urea_lag1",
+      "Urea_lag2",
+      "Urea_lag3",
+      "Natural_gas_lag1",
+      "Natural_gas_lag2",
+      "Natural_gas_lag3",
+      "Brent_lag1",
+      "Brent_lag2",
+      "Brent_lag3"
+    ]
+  },
+  {
+    "model": "Lasso",
+    "target": "Diesel_usd_ton",
+    "mape": 4.33,
+    "n": 73,
+    "selected_features": [
+      "Brent_usd_ton_lag1",
+      "Brent_usd_ton_lag2",
+      "Brent_usd_ton_lag3",
+      "FX_rate_lag2",
+      "FX_rate_lag3",
+      "Diesel_usd_liter_lag1",
+      "Diesel_usd_liter_lag2",
+      "Diesel_usd_liter_lag3",
+      "Purchase_mnt_liter_lag1",
+      "Purchase_mnt_liter_lag2",
+      "Purchase_mnt_liter_lag3",
+      "Urals_usd_bbl_lag1",
+      "Urals_usd_bbl_lag2",
+      "Urals_usd_bbl_lag3"
+    ]
+  },
+  {
+    "model": "Ridge",
+    "target": "Diesel_usd_ton",
+    "mape": 4.42,
+    "n": 73,
+    "selected_features": [
+      "Brent_usd_ton_lag1",
+      "Brent_usd_ton_lag2",
+      "Brent_usd_ton_lag3",
+      "FX_rate_lag1",
+      "FX_rate_lag2",
+      "FX_rate_lag3",
+      "Diesel_usd_liter_lag1",
+      "Diesel_usd_liter_lag2",
+      "Diesel_usd_liter_lag3",
+      "Purchase_mnt_liter_lag1",
+      "Purchase_mnt_liter_lag2",
+      "Purchase_mnt_liter_lag3",
+      "Urals_usd_bbl_lag1",
+      "Urals_usd_bbl_lag2",
+      "Urals_usd_bbl_lag3"
+    ]
+  },
+  {
+    "model": "ElasticNet",
+    "target": "Diesel_usd_ton",
+    "mape": 4.36,
+    "n": 73,
+    "selected_features": [
+      "Brent_usd_ton_lag1",
+      "Brent_usd_ton_lag2",
+      "FX_rate_lag2",
+      "FX_rate_lag3",
+      "Diesel_usd_liter_lag1",
+      "Diesel_usd_liter_lag2",
+      "Diesel_usd_liter_lag3",
+      "Purchase_mnt_liter_lag1",
+      "Purchase_mnt_liter_lag2",
+      "Purchase_mnt_liter_lag3",
+      "Urals_usd_bbl_lag1",
+      "Urals_usd_bbl_lag2",
+      "Urals_usd_bbl_lag3"
+    ]
+  }
+]

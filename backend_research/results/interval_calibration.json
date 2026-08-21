@@ -1,0 +1,23 @@
+[
+  {
+    "target": "HDAN",
+    "n_holdout": 12,
+    "backtest_error_coverage": 0.583,
+    "analytic_ols_coverage": 0.75,
+    "target_coverage": 0.95
+  },
+  {
+    "target": "PPAN",
+    "n_holdout": 12,
+    "backtest_error_coverage": 0.667,
+    "analytic_ols_coverage": 0.917,
+    "target_coverage": 0.95
+  },
+  {
+    "target": "Diesel_usd_ton",
+    "n_holdout": 12,
+    "backtest_error_coverage": 0.75,
+    "analytic_ols_coverage": 0.75,
+    "target_coverage": 0.95
+  }
+]
