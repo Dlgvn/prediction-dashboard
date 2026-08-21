@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 2 planned (7 plans, 4 waves)
-last_updated: "2026-08-21T06:08:02.481Z"
+last_updated: "2026-08-21T06:13:20.821Z"
 last_activity: 2026-08-21
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 10
-  completed_plans: 7
+  completed_plans: 8
   percent: 20
 ---
 
@@ -29,11 +29,11 @@ series — without opening Excel.
 ## Current Position
 
 Phase: 02 (Model Research & Backtesting) — EXECUTING
-Plan: 5 of 7
+Plan: 6 of 7
 Status: Ready to execute
 Last activity: 2026-08-21
 
-Progress: [███████░░░] 70%
+Progress: [████████░░] 80%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [███████░░░] 70%
 | Phase 02 P02 | 25min | 2 tasks | 3 files |
 | Phase 02-model-research-backtesting P03 | 12min | 2 tasks | 3 files |
 | Phase 02-model-research-backtesting P04 | 20min | 2 tasks | 4 files |
+| Phase 02-model-research-backtesting P05 | 35min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,8 @@ Recent decisions affecting current work:
 - [Phase ?]: arch==8.0.0 approved at package-legitimacy checkpoint after manual PyPI/GitHub verification; SUS flag was a false positive
 - [Phase ?]: GARCH(1,1) only per Assumption A4, no EGARCH/GJR sweep
 - [Phase 02-04]: Baselines fitted on price levels not pct-change; ARIMA order fixed once by AIC and held fixed for the whole walk-forward run
+- [Phase ?]: 02-05: VECM_CANDIDATES empty per 02-02 finding; wrote explicit non-applicability record instead of skipping the family
+- [Phase ?]: 02-05: iterative VAR family shows explosive MAPE at long horizons for several series due to short-overlap predictor data; direct-OLS VAR variant stays bounded and is likely the safer family choice
 
 ### Pending Todos
 
@@ -109,6 +112,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-21T06:07:14.675Z
+Last session: 2026-08-21T06:13:11.383Z
 Stopped at: Phase 2 planned (7 plans, 4 waves)
 Resume file: None
