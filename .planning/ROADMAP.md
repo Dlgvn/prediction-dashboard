@@ -22,7 +22,7 @@
 
 Plans:
 - [x] 01-01-PLAN.md — Scaffold Reflex app in `app/` and define the PriceRow + AppSetting SQLite schema (wave 1)
-- [ ] 01-02-PLAN.md — Seed 78 monthly rows from AN/Diesel CSVs with monthly-average collapse and idempotent upsert (wave 2)
+- [x] 01-02-PLAN.md — Seed 78 monthly rows from AN/Diesel CSVs with monthly-average collapse and idempotent upsert (wave 2)
 - [ ] 01-03-PLAN.md — DashboardState read path and read-only data table on the index page (wave 3)
 
 **UI hint**: yes
@@ -78,7 +78,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. App Skeleton & Data Layer | 1/3 | In Progress|  |
+| 1. App Skeleton & Data Layer | 2/3 | In Progress|  |
 | 2. Model Research & Backtesting | 0/? | Not started | - |
 | 3. Forecasting Module & Derived Series | 0/? | Not started | - |
 | 4. Data Entry UI & Historical View | 0/? | Not started | - |
