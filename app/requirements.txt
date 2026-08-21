@@ -1,4 +1,4 @@
-reflex~=0.9.8
+reflex[db]~=0.9.8
 sqlmodel~=0.0.39
 pandas~=3.0
 statsmodels~=0.14.6

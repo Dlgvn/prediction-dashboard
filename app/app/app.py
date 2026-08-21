@@ -2,6 +2,8 @@
 
 import reflex as rx
 
+from app.models import AppSetting, PriceRow  # noqa: F401  (registers tables for reflex db migrate)
+
 
 def index() -> rx.Component:
     return rx.container(
