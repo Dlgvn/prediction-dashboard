@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 2 planned (7 plans, 4 waves)
-last_updated: "2026-08-21T06:13:20.821Z"
+stopped_at: Completed 02-06-PLAN.md
+last_updated: "2026-08-21T06:17:53.165Z"
 last_activity: 2026-08-21
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 10
-  completed_plans: 8
+  completed_plans: 9
   percent: 20
 ---
 
@@ -29,11 +29,11 @@ series — without opening Excel.
 ## Current Position
 
 Phase: 02 (Model Research & Backtesting) — EXECUTING
-Plan: 6 of 7
+Plan: 7 of 7
 Status: Ready to execute
 Last activity: 2026-08-21
 
-Progress: [████████░░] 80%
+Progress: [█████████░] 90%
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [████████░░] 80%
 | Phase 02-model-research-backtesting P03 | 12min | 2 tasks | 3 files |
 | Phase 02-model-research-backtesting P04 | 20min | 2 tasks | 4 files |
 | Phase 02-model-research-backtesting P05 | 35min | 2 tasks | 2 files |
+| Phase 02-model-research-backtesting P06 | 25min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -89,6 +90,7 @@ Recent decisions affecting current work:
 - [Phase 02-04]: Baselines fitted on price levels not pct-change; ARIMA order fixed once by AIC and held fixed for the whole walk-forward run
 - [Phase ?]: 02-05: VECM_CANDIDATES empty per 02-02 finding; wrote explicit non-applicability record instead of skipping the family
 - [Phase ?]: 02-05: iterative VAR family shows explosive MAPE at long horizons for several series due to short-overlap predictor data; direct-OLS VAR variant stays bounded and is likely the safer family choice
+- [Phase ?]: 02-06: ML baseline (RandomForest/GradientBoosting) does not clearly beat naive on diesel/fx and is flagged suspiciously_strong/small_sample on hdan/ppan; overfitting diagnostics attached as data per D-01
 
 ### Pending Todos
 
@@ -112,6 +114,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-21T06:13:11.383Z
-Stopped at: Phase 2 planned (7 plans, 4 waves)
+Last session: 2026-08-21T06:17:49.064Z
+Stopped at: Completed 02-06-PLAN.md
 Resume file: None
