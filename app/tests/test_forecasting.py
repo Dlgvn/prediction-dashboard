@@ -5,6 +5,7 @@ import pandas as pd
 import pytest
 
 from app.forecasting import (
+    ARIMA_SE_ORDER,
     HDAN_GARCH_SIGMA_PCT,
     HDAN_PREDICTORS,
     InsufficientHistoryError,
@@ -15,7 +16,10 @@ from app.forecasting import (
     _forecast_predictor,
     _naive_forecast,
     _require_series,
+    forecast_diesel_usd,
+    forecast_fx,
     forecast_hdan,
+    forecast_ppan_var_system,
 )
 
 
@@ -185,3 +189,93 @@ def test_forecast_hdan_raises_on_missing_hdan_column(synthetic_history):
     history = synthetic_history.drop(columns=["hdan"])
     with pytest.raises(InsufficientHistoryError):
         forecast_hdan(history, horizon=6)
+
+
+def test_ppan_var_system_shape_and_finite(synthetic_history):
+    result = forecast_ppan_var_system(synthetic_history, horizon=12)
+    assert set(result.keys()) == {"base", "bull", "bear"}
+    for key in ("base", "bull", "bear"):
+        assert len(result[key]) == 12
+        assert np.isfinite(np.asarray(result[key])).all()
+    assert "hdan" not in result
+
+
+def test_ppan_responds_to_system_members(synthetic_history):
+    baseline = forecast_ppan_var_system(synthetic_history, horizon=12)
+
+    perturbed_history = synthetic_history.copy()
+    last_urals = perturbed_history["urals"].iloc[-1]
+    perturbed_history.loc[perturbed_history.index[-1], "urals"] = last_urals * 1.2
+
+    perturbed = forecast_ppan_var_system(perturbed_history, horizon=12)
+
+    base_arr = np.asarray(baseline["base"])
+    perturbed_arr = np.asarray(perturbed["base"])
+    assert np.any(np.abs(base_arr - perturbed_arr) > 1e-6)
+
+
+def test_ppan_var_system_band_equals_arima_se(synthetic_history):
+    result = forecast_ppan_var_system(synthetic_history, horizon=12)
+    expected_se = _arima_forecast_se(synthetic_history["ppan"], (0, 1, 0), 12)
+    actual_half_width = np.asarray(result["bull"]) - np.asarray(result["base"])
+    assert actual_half_width == pytest.approx(expected_se, rel=1e-9)
+
+
+def test_ppan_var_system_raises_on_missing_member(synthetic_history):
+    history = synthetic_history.drop(columns=["urals"])
+    with pytest.raises(InsufficientHistoryError):
+        forecast_ppan_var_system(history, horizon=6)
+
+
+def test_forecast_diesel_usd_holds_last_value(synthetic_history):
+    result = forecast_diesel_usd(synthetic_history, horizon=12)
+    assert len(set(result["base"])) == 1
+    last_value = float(synthetic_history["diesel_usd_ton"].dropna().iloc[-1])
+    assert result["base"][0] == pytest.approx(last_value)
+
+
+def test_forecast_fx_holds_last_value(synthetic_history):
+    result = forecast_fx(synthetic_history, horizon=12)
+    assert len(set(result["base"])) == 1
+    last_value = float(synthetic_history["fx_rate"].dropna().iloc[-1])
+    assert result["base"][0] == pytest.approx(last_value)
+
+
+def test_diesel_and_fx_use_distinct_volatility_orders(synthetic_history):
+    assert ARIMA_SE_ORDER["diesel_usd_ton"] != ARIMA_SE_ORDER["fx_rate"]
+
+    diesel = forecast_diesel_usd(synthetic_history, horizon=12)
+    fx = forecast_fx(synthetic_history, horizon=12)
+
+    diesel_base = diesel["base"][-1]
+    fx_base = fx["base"][-1]
+    diesel_relative_half_width = (diesel["bull"][-1] - diesel_base) / diesel_base
+    fx_relative_half_width = (fx["bull"][-1] - fx_base) / fx_base
+
+    assert diesel_relative_half_width != pytest.approx(
+        fx_relative_half_width, abs=1e-6
+    )
+
+
+def test_diesel_and_fx_bands_widen_with_horizon(synthetic_history):
+    for forecaster in (forecast_diesel_usd, forecast_fx):
+        result = forecaster(synthetic_history, horizon=12)
+        half_widths = [
+            result["bull"][i] - result["base"][i] for i in range(12)
+        ]
+        assert all(
+            half_widths[i] <= half_widths[i + 1] + 1e-9
+            for i in range(len(half_widths) - 1)
+        )
+
+
+def test_forecast_fx_raises_on_missing_column(synthetic_history):
+    history = synthetic_history.drop(columns=["fx_rate"])
+    with pytest.raises(InsufficientHistoryError):
+        forecast_fx(history, horizon=6)
+
+
+def test_forecast_diesel_usd_raises_on_missing_column(synthetic_history):
+    history = synthetic_history.drop(columns=["diesel_usd_ton"])
+    with pytest.raises(InsufficientHistoryError):
+        forecast_diesel_usd(history, horizon=6)

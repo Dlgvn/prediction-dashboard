@@ -292,6 +292,118 @@ def forecast_hdan(history: pd.DataFrame, horizon: int) -> dict:
     return _apply_garch_spread(base, horizon)
 
 
+def forecast_ppan_var_system(history: pd.DataFrame, horizon: int) -> dict:
+    """Forecast PPAN via its winning model: Direct-OLS VAR-system(h=1..12).
+
+    Model: `Direct-OLS VAR-system(h=1..12) system=[ppan, hdan, baltic_an,
+    urals]` (02-MODEL-DECISIONS.md), backtested mean 1-12 MAPE of 23.80%.
+    This is NOT a `statsmodels.tsa.api` autoregressive system object and
+    does not iterate a single fitted model forward. It is twelve (or
+    `horizon`) independent `sm.OLS` regressions -- one direct model per
+    horizon step h -- each regressing `ppan.shift(-h)` on the system
+    members (`hdan`, `baltic_an`, `urals`, at PRICE LEVELS) plus PPAN's own
+    lags 1-3. Prediction pushes the single last-observed feature row
+    through all fitted models; there is no future-exog frame and no
+    iterative feedback of predictions as inputs (03-RESEARCH.md Pattern 2's
+    iterative autoregressive-lag-1 variant is the rejected runner-up -- see
+    the 03-03-PLAN.md planner_correction).
+
+    Per D-03, this function produces NO hdan forecast whatsoever -- `hdan`
+    enters only as a right-hand-side feature at its last observed level.
+    `forecast_hdan`'s SARIMAX output remains HDAN's sole authority; this
+    module never returns a competing hdan value from here.
+
+    Volatility source: the auxiliary ARIMA(0,1,0) fit on `ppan` supplies
+    ONLY the forecast standard error (`_arima_forecast_se`); its own point
+    forecast (27.53% MAPE, the runner-up) must never be substituted for
+    `base`.
+    """
+    ppan_series = _require_series(history, "ppan", horizon)
+
+    missing_members = [m for m in PPAN_SYSTEM_MEMBERS if m not in history.columns]
+    if missing_members:
+        raise InsufficientHistoryError(
+            f"PPAN system member(s) missing from history: {missing_members}."
+        )
+
+    design = history[["ppan"] + PPAN_SYSTEM_MEMBERS].copy()
+    for lag in PPAN_TARGET_LAGS:
+        design[f"ppan_lag{lag}"] = history["ppan"].shift(lag)
+
+    feature_cols = list(PPAN_SYSTEM_MEMBERS) + [
+        f"ppan_lag{lag}" for lag in PPAN_TARGET_LAGS
+    ]
+
+    models: dict[int, object] = {}
+    skipped_horizons: list[int] = []
+    for h in range(1, horizon + 1):
+        target_h = design["ppan"].shift(-h)
+        frame = pd.concat(
+            [target_h.rename("target_h"), design[feature_cols]], axis=1
+        ).dropna()
+        if len(frame) < 10:
+            skipped_horizons.append(h)
+            continue
+        design_matrix = sm.add_constant(frame[feature_cols])
+        models[h] = sm.OLS(frame["target_h"], design_matrix).fit()
+
+    if skipped_horizons:
+        raise InsufficientHistoryError(
+            "PPAN Direct-OLS system has insufficient rows to fit horizon(s) "
+            f"{skipped_horizons} (fewer than 10 usable rows after aligning "
+            "target and feature columns)."
+        )
+
+    last_features = design[feature_cols].iloc[[-1]]
+    x_last = sm.add_constant(last_features, has_constant="add")
+
+    preds = []
+    for h in range(1, horizon + 1):
+        model = models[h]
+        x_aligned = x_last.reindex(columns=model.params.index, fill_value=0.0)
+        preds.append(float(model.predict(x_aligned).iloc[0]))
+    base = np.asarray(preds, dtype=float)
+
+    se = _arima_forecast_se(ppan_series, ARIMA_SE_ORDER["ppan"], horizon)
+    return _apply_se_spread(base, se)
+
+
+def forecast_diesel_usd(history: pd.DataFrame, horizon: int) -> dict:
+    """Forecast Diesel-USD-ton via its winning model: Naive (hold last value).
+
+    Model: Naive, backtested mean 1-12 MAPE of 7.04% (02-MODEL-DECISIONS.md)
+    -- no candidate beat Naive for this series in Phase 2, so this must not
+    be "improved" back into an unbacktested model. The point-forecast model
+    is identical to `forecast_fx`'s (both Naive); the ONLY difference
+    between the two functions is the auxiliary ARIMA order used to derive
+    the bull/bear band width (`ARIMA_SE_ORDER["diesel_usd_ton"]` vs.
+    `ARIMA_SE_ORDER["fx_rate"]`), which is what makes FCST-04's "per-series,
+    not one flat percentage" requirement true in code.
+    """
+    series = _require_series(history, "diesel_usd_ton", horizon)
+    base = _naive_forecast(series, horizon)
+    se = _arima_forecast_se(series, ARIMA_SE_ORDER["diesel_usd_ton"], horizon)
+    return _apply_se_spread(base, se)
+
+
+def forecast_fx(history: pd.DataFrame, horizon: int) -> dict:
+    """Forecast FX (USD/MNT) via its winning model: Naive (hold last value).
+
+    Model: Naive, backtested mean 1-12 MAPE of 1.72% (02-MODEL-DECISIONS.md)
+    -- no candidate beat Naive for this series in Phase 2, so this must not
+    be "improved" back into an unbacktested model. The point-forecast model
+    is identical to `forecast_diesel_usd`'s (both Naive); the ONLY
+    difference between the two functions is the auxiliary ARIMA order used
+    to derive the bull/bear band width (`ARIMA_SE_ORDER["fx_rate"]` vs.
+    `ARIMA_SE_ORDER["diesel_usd_ton"]`), which is what makes FCST-04's
+    "per-series, not one flat percentage" requirement true in code.
+    """
+    series = _require_series(history, "fx_rate", horizon)
+    base = _naive_forecast(series, horizon)
+    se = _arima_forecast_se(series, ARIMA_SE_ORDER["fx_rate"], horizon)
+    return _apply_se_spread(base, se)
+
+
 def _apply_se_spread(base, se) -> dict:
     """Apply an ARIMA forecast-SE spread to a base forecast.
 
