@@ -1,0 +1,154 @@
+{
+  "hdan": {
+    "model": "SARIMAX(0, 1, 0)+exog",
+    "family": "sarimax",
+    "horizon_strategy": "iterative",
+    "predictors": {
+      "ppan": 1,
+      "urea_china": 1,
+      "urea_black_sea": 1,
+      "ammonia": 3,
+      "baltic_an": 1,
+      "corn_us": 1
+    },
+    "mape_by_horizon": {
+      "1": 9.480769919639322,
+      "2": 13.845032792832843,
+      "3": 16.213070036219122,
+      "4": 14.710381666527542,
+      "5": 11.517754115884184,
+      "6": 11.441684196169163,
+      "7": 8.962917339625253,
+      "8": 7.5165779593329605,
+      "9": 14.447025831461119,
+      "10": 21.809839089077386,
+      "11": 16.736176766993236,
+      "12": null
+    },
+    "mape_mean_1_12": 13.334657246705648,
+    "single_holdout_mape": 8.759751780186747,
+    "runner_up": {
+      "model": "Direct-OLS VAR-system(h=1..12) system=[hdan, ppan, urea_china, urea_black_sea]",
+      "mape_mean_1_12": 25.319122292775276
+    },
+    "caveats": [
+      "RandomForest posted a lower raw MAPE (4.79%) but is backed by only 2 walk-forward origins (overfit_flags=['small_sample', 'suspiciously_strong']) -- not trusted as a winner over candidates validated across many more rolling origins."
+    ],
+    "volatility_source": "garch",
+    "sigma_by_horizon": [
+      12.532726174302507,
+      12.583026997209927,
+      12.633127540913241,
+      12.6830301788432,
+      12.73273723791998,
+      12.782250999819277,
+      12.83157370219443,
+      12.880707539856434,
+      12.929654665913594,
+      12.978417192872477,
+      13.026997193701803,
+      13.075396702860736
+    ]
+  },
+  "ppan": {
+    "model": "Direct-OLS VAR-system(h=1..12) system=[ppan, hdan, baltic_an, urals]",
+    "family": "var",
+    "horizon_strategy": "direct",
+    "predictors": {
+      "hdan": null,
+      "baltic_an": null,
+      "urals": null
+    },
+    "mape_by_horizon": {
+      "1": 8.501300698443297,
+      "2": 19.85000706543976,
+      "3": 15.35580938019188,
+      "4": 25.26018413185956,
+      "5": 17.958633369767583,
+      "6": 17.77869180097065,
+      "7": 18.87056445344132,
+      "8": 24.352517477284696,
+      "9": 29.807574174110993,
+      "10": 35.52926859788918,
+      "11": 36.46774064683698,
+      "12": 35.90427734644771
+    },
+    "mape_mean_1_12": 23.803047428556965,
+    "single_holdout_mape": null,
+    "runner_up": {
+      "model": "ARIMA(0, 1, 0)",
+      "mape_mean_1_12": 27.52787822684603
+    },
+    "caveats": [
+      "RandomForest posted a lower raw MAPE (12.14%) but is backed by only 2 walk-forward origins (overfit_flags=['small_sample', 'suspiciously_strong']) -- not trusted as a winner over candidates validated across many more rolling origins.",
+      "Falling back to ARIMA forecast-SE for the bull/bear spread: GARCH sigma does not widen monotonically with horizon (Pitfall 3)."
+    ],
+    "volatility_source": "arima_forecast_se",
+    "sigma_by_horizon": null
+  },
+  "diesel_usd_ton": {
+    "model": "Naive",
+    "family": "baseline",
+    "horizon_strategy": "iterative",
+    "predictors": {},
+    "mape_by_horizon": {
+      "1": 2.336404309067394,
+      "2": 4.1274914550947255,
+      "3": 5.222131152069663,
+      "4": 6.436770419916468,
+      "5": 7.470964676898415,
+      "6": 8.403602225786685,
+      "7": 8.868239146104559,
+      "8": 9.046463055134815,
+      "9": 8.81617624167958,
+      "10": 8.264111254049388,
+      "11": 7.825813926096912,
+      "12": 7.688050559328041
+    },
+    "mape_mean_1_12": 7.042184868435554,
+    "single_holdout_mape": 7.655632482449238,
+    "runner_up": {
+      "model": "SES",
+      "mape_mean_1_12": 7.042184876322179
+    },
+    "caveats": [
+      "No candidate model beat the Naive baseline's mean 1-12 MAPE for this series -- no model earned its added complexity here; Naive is the legitimate, reportable winner.",
+      "RandomForest posted a lower raw MAPE (11.90%) but is backed by only 2 walk-forward origins (overfit_flags=['marginal_over_naive', 'small_sample']) -- not trusted as a winner over candidates validated across many more rolling origins.",
+      "Falling back to ARIMA forecast-SE for the bull/bear spread: GARCH horizon-1 sigma is unstable across refit origins (>50% relative spread)."
+    ],
+    "volatility_source": "arima_forecast_se",
+    "sigma_by_horizon": null
+  },
+  "fx_rate": {
+    "model": "Naive",
+    "family": "baseline",
+    "horizon_strategy": "iterative",
+    "predictors": {},
+    "mape_by_horizon": {
+      "1": 0.39149906568250226,
+      "2": 0.7210375596447459,
+      "3": 0.9707338524520959,
+      "4": 1.1602404602049197,
+      "5": 1.378760983872984,
+      "6": 1.6000129323426584,
+      "7": 1.8275439538805094,
+      "8": 2.0461404767105718,
+      "9": 2.290377460310094,
+      "10": 2.517284716297774,
+      "11": 2.7422196512776056,
+      "12": 2.975210295712733
+    },
+    "mape_mean_1_12": 1.718421784032433,
+    "single_holdout_mape": 0.31182268968193155,
+    "runner_up": {
+      "model": "SES",
+      "mape_mean_1_12": 1.7184217859698128
+    },
+    "caveats": [
+      "No candidate model beat the Naive baseline's mean 1-12 MAPE for this series -- no model earned its added complexity here; Naive is the legitimate, reportable winner.",
+      "Falling back to ARIMA forecast-SE for the bull/bear spread: GARCH horizon-1 sigma is unstable across refit origins (>50% relative spread)."
+    ],
+    "volatility_source": "arima_forecast_se",
+    "sigma_by_horizon": null
+  }
+}
