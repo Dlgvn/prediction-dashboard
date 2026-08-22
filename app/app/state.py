@@ -172,6 +172,36 @@ class DashboardState(rx.State):
         figure.update_traces(line_color="#697177")
         return figure
 
+    @rx.var
+    def forecast_results(self) -> dict:
+        """Single computed var wrapping forecast_all() (Pitfall 2 guard —
+        exactly one call site app-wide). Empty-result shape is always the
+        5-key P-02 shape with empty lists, so downstream chart/table vars
+        (plan 05-02) can index keys unconditionally without branching on
+        error state.
+        """
+        empty_result = {key: [] for key in FORECAST_SERIES_LABELS}
+
+        if not self.rows:
+            self.forecast_error = (
+                "Not enough historical data to forecast yet. Add at least "
+                "one month of actuals above."
+            )
+            return empty_result
+
+        history = self._history_df()
+        try:
+            result = forecast_all(history, self.horizon_months, self.markup_pct)
+        except (InsufficientHistoryError, ValueError):
+            self.forecast_error = (
+                "Not enough historical data to forecast yet. Add at least "
+                "one month of actuals above."
+            )
+            return empty_result
+
+        self.forecast_error = ""
+        return result
+
     def select_series(self, label: str) -> None:
         """Handle the Series dropdown; ignores unknown labels (T-04-12)."""
         attr = LABEL_TO_ATTR.get(label)
