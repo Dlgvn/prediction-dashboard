@@ -2,6 +2,7 @@
 
 import inspect
 
+from app import state as state_module
 from app import validators
 from app.models import PriceRow
 from app.state import SERIES_ATTRS, SERIES_LABELS, DashboardState
@@ -507,3 +508,116 @@ def test_chart_figure_does_not_query_db(session, monkeypatch):
 def test_series_labels_cover_all_attrs():
     assert set(SERIES_LABELS) == set(SERIES_ATTRS)
     assert len(SERIES_LABELS) == 16
+
+
+# ---------------------------------------------------------------------------
+# Phase 5 -- forecast state (FCST-01, EXPORT-01)
+# ---------------------------------------------------------------------------
+
+
+def _rows_from_synthetic_history(history):
+    """Build a list of in-memory PriceRow objects from the synthetic_history
+    fixture's DataFrame, one per row, date taken from the DatetimeIndex.
+    Not persisted to the DB -- forecast state only reads self.rows.
+    """
+    rows = []
+    for idx, record in zip(history.index, history.to_dict("records")):
+        rows.append(PriceRow(date=idx.strftime("%Y-%m-%d"), **record))
+    return rows
+
+
+def test_set_horizon_clamps_out_of_range(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+
+    state.set_horizon([0])
+    assert state.horizon_months == 1
+
+    state.set_horizon([99])
+    assert state.horizon_months == 12
+
+    state.set_horizon([7])
+    assert state.horizon_months == 7
+
+    state.set_horizon([])
+    assert state.horizon_months == 7
+
+
+def test_forecast_results_shape(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    results = state.forecast_results
+
+    assert set(results.keys()) == {"hdan", "ppan", "diesel_usd_ton", "fx_rate", "diesel_mnt"}
+    for key, series in results.items():
+        assert len(series) == 4
+        for i, entry in enumerate(series, start=1):
+            assert set(entry.keys()) == {"month", "base", "bull", "bear"}
+            assert entry["month"] == i
+
+
+def test_forecast_results_empty_history_sets_error(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = []
+
+    results = state.forecast_results
+
+    assert set(results.keys()) == {"hdan", "ppan", "diesel_usd_ton", "fx_rate", "diesel_mnt"}
+    for series in results.values():
+        assert series == []
+    assert state.forecast_error != ""
+
+
+def test_forecast_results_short_history_sets_error(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)[:5]
+
+    results = state.forecast_results  # noqa: F841 -- must not raise
+
+    assert state.forecast_error != ""
+
+
+def test_forecast_results_uses_markup_pct(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    rows = _rows_from_synthetic_history(synthetic_history)
+
+    state_zero = DashboardState()
+    state_zero.rows = rows
+    state_zero.horizon_months = 3
+    state_zero.markup_pct = 0.0
+    zero_results = state_zero.forecast_results
+
+    state_markup = DashboardState()
+    state_markup.rows = rows
+    state_markup.horizon_months = 3
+    state_markup.markup_pct = 10.0
+    markup_results = state_markup.forecast_results
+
+    zero_base = [e["base"] for e in zero_results["diesel_mnt"]]
+    markup_base = [e["base"] for e in markup_results["diesel_mnt"]]
+    assert zero_base != markup_base
+
+
+def test_forecast_results_calls_forecast_all_once(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 3
+
+    call_count = {"n": 0}
+    real_forecast_all = state_module.forecast_all
+
+    def _counting_forecast_all(history, horizon, markup_pct):
+        call_count["n"] += 1
+        return real_forecast_all(history, horizon, markup_pct)
+
+    monkeypatch.setattr("app.state.forecast_all", _counting_forecast_all)
+
+    _ = state.forecast_results
+
+    assert call_count["n"] == 1
