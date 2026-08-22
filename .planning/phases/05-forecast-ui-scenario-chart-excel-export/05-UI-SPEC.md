@@ -25,6 +25,8 @@ created: 2026-08-22
 
 Existing app state (`app/app/app.py`): a single `index()` page. Phase 4 left it ending with a heading → editable data table → Add row button → historical chart (selector + `rx.plotly`) → reserved 32px gap. Phase 5 appends below that gap, in the exact order set by CONTEXT.md D-06: horizon slider → freshness labels → forecast chart (fan-chart, selector) → forecast table (all series) → export button. Do not introduce a new page/route, do not reorganize Phase 4's existing sections.
 
+**Focal point:** within Phase 5's new section, the forecast chart's base-forecast line is the primary visual anchor (it's the one line drawn solid and in the accent color inside the fan chart); the horizon slider is the primary control the user interacts with first. Everything else (freshness labels, table, export button) is secondary in visual weight.
+
 ---
 
 ## Spacing Scale
