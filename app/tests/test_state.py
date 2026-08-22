@@ -1,8 +1,10 @@
 """Tests for DashboardState.load_rows — the app's sole DB read path."""
 
+import inspect
+
 from app import validators
 from app.models import PriceRow
-from app.state import DashboardState
+from app.state import SERIES_ATTRS, SERIES_LABELS, DashboardState
 
 
 def _db_row_count(session):
@@ -416,3 +418,92 @@ def test_writes_survive_reload(session, monkeypatch):
     assert dates["2026-01-01"].hdan == 9.0
     assert "2026-02-01" not in dates
     assert dates["2026-06-01"].hdan == 5.0
+
+
+# ---------------------------------------------------------------------------
+# Historical chart (VIS-01, D-03/D-04)
+# ---------------------------------------------------------------------------
+
+
+def test_historical_chart_figure_uses_selected_series(session, monkeypatch):
+    session.add(PriceRow(date="2026-01-01", hdan=1.0, ppan=10.0))
+    session.add(PriceRow(date="2026-02-01", hdan=2.0, ppan=20.0))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+
+    figure = state.historical_chart_figure
+    assert list(figure.data[0].y) == [1.0, 2.0]
+
+    state.select_series("PPAN")
+    assert state.selected_series == "ppan"
+
+    figure = state.historical_chart_figure
+    assert list(figure.data[0].y) == [10.0, 20.0]
+
+
+def test_historical_chart_figure_skips_nulls(session, monkeypatch):
+    session.add(PriceRow(date="2026-01-01", hdan=1.0))
+    session.add(PriceRow(date="2026-02-01", hdan=None))
+    session.add(PriceRow(date="2026-03-01", hdan=3.0))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+
+    figure = state.historical_chart_figure
+    assert list(figure.data[0].x) == ["2026-01-01", "2026-03-01"]
+    assert list(figure.data[0].y) == [1.0, 3.0]
+
+
+def test_historical_chart_figure_empty_series_annotates(session, monkeypatch):
+    session.add(PriceRow(date="2026-01-01", hdan=None))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+
+    figure = state.historical_chart_figure
+    assert len(figure.data) == 0
+    annotations = figure.layout.annotations
+    assert any("No data for this series yet." in a.text for a in annotations)
+
+
+def test_select_series_ignores_unknown_label(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+    state.select_series("Nonexistent")
+
+    assert state.selected_series == "hdan"
+
+
+def test_chart_figure_does_not_query_db(session, monkeypatch):
+    session.add(PriceRow(date="2026-01-01", hdan=1.0))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+
+    def _raise():
+        raise AssertionError("historical_chart_figure must not query the DB")
+
+    monkeypatch.setattr("reflex.session", _raise)
+
+    assert "rx.session" not in inspect.getsource(
+        DashboardState.__dict__["historical_chart_figure"].fget
+    )
+    # Access after monkeypatching session to raise proves no DB round trip.
+    figure = state.historical_chart_figure
+    assert len(figure.data) == 1
+
+
+def test_series_labels_cover_all_attrs():
+    assert set(SERIES_LABELS) == set(SERIES_ATTRS)
+    assert len(SERIES_LABELS) == 16

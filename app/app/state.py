@@ -7,6 +7,8 @@ reads (load_rows) and writes (cell edit, add-row-with-deferred-persist,
 two-click delete) — DATA-01 through DATA-05.
 """
 
+import plotly.express as px
+import plotly.graph_objects as go
 import reflex as rx
 
 from app.models import PriceRow
@@ -34,6 +36,30 @@ SERIES_ATTRS = (
     "brent",
 )
 
+# Single source of truth for series display labels, shared by app.py's
+# _COLUMNS (table headers) and the chart's Series selector. Order matches
+# the historical _COLUMNS ordering so the dropdown matches table columns.
+SERIES_LABELS: dict[str, str] = {
+    "hdan": "HDAN",
+    "ppan": "PPAN",
+    "baltic_an": "Baltic AN",
+    "ammonia": "Ammonia",
+    "urea_black_sea": "Urea Black Sea",
+    "urea_china": "Urea China",
+    "natural_gas_jkm": "NG JKM",
+    "natural_gas_henry_hub": "NG Henry Hub",
+    "natural_gas_uk": "NG UK",
+    "natural_gas_netherlands": "NG Netherlands",
+    "corn_us": "Corn US",
+    "corn_china": "Corn China",
+    "diesel_usd_ton": "Diesel USD/t",
+    "urals": "Urals",
+    "fx_rate": "FX Rate",
+    "brent": "Brent",
+}
+
+LABEL_TO_ATTR: dict[str, str] = {label: attr for attr, label in SERIES_LABELS.items()}
+
 
 class DashboardState(rx.State):
     """Holds the price table for display, reflecting the DB as source of truth."""
@@ -56,10 +82,69 @@ class DashboardState(rx.State):
 
     pending_delete: str = ""
 
+    selected_series: str = "hdan"
+
     @rx.var
     def can_add_row(self) -> bool:
         """False while an unsaved draft exists (D-06b)."""
         return len(self.draft_rows) == 0
+
+    @rx.var
+    def series_label(self) -> str:
+        """Human label for selected_series; rx.select's value prop needs the label."""
+        return SERIES_LABELS[self.selected_series]
+
+    @rx.var
+    def historical_chart_figure(self) -> go.Figure:
+        """Actuals-only line chart for the currently selected series (VIS-01).
+
+        Built entirely from self.rows/self.selected_series (in-memory) so
+        switching series never touches the database — RESEARCH Pattern 4.
+        """
+        attr = self.selected_series
+        dates = []
+        values = []
+        for row in self.rows:
+            value = getattr(row, attr)
+            if value is not None:
+                dates.append(row.date)
+                values.append(value)
+
+        if not values:
+            figure = go.Figure()
+            figure.update_layout(
+                xaxis_title="Date",
+                yaxis_title=SERIES_LABELS[attr],
+                showlegend=False,
+                margin=dict(l=40, r=16, t=16, b=40),
+                annotations=[
+                    dict(
+                        text="No data for this series yet.",
+                        xref="paper",
+                        yref="paper",
+                        x=0.5,
+                        y=0.5,
+                        showarrow=False,
+                    )
+                ],
+            )
+            return figure
+
+        figure = px.line(x=dates, y=values, markers=True)
+        figure.update_layout(
+            xaxis_title="Date",
+            yaxis_title=SERIES_LABELS[attr],
+            showlegend=False,
+            margin=dict(l=40, r=16, t=16, b=40),
+        )
+        figure.update_traces(line_color="#697177")
+        return figure
+
+    def select_series(self, label: str) -> None:
+        """Handle the Series dropdown; ignores unknown labels (T-04-12)."""
+        attr = LABEL_TO_ATTR.get(label)
+        if attr is not None:
+            self.selected_series = attr
 
     def load_rows(self) -> None:
         """Re-read all PriceRow records from SQLite, ordered ascending by date.
