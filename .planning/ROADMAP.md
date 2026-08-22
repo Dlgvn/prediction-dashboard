@@ -96,7 +96,7 @@ Plans:
 **Plans**: 4 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Forecast state core: horizon, history DataFrame, markup_pct, forecast_results, Excel export handler (wave 1)
+- [x] 05-01-PLAN.md — Forecast state core: horizon, history DataFrame, markup_pct, forecast_results, Excel export handler (wave 1)
 - [ ] 05-02-PLAN.md — Freshness chips, fan-chart figure, all-series forecast table data (wave 2)
 - [ ] 05-03-PLAN.md — Slider, chips, fan chart, forecast table and export button wired into index() (wave 3)
 - [ ] 05-04-PLAN.md — Regression run, human verification of the full flow, v1 requirements close-out (wave 4)
@@ -111,7 +111,7 @@ Plans:
 | 2. Model Research & Backtesting | 7/7 | Complete   | 2026-08-21 |
 | 3. Forecasting Module & Derived Series | 4/4 | Complete   | 2026-08-22 |
 | 4. Data Entry UI & Historical View | 4/4 | Complete   | 2026-08-22 |
-| 5. Forecast UI, Scenario Chart & Excel Export | 0/4 | Planned | - |
+| 5. Forecast UI, Scenario Chart & Excel Export | 1/4 | In Progress|  |
 
 ---
 *Roadmap created: 2026-08-21*

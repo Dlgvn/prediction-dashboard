@@ -20,7 +20,7 @@
 
 ### Forecasting & Scenarios
 
-- [ ] **FCST-01**: User can select a forecast horizon from 1 to 12 months
+- [x] **FCST-01**: User can select a forecast horizon from 1 to 12 months
 - [x] **FCST-02**: For the selected horizon, the app computes a base (point), bull, and
       bear forecast value for each month, for HDAN, PPAN, Diesel-USD, and FX rate
 - [x] **FCST-03**: Diesel purchasing price in MNT is computed as a derived series
@@ -48,7 +48,7 @@
 
 ### Data Portability
 
-- [ ] **EXPORT-01**: User can export the current stored price table to an `.xlsx` file
+- [x] **EXPORT-01**: User can export the current stored price table to an `.xlsx` file
 
 ## v2 Requirements (Deferred)
 
@@ -90,7 +90,7 @@
 | DATA-04 | Phase 4 | Complete |
 | DATA-05 | Phase 4 | Complete |
 | DATA-06 | Phase 5 | Pending |
-| FCST-01 | Phase 5 | Pending |
+| FCST-01 | Phase 5 | Complete |
 | FCST-02 | Phase 3 | Pending (HDAN done in 03-02; PPAN/Diesel/FX in 03-03; dispatcher in 03-04) |
 | FCST-03 | Phase 3 | Complete |
 | FCST-04 | Phase 3 | Pending (HDAN done in 03-02; PPAN/Diesel/FX in 03-03; dispatcher in 03-04) |
@@ -100,7 +100,7 @@
 | VIS-01 | Phase 4 | Complete |
 | VIS-02 | Phase 5 | Pending |
 | VIS-03 | Phase 5 | Pending |
-| EXPORT-01 | Phase 5 | Pending |
+| EXPORT-01 | Phase 5 | Complete |
 
 ---
 *Requirements defined: 2026-08-21*
