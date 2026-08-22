@@ -1,6 +1,9 @@
 """Tests for DashboardState.load_rows — the app's sole DB read path."""
 
 import inspect
+import io
+
+import pandas as pd
 
 from app import state as state_module
 from app import validators
@@ -621,3 +624,59 @@ def test_forecast_results_calls_forecast_all_once(session, monkeypatch, syntheti
     _ = state.forecast_results
 
     assert call_count["n"] == 1
+
+
+# ---------------------------------------------------------------------------
+# Excel export (EXPORT-01, D-08)
+# ---------------------------------------------------------------------------
+
+
+def test_export_to_excel_roundtrip(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = [
+        PriceRow(date="2026-01-01", hdan=1.0, ppan=2.0),
+        PriceRow(date="2026-02-01", hdan=3.0, ppan=4.0),
+        PriceRow(date="2026-03-01", hdan=5.0, ppan=6.0),
+    ]
+
+    data = state._export_bytes()
+    df = pd.read_excel(io.BytesIO(data))
+
+    assert len(df) == 3
+    assert "date" in df.columns
+    for attr in SERIES_ATTRS:
+        assert attr in df.columns
+
+
+def test_export_excludes_id_column(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = [PriceRow(id=1, date="2026-01-01", hdan=1.0)]
+
+    data = state._export_bytes()
+    df = pd.read_excel(io.BytesIO(data))
+
+    assert "id" not in df.columns
+
+
+def test_export_empty_rows_does_not_raise(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = []
+
+    data = state._export_bytes()  # noqa: F841 -- must not raise
+    df = pd.read_excel(io.BytesIO(data))
+    assert len(df) == 0
+
+
+def test_export_exports_actuals_not_forecast(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = [PriceRow(date="2026-01-01", hdan=9.5, ppan=8.25)]
+
+    data = state._export_bytes()
+    df = pd.read_excel(io.BytesIO(data))
+
+    assert df.iloc[0]["hdan"] == 9.5
+    assert df.iloc[0]["ppan"] == 8.25
