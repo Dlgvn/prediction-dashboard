@@ -48,6 +48,11 @@ forecast-scenario chart/horizon selector/export (Phase 5).
   separate add-row form UI. The new row's Date cell must satisfy D-02 (valid, not a
   duplicate month) before the row can be considered saved/persisted; until a valid date
   is entered, the row is not yet written to SQLite (avoid writing a row with no date).
+- **D-06b (clarifies D-06, added after research):** Only one unsaved draft row may exist
+  at a time — the "Add row" button is disabled while a just-added row's Date cell doesn't
+  yet hold a valid, non-duplicate date. Once that draft is saved (valid date entered),
+  "Add row" re-enables. Avoids the ambiguity/complexity of tracking multiple simultaneous
+  unsaved drafts, which don't yet have a stable per-row key (Date) to distinguish them.
 
 ### Delete confirmation UX
 - **D-07:** Click-delete-again-to-confirm pattern: the first click on a row's delete
