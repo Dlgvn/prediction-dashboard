@@ -26,7 +26,7 @@ def _editable_cell(row: PriceRow, attr: str) -> rx.Component:
 
     display = rx.text(
         display_value,
-        on_click=DashboardState.start_edit(key, value.to_string()),
+        on_click=DashboardState.start_edit(key, display_value),
         cursor="pointer",
         size="2",
     )
