@@ -73,7 +73,14 @@ Plans:
   3. Invalid values (non-numeric input, negative prices, negative FX rate) are rejected before they reach storage
   4. Entered/edited/deleted rows are still present after the app is restarted or the page is refreshed
   5. User can view a historical chart of actual prices (no forecast) for each series
-**Plans**: TBD
+**Plans**: 4 plans
+
+Plans:
+- [ ] 04-01-PLAN.md — D-01/D-02 validators (numeric + unique-month date) with tests (wave 1)
+- [ ] 04-02-PLAN.md — DashboardState write path: inline edit, deferred-persist draft row, two-click delete (wave 2)
+- [ ] 04-03-PLAN.md — Editable table UI, Add row button, delete control, empty state (wave 3)
+- [ ] 04-04-PLAN.md — Historical chart with 16-series selector + human verification (wave 4)
+
 **UI hint**: yes
 
 ### Phase 5: Forecast UI, Scenario Chart & Excel Export
@@ -96,7 +103,7 @@ Plans:
 | 1. App Skeleton & Data Layer | 3/3 | Complete   | 2026-08-21 |
 | 2. Model Research & Backtesting | 7/7 | Complete   | 2026-08-21 |
 | 3. Forecasting Module & Derived Series | 4/4 | Complete   | 2026-08-22 |
-| 4. Data Entry UI & Historical View | 0/? | Not started | - |
+| 4. Data Entry UI & Historical View | 0/4 | Not started | - |
 | 5. Forecast UI, Scenario Chart & Excel Export | 0/? | Not started | - |
 
 ---
