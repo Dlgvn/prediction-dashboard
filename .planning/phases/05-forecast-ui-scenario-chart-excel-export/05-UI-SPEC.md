@@ -1,7 +1,7 @@
 ---
 phase: 5
 slug: forecast-ui-scenario-chart-excel-export
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-08-22
@@ -26,6 +26,8 @@ created: 2026-08-22
 Existing app state (`app/app/app.py`): a single `index()` page. Phase 4 left it ending with a heading → editable data table → Add row button → historical chart (selector + `rx.plotly`) → reserved 32px gap. Phase 5 appends below that gap, in the exact order set by CONTEXT.md D-06: horizon slider → freshness labels → forecast chart (fan-chart, selector) → forecast table (all series) → export button. Do not introduce a new page/route, do not reorganize Phase 4's existing sections.
 
 **Focal point:** within Phase 5's new section, the forecast chart's base-forecast line is the primary visual anchor (it's the one line drawn solid and in the accent color inside the fan chart); the horizon slider is the primary control the user interacts with first. Everything else (freshness labels, table, export button) is secondary in visual weight.
+
+**Visual reference direction (added post-approval, Phase 5 scope only):** the user supplied 5 reference dashboard screenshots (fintech/analytics style — bordered rounded KPI cards with uppercase gray labels + bold values + colored delta pills, colored-dot chart legends, clean sans-serif tables with pill-shaped status badges). Applied to Phase 5's new elements only — Phase 4's already-shipped/verified components (data table, historical chart) are NOT restyled. Concretely: freshness labels (§Interaction Contract item 2) upgrade from plain text to small bordered card chips; the forecast chart's series selector reuses a colored-dot-per-series convention consistent with the references' legend style. Stays within Phase 4's existing blue accent family (not introducing the references' purple) to keep Phase 4/5 visually consistent, per the checker's Phase-4-consistency requirement.
 
 ---
 
@@ -110,8 +112,8 @@ Source: no new color decisions in CONTEXT.md; defaulted to extending Phase 4's a
 Encodes CONTEXT.md D-01 through D-08 as concrete, executor-actionable rules:
 
 1. **Horizon slider (D-01/D-02):** `rx.slider` bound to a `horizon_months: int` state var, range 1-12, step 1, default 3 (matches Phase 3's typical planning window; no explicit default was specified in CONTEXT.md — Claude's Discretion, documented here rather than left ambiguous). `on_change` fires on every drag tick (not just release) and directly re-invokes `forecast_all()` — no separate "Forecast" button, no debounce, per D-02's live-recompute justification. Numeric readout ("{N} month(s)") sits to the right of the slider, updates in lockstep.
-2. **Freshness labels (D-07):** Rendered as a row of 4 small (14px, 600 weight) labels above the forecast chart, one per tracked series (HDAN, PPAN, Diesel-USD, FX — not Diesel-MNT, since MNT is derived and has no independent "as of" date; it inherits Diesel-USD's and FX's freshness implicitly). Each computed from `max(date)` per series in `DashboardState.rows`, formatted `YYYY-MM-DD`. If a series has no data at all, show "{Series}: no data yet" instead of a date.
-3. **Forecast chart (D-03/D-04/D-05):** One `rx.plotly` figure plus one `rx.select` listing the 4 forecast series (HDAN, PPAN, Diesel-USD/ton, Diesel-MNT, FX — 5 entries per Phase 3's `forecast_all()` output keys) — reuses Phase 4's selector pattern exactly (default selection: HDAN, first headline series). The figure always plots: (a) 12 months of trailing historical actuals as a solid neutral-gray line (D-05), (b) the bull/bear band as two boundary traces with `fill='tonexty'` at ~15% accent opacity spanning the selected horizon (D-04), (c) the base-forecast line as a solid accent-blue line drawn on top of the band (D-04). Changing the selector swaps all three traces to the newly selected series' data — never overlay multiple series, never grid multiple charts (same rule as Phase 4's historical chart).
+2. **Freshness labels (D-07), styled per the reference direction above:** Rendered as a row of 4 small bordered card chips above the forecast chart, one per tracked series (HDAN, PPAN, Diesel-USD, FX — not Diesel-MNT, since MNT is derived and has no independent "as of" date; it inherits Diesel-USD's and FX's freshness implicitly). Each chip: `rx.box` with a 1px `gray.5` border, 8px radius, 8px/12px padding, containing an uppercase 12px gray-9 series label on its own line and the `YYYY-MM-DD` date below in 14px/600-weight body color — same visual family as a compact KPI tile, not a full KPI card (no big numeric value, no delta badge, since freshness is a date not a metric). Each date computed from `max(date)` per series in `DashboardState.rows`. If a series has no data at all, show "{Series}: no data yet" instead of a date, with the chip's border rendered in a muted/dashed style to signal the empty state.
+3. **Forecast chart (D-03/D-04/D-05):** One `rx.plotly` figure plus one `rx.select` listing the 4 forecast series (HDAN, PPAN, Diesel-USD/ton, Diesel-MNT, FX — 5 entries per Phase 3's `forecast_all()` output keys) — reuses Phase 4's selector pattern exactly (default selection: HDAN, first headline series). The figure always plots: (a) 12 months of trailing historical actuals as a solid neutral-gray line (D-05), (b) the bull/bear band as two boundary traces with `fill='tonexty'` at ~15% accent opacity spanning the selected horizon (D-04), (c) the base-forecast line as a solid accent-blue line drawn on top of the band (D-04). Legend entries (Plotly's built-in legend for the 3 traces — "Historical", "Forecast band", "Base forecast") use colored-dot markers matching each trace's line color, consistent with the reference dashboards' colored-dot legend convention. Changing the selector swaps all three traces to the newly selected series' data — never overlay multiple series, never grid multiple charts (same rule as Phase 4's historical chart).
 4. **Forecast table (FCST-06/VIS-03 via D-03):** `rx.table` listing ALL FOUR tracked series (HDAN, PPAN, Diesel-MNT, FX — plus Diesel-USD/ton if space allows, since it's an intermediate value feeding Diesel-MNT) simultaneously, one row per forecast month (1 through `horizon_months`), with base/bull/bear columns per series. This table — not the chart — is what satisfies VIS-03's "all four visible together" requirement per D-03's explicit resolution. Read-only (no inline editing, unlike Phase 4's data table) — reuse `rx.table` structure/styling only, not the editable-cell helpers.
 5. **Export (D-08/EXPORT-01):** "Export to Excel" button (accent-colored, `download` icon + label, positioned below the forecast table with 8px gap above and reserved as the final element on the page) triggers a state event that writes `DashboardState.rows` (the current stored actuals — same data Phase 4's table shows, NOT the forecast output) to an `.xlsx` file via `pandas.DataFrame.to_excel(engine="openpyxl")` and serves it as a download (`rx.download`). No confirmation step needed (non-destructive, read-only export). Show the export-success or export-error copy from the Copywriting Contract as a transient inline message beneath the button.
 6. **Layout order on the page (D-06):** Phase 4's existing sections (heading → editable data table → Add row button → historical chart) remain untouched at the top. Below Phase 4's reserved 32px gap, Phase 5 appends, top to bottom: horizon slider (with numeric readout) → freshness labels row → forecast chart (selector + `rx.plotly` fan chart) → forecast table (all series) → "Export to Excel" button. No tabs, no accordion, no reordering — single continuous scroll, single page/route.
@@ -120,11 +122,11 @@ Encodes CONTEXT.md D-01 through D-08 as concrete, executor-actionable rules:
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS
+- [x] Dimension 2 Visuals: PASS
+- [x] Dimension 3 Color: PASS
+- [x] Dimension 4 Typography: PASS
+- [x] Dimension 5 Spacing: PASS
+- [x] Dimension 6 Registry Safety: PASS
 
-**Approval:** pending
+**Approval:** approved 2026-08-22 (re-verified after post-approval visual-reference update)
