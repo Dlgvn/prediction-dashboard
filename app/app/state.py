@@ -7,11 +7,15 @@ reads (load_rows) and writes (cell edit, add-row-with-deferred-persist,
 two-click delete) — DATA-01 through DATA-05.
 """
 
+import io
+
+import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
 import reflex as rx
 
-from app.models import PriceRow
+from app.forecasting import MAX_HORIZON, InsufficientHistoryError, forecast_all
+from app.models import AppSetting, PriceRow
 from app.validators import validate_date, validate_numeric
 
 # The 16 series columns on PriceRow, defined once so both the draft-row
@@ -60,6 +64,25 @@ SERIES_LABELS: dict[str, str] = {
 
 LABEL_TO_ATTR: dict[str, str] = {label: attr for attr, label in SERIES_LABELS.items()}
 
+# Phase 5's forecast-series selector triad (D-03/Pattern 3) — independent of
+# SERIES_LABELS/LABEL_TO_ATTR above, scoped to forecast_all()'s exact 5
+# output keys, in that order.
+FORECAST_SERIES_LABELS: dict[str, str] = {
+    "hdan": "HDAN",
+    "ppan": "PPAN",
+    "diesel_usd_ton": "Diesel USD/t",
+    "diesel_mnt": "Diesel MNT",
+    "fx_rate": "FX Rate",
+}
+
+FORECAST_LABEL_TO_ATTR: dict[str, str] = {
+    label: attr for attr, label in FORECAST_SERIES_LABELS.items()
+}
+
+# D-07: freshness "as of" dates apply only to independently-modeled series;
+# diesel_mnt is derived (diesel_usd * fx * markup) and has no own date.
+FRESHNESS_SERIES: tuple[str, ...] = ("hdan", "ppan", "diesel_usd_ton", "fx_rate")
+
 
 class DashboardState(rx.State):
     """Holds the price table for display, reflecting the DB as source of truth."""
@@ -83,6 +106,15 @@ class DashboardState(rx.State):
     pending_delete: str = ""
 
     selected_series: str = "hdan"
+
+    # Phase 5 forecast state (FCST-01/EXPORT-01) — independent of the
+    # historical-chart selector above (D-06: two separate chart sections).
+    horizon_months: int = 3
+    forecast_series: str = "hdan"
+    markup_pct: float = 0.0
+    forecast_error: str = ""
+    export_message: str = ""
+    export_failed: bool = False
 
     @rx.var
     def can_add_row(self) -> bool:
@@ -145,6 +177,52 @@ class DashboardState(rx.State):
         attr = LABEL_TO_ATTR.get(label)
         if attr is not None:
             self.selected_series = attr
+
+    def set_horizon(self, value: list[int]) -> None:
+        """on_change fires on every drag tick per D-02; value arrives as a
+        single-element list (Radix Slider's array-value convention).
+        Clamped server-side per T-05-01 — never trust the raw client
+        payload, even though Radix also enforces min/max client-side.
+        """
+        if not value:
+            return
+        self.horizon_months = max(1, min(MAX_HORIZON, int(value[0])))
+
+    def select_forecast_series(self, label: str) -> None:
+        """Handle the forecast-series dropdown; ignores unknown labels."""
+        attr = FORECAST_LABEL_TO_ATTR.get(label)
+        if attr is not None:
+            self.forecast_series = attr
+
+    @rx.var
+    def forecast_series_label(self) -> str:
+        """Human label for forecast_series; rx.select's value prop needs the label."""
+        return FORECAST_SERIES_LABELS[self.forecast_series]
+
+    def load_markup_pct(self) -> None:
+        """Read the live markup_pct AppSetting (D-04). Confirmed seeded by
+        Phase 1 (id=1, value=0.0); the None branch is defence-in-depth
+        only, not a seeding path — do NOT insert a row here.
+        """
+        with rx.session() as session:
+            setting = session.exec(
+                AppSetting.select().where(AppSetting.key == "markup_pct")
+            ).first()
+            self.markup_pct = setting.value if setting is not None else 0.0
+
+    def _history_df(self) -> pd.DataFrame:
+        """Build the plain date-indexed DataFrame forecast_all()'s caller
+        contract requires — no ORM object crosses into forecasting.py.
+        """
+        if not self.rows:
+            return pd.DataFrame()
+
+        records = [
+            {attr: getattr(row, attr) for attr in SERIES_ATTRS} for row in self.rows
+        ]
+        index = pd.DatetimeIndex(pd.to_datetime([row.date for row in self.rows]))
+        frame = pd.DataFrame(records, index=index)
+        return frame.sort_index()
 
     def load_rows(self) -> None:
         """Re-read all PriceRow records from SQLite, ordered ascending by date.
