@@ -16,3 +16,8 @@ def test_index_compiles_to_component():
 
 def test_columns_count_is_seventeen():
     assert len(app_module._COLUMNS) == 17
+
+
+def test_historical_chart_compiles_to_component():
+    component = app_module.historical_chart()
+    assert isinstance(component, rx.Component)

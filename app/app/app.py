@@ -3,28 +3,13 @@
 import reflex as rx
 
 from app.models import AppSetting, PriceRow  # noqa: F401  (registers tables for reflex db migrate)
-from app.state import DashboardState
+from app.state import SERIES_ATTRS, SERIES_LABELS, DashboardState
 
 # Header labels in display order, paired with the PriceRow attribute they render.
 # Order and labels follow the D-05b/D-05c 17-column contract (Date + 16 series).
-_COLUMNS: list[tuple[str, str]] = [
-    ("Date", "date"),
-    ("HDAN", "hdan"),
-    ("PPAN", "ppan"),
-    ("Baltic AN", "baltic_an"),
-    ("Ammonia", "ammonia"),
-    ("Urea Black Sea", "urea_black_sea"),
-    ("Urea China", "urea_china"),
-    ("NG JKM", "natural_gas_jkm"),
-    ("NG Henry Hub", "natural_gas_henry_hub"),
-    ("NG UK", "natural_gas_uk"),
-    ("NG Netherlands", "natural_gas_netherlands"),
-    ("Corn US", "corn_us"),
-    ("Corn China", "corn_china"),
-    ("Diesel USD/t", "diesel_usd_ton"),
-    ("Urals", "urals"),
-    ("FX Rate", "fx_rate"),
-    ("Brent", "brent"),
+# Built from state.SERIES_LABELS so labels exist in exactly one place.
+_COLUMNS: list[tuple[str, str]] = [("Date", "date")] + [
+    (SERIES_LABELS[attr], attr) for attr in SERIES_ATTRS
 ]
 
 
@@ -131,6 +116,33 @@ def add_row_button() -> rx.Component:
     )
 
 
+def historical_chart() -> rx.Component:
+    """Actuals-only historical chart (VIS-01) with a Series selector (D-03/D-04)."""
+    return rx.box(
+        rx.vstack(
+            rx.hstack(
+                rx.text("Series", weight="bold", size="2"),
+                rx.select(
+                    list(SERIES_LABELS.values()),
+                    value=DashboardState.series_label,
+                    on_change=DashboardState.select_series,
+                    size="2",
+                ),
+                spacing="2",
+                align="center",
+            ),
+            rx.plotly(
+                data=DashboardState.historical_chart_figure,
+                width="100%",
+                height="360px",
+            ),
+            spacing="3",
+        ),
+        padding="1.5rem",
+        width="100%",
+    )
+
+
 def empty_state() -> rx.Component:
     return rx.vstack(
         rx.heading("No price data yet", size="4"),
@@ -154,6 +166,7 @@ def index() -> rx.Component:
             empty_state(),
         ),
         add_row_button(),
+        historical_chart(),
         rx.box(height="2rem"),
         spacing="4",
         on_mount=DashboardState.load_rows,
