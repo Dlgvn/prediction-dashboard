@@ -4,12 +4,12 @@
 
 ### Data Entry & Persistence
 
-- [ ] **DATA-01**: User can add a new row of monthly actual prices (Date, HDAN, PPAN,
+- [x] **DATA-01**: User can add a new row of monthly actual prices (Date, HDAN, PPAN,
       Baltic_AN, Ammonia, Urea, Natural_Gas, Brent, Diesel_USD_ton, Urals, FX_rate)
       directly in the dashboard
-- [ ] **DATA-02**: User can edit an existing row's values inline, in the data table
+- [x] **DATA-02**: User can edit an existing row's values inline, in the data table
       itself, without opening a separate modal or form
-- [ ] **DATA-03**: User can delete a row (with a confirm step) from the dashboard
+- [x] **DATA-03**: User can delete a row (with a confirm step) from the dashboard
 - [x] **DATA-04**: Entered values are validated on save — numeric fields reject
       non-numeric input and implausible values (e.g. negative prices, negative FX rate)
       before they reach storage
