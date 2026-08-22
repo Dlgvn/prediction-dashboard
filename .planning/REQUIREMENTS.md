@@ -4,16 +4,16 @@
 
 ### Data Entry & Persistence
 
-- [ ] **DATA-01**: User can add a new row of monthly actual prices (Date, HDAN, PPAN,
+- [x] **DATA-01**: User can add a new row of monthly actual prices (Date, HDAN, PPAN,
       Baltic_AN, Ammonia, Urea, Natural_Gas, Brent, Diesel_USD_ton, Urals, FX_rate)
       directly in the dashboard
-- [ ] **DATA-02**: User can edit an existing row's values inline, in the data table
+- [x] **DATA-02**: User can edit an existing row's values inline, in the data table
       itself, without opening a separate modal or form
-- [ ] **DATA-03**: User can delete a row (with a confirm step) from the dashboard
+- [x] **DATA-03**: User can delete a row (with a confirm step) from the dashboard
 - [x] **DATA-04**: Entered values are validated on save — numeric fields reject
       non-numeric input and implausible values (e.g. negative prices, negative FX rate)
       before they reach storage
-- [ ] **DATA-05**: All entered/edited/deleted rows persist in SQLite and are visible again
+- [x] **DATA-05**: All entered/edited/deleted rows persist in SQLite and are visible again
       after the app is restarted or the page is refreshed
 - [ ] **DATA-06**: Each series (HDAN, PPAN, Diesel-USD, FX) shows an "as of" / last-updated
       date so the user knows whether the data feeding the forecast is current
@@ -84,11 +84,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | Phase 4 | Pending |
-| DATA-02 | Phase 4 | Pending |
-| DATA-03 | Phase 4 | Pending |
+| DATA-01 | Phase 4 | Complete |
+| DATA-02 | Phase 4 | Complete |
+| DATA-03 | Phase 4 | Complete |
 | DATA-04 | Phase 4 | Complete |
-| DATA-05 | Phase 4 | Pending |
+| DATA-05 | Phase 4 | Complete |
 | DATA-06 | Phase 5 | Pending |
 | FCST-01 | Phase 5 | Pending |
 | FCST-02 | Phase 3 | Pending (HDAN done in 03-02; PPAN/Diesel/FX in 03-03; dispatcher in 03-04) |
