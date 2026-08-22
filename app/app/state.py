@@ -172,6 +172,46 @@ class DashboardState(rx.State):
         figure.update_traces(line_color="#697177")
         return figure
 
+    def _export_bytes(self) -> bytes:
+        """Build the .xlsx bytes for the stored actuals table (D-08 — the
+        actuals table only, never forecast output). Plain method (not an
+        event handler) so it's unit-testable without Reflex's event
+        machinery. Never writes to disk — BytesIO buffer only.
+        """
+        records = []
+        for row in self.rows:
+            # row.model_dump() misbehaves on this SQLModel/rx.Model instance
+            # (returns non-dict values for some fields) — build the record
+            # manually from date + SERIES_ATTRS, mirroring the proven
+            # pattern in _commit_draft_cell rather than trusting .model_dump().
+            record = {"date": row.date}
+            for attr in SERIES_ATTRS:
+                record[attr] = getattr(row, attr)
+            records.append(record)
+
+        df = pd.DataFrame(records, columns=["date", *SERIES_ATTRS])
+        buffer = io.BytesIO()
+        df.to_excel(buffer, engine="openpyxl", index=False)
+        buffer.seek(0)
+        return buffer.getvalue()
+
+    def export_to_excel(self):
+        """Event handler for the export button (EXPORT-01)."""
+        try:
+            data = self._export_bytes()
+        except Exception:
+            self.export_failed = True
+            self.export_message = (
+                "Export failed. Check that the app has write access and try again."
+            )
+            return None
+
+        self.export_failed = False
+        self.export_message = "Downloaded prediction_dashboard_prices.xlsx"
+        return rx.download(
+            data=data, filename="prediction_dashboard_prices.xlsx"
+        )
+
     @rx.var
     def forecast_results(self) -> dict:
         """Single computed var wrapping forecast_all() (Pitfall 2 guard —
