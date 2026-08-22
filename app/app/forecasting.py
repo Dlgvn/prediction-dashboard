@@ -354,7 +354,19 @@ def forecast_ppan_var_system(history: pd.DataFrame, horizon: int) -> dict:
             "target and feature columns)."
         )
 
-    last_features = design[feature_cols].iloc[[-1]]
+    # Use the most recent row where every feature is actually observed, not
+    # necessarily the literal last calendar row of `history` -- a
+    # partially-entered current month (e.g. a PriceRow with some columns
+    # still NULL) would otherwise push NaN through every horizon's
+    # prediction. This is a real-data condition, not a synthetic-fixture
+    # edge case: `PriceRow` rows are entered incrementally column-by-column.
+    complete_features = design[feature_cols].dropna()
+    if complete_features.empty:
+        raise InsufficientHistoryError(
+            "PPAN Direct-OLS system has no row with all system-member "
+            f"features ({feature_cols}) observed simultaneously."
+        )
+    last_features = complete_features.iloc[[-1]]
     x_last = sm.add_constant(last_features, has_constant="add")
 
     preds = []
@@ -417,4 +429,104 @@ def _apply_se_spread(base, se) -> dict:
         "base": base_arr.tolist(),
         "bull": (base_arr + se_arr).tolist(),
         "bear": (base_arr - se_arr).tolist(),
+    }
+
+
+def diesel_mnt_forecast(diesel_usd_fc: dict, fx_fc: dict, markup_pct: float) -> dict:
+    """Derive Diesel-MNT from ALREADY-COMPUTED Diesel-USD and FX forecasts.
+
+    Diesel-MNT (FCST-03) is never independently modeled -- it is always
+    `diesel_usd * fx * (1 + markup_pct / 100)`. This function takes the two
+    columnar forecast dicts as arguments and must NEVER call
+    `forecast_diesel_usd` or `forecast_fx` itself; that constraint is what
+    structurally prevents a double-refit (Pitfall 5) and guarantees the
+    displayed Diesel-USD/FX values agree exactly with the values used to
+    derive Diesel-MNT.
+
+    Per planner decision P-01 (03-04-PLAN.md), bull/bear are combined at
+    matching scenario edges: `bull = diesel_usd.bull * fx.bull * multiplier`,
+    `bear = diesel_usd.bear * fx.bear * multiplier`. This is a simple,
+    explainable approximation, NOT a statistically rigorous joint interval
+    -- it treats the two series' errors as compounding in the same
+    direction at the extremes, so the resulting band is wider than a
+    calibrated ~68% interval on the product would be. This caveat is
+    intentional per D-04's "approximate range communicated honestly"
+    philosophy; variance-propagation-in-quadrature was explicitly rejected
+    for v1 as unrequired precision.
+    """
+    multiplier = 1 + markup_pct / 100.0
+    diesel_base = np.asarray(diesel_usd_fc["base"], dtype=float)
+    diesel_bull = np.asarray(diesel_usd_fc["bull"], dtype=float)
+    diesel_bear = np.asarray(diesel_usd_fc["bear"], dtype=float)
+    fx_base = np.asarray(fx_fc["base"], dtype=float)
+    fx_bull = np.asarray(fx_fc["bull"], dtype=float)
+    fx_bear = np.asarray(fx_fc["bear"], dtype=float)
+
+    return {
+        "base": (diesel_base * fx_base * multiplier).tolist(),
+        "bull": (diesel_bull * fx_bull * multiplier).tolist(),
+        "bear": (diesel_bear * fx_bear * multiplier).tolist(),
+    }
+
+
+def _to_rows(columnar: dict, horizon: int) -> list[dict]:
+    """Transpose a columnar {"base": [...], "bull": [...], "bear": [...]}
+    forecast dict into the row-per-month shape P-02 defines:
+    `[{"month": 1, "base": ..., "bull": ..., "bear": ...}, ...]`, 1-indexed.
+    """
+    return [
+        {
+            "month": h,
+            "base": columnar["base"][h - 1],
+            "bull": columnar["bull"][h - 1],
+            "bear": columnar["bear"][h - 1],
+        }
+        for h in range(1, horizon + 1)
+    ]
+
+
+def forecast_all(history: pd.DataFrame, horizon: int, markup_pct: float) -> dict:
+    """Single dispatcher (D-07) orchestrating all four winning models plus
+    the derived Diesel-MNT series, for a given horizon and markup.
+
+    Caller contract (Phase 4/5, NOT built in this phase): the Reflex state
+    layer reads `PriceRow` rows and the `markup_pct` `AppSetting` value,
+    converts them to a plain date-indexed `pd.DataFrame` and a plain
+    `float`, and calls `forecast_all(history, horizon, markup_pct)`. This
+    module never opens a session (D-08's zero-Reflex boundary) -- no
+    `import reflex` and no ORM object ever appears here.
+
+    D-06 forbids caching or cache-invalidation logic: every call refits
+    all four models fresh from the passed-in `history`. No memoization is
+    added here or anywhere in this module.
+
+    Returns a dict with exactly five keys -- `hdan`, `ppan`,
+    `diesel_usd_ton`, `fx_rate`, `diesel_mnt` -- each a list of `horizon`
+    row-dicts shaped `{"month": int, "base": float, "bull": float,
+    "bear": float}`, ordered h=1..horizon (P-02). This row-per-month shape
+    is directly renderable by Phase 5 as both a table (`rx.foreach`) and a
+    chart, with no further transformation.
+    """
+    if not isinstance(horizon, int) or isinstance(horizon, bool) or not (
+        1 <= horizon <= MAX_HORIZON
+    ):
+        raise ValueError(
+            f"horizon must be an int in 1..{MAX_HORIZON}, got {horizon!r}."
+        )
+
+    hdan_fc = forecast_hdan(history, horizon)
+    ppan_fc = forecast_ppan_var_system(history, horizon)
+    # Bound once each -- forecast_diesel_usd/forecast_fx are called exactly
+    # once here and their results are reused (not refit) for diesel_mnt_forecast,
+    # to structurally prevent the Pitfall 5 double-refit.
+    diesel_usd_fc = forecast_diesel_usd(history, horizon)
+    fx_fc = forecast_fx(history, horizon)
+    diesel_mnt_fc = diesel_mnt_forecast(diesel_usd_fc, fx_fc, markup_pct)
+
+    return {
+        "hdan": _to_rows(hdan_fc, horizon),
+        "ppan": _to_rows(ppan_fc, horizon),
+        "diesel_usd_ton": _to_rows(diesel_usd_fc, horizon),
+        "fx_rate": _to_rows(fx_fc, horizon),
+        "diesel_mnt": _to_rows(diesel_mnt_fc, horizon),
     }

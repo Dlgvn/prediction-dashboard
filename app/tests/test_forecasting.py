@@ -16,6 +16,8 @@ from app.forecasting import (
     _forecast_predictor,
     _naive_forecast,
     _require_series,
+    diesel_mnt_forecast,
+    forecast_all,
     forecast_diesel_usd,
     forecast_fx,
     forecast_hdan,
@@ -279,3 +281,182 @@ def test_forecast_diesel_usd_raises_on_missing_column(synthetic_history):
     history = synthetic_history.drop(columns=["diesel_usd_ton"])
     with pytest.raises(InsufficientHistoryError):
         forecast_diesel_usd(history, horizon=6)
+
+
+# ---------------------------------------------------------------------------
+# Task 1: diesel_mnt_forecast + forecast_all
+# ---------------------------------------------------------------------------
+
+
+def test_diesel_mnt_forecast_zero_markup_is_plain_product():
+    diesel_fc = {"base": [10.0, 11.0], "bull": [12.0, 13.0], "bear": [8.0, 9.0]}
+    fx_fc = {"base": [3000.0, 3010.0], "bull": [3100.0, 3110.0], "bear": [2900.0, 2910.0]}
+    result = diesel_mnt_forecast(diesel_fc, fx_fc, markup_pct=0.0)
+    assert set(result.keys()) == {"base", "bull", "bear"}
+    for i in range(2):
+        assert result["base"][i] == pytest.approx(diesel_fc["base"][i] * fx_fc["base"][i])
+        assert result["bull"][i] == pytest.approx(diesel_fc["bull"][i] * fx_fc["bull"][i])
+        assert result["bear"][i] == pytest.approx(diesel_fc["bear"][i] * fx_fc["bear"][i])
+
+
+def test_diesel_mnt_forecast_applies_markup():
+    diesel_fc = {"base": [10.0], "bull": [12.0], "bear": [8.0]}
+    fx_fc = {"base": [3000.0], "bull": [3100.0], "bear": [2900.0]}
+    result = diesel_mnt_forecast(diesel_fc, fx_fc, markup_pct=5.0)
+    assert result["base"][0] == pytest.approx(10.0 * 3000.0 * 1.05)
+
+
+def test_forecast_all_shape_and_keys(synthetic_history):
+    result = forecast_all(synthetic_history, horizon=6, markup_pct=5.0)
+    assert set(result.keys()) == {
+        "hdan",
+        "ppan",
+        "diesel_usd_ton",
+        "fx_rate",
+        "diesel_mnt",
+    }
+    for key, rows in result.items():
+        assert len(rows) == 6
+        for row in rows:
+            assert set(row.keys()) == {"month", "base", "bull", "bear"}
+        assert [row["month"] for row in rows] == [1, 2, 3, 4, 5, 6]
+
+
+def test_forecast_all_diesel_mnt_agrees_with_diesel_usd_and_fx(synthetic_history):
+    result = forecast_all(synthetic_history, horizon=6, markup_pct=5.0)
+    for i in range(6):
+        expected = (
+            result["diesel_usd_ton"][i]["base"]
+            * result["fx_rate"][i]["base"]
+            * 1.05
+        )
+        assert result["diesel_mnt"][i]["base"] == pytest.approx(expected)
+
+
+def test_forecast_all_calls_diesel_usd_and_fx_exactly_once(monkeypatch, synthetic_history):
+    calls = {"diesel_usd": 0, "fx": 0}
+
+    real_diesel = forecast_diesel_usd
+    real_fx = forecast_fx
+
+    def counting_diesel(history, horizon):
+        calls["diesel_usd"] += 1
+        return real_diesel(history, horizon)
+
+    def counting_fx(history, horizon):
+        calls["fx"] += 1
+        return real_fx(history, horizon)
+
+    monkeypatch.setattr("app.forecasting.forecast_diesel_usd", counting_diesel)
+    monkeypatch.setattr("app.forecasting.forecast_fx", counting_fx)
+
+    from app.forecasting import forecast_all as patched_forecast_all
+
+    patched_forecast_all(synthetic_history, horizon=6, markup_pct=0.0)
+
+    assert calls["diesel_usd"] == 1
+    assert calls["fx"] == 1
+
+
+def test_forecast_all_raises_on_invalid_horizon(synthetic_history):
+    with pytest.raises(ValueError):
+        forecast_all(synthetic_history, horizon=13, markup_pct=5.0)
+    with pytest.raises(ValueError):
+        forecast_all(synthetic_history, horizon=0, markup_pct=5.0)
+
+
+# ---------------------------------------------------------------------------
+# Task 2: FCST-02..FCST-05 requirement-level tests
+# ---------------------------------------------------------------------------
+
+
+def test_forecast_all_shape(synthetic_history):
+    """FCST-02: One call to forecast_all returns base/bull/bear for HDAN,
+    PPAN, Diesel-USD, FX, and Diesel-MNT at the chosen horizon."""
+    result = forecast_all(synthetic_history, horizon=12, markup_pct=5.0)
+    assert set(result.keys()) == {
+        "hdan",
+        "ppan",
+        "diesel_usd_ton",
+        "fx_rate",
+        "diesel_mnt",
+    }
+    for key, rows in result.items():
+        assert len(rows) == 12
+        for row in rows:
+            for field in ("base", "bull", "bear"):
+                assert np.isfinite(row[field])
+            assert row["bull"] > row["base"] > row["bear"], key
+
+
+def test_diesel_mnt_derivation(synthetic_history):
+    """FCST-03: Diesel-MNT is computed as Diesel-USD x FX x (1 + markup_pct/100)
+    per horizon step, never modeled independently."""
+    result = forecast_all(synthetic_history, horizon=12, markup_pct=5.0)
+    for i in range(12):
+        for edge in ("base", "bull", "bear"):
+            expected = (
+                result["diesel_usd_ton"][i][edge]
+                * result["fx_rate"][i][edge]
+                * 1.05
+            )
+            assert result["diesel_mnt"][i][edge] == pytest.approx(expected)
+
+    # Diesel-MNT is not independently modeled: scaling the input fx_rate
+    # column by 2x should scale diesel_mnt.base by approximately 2x.
+    scaled_history = synthetic_history.copy()
+    scaled_history["fx_rate"] = scaled_history["fx_rate"] * 2.0
+    scaled_result = forecast_all(scaled_history, horizon=12, markup_pct=5.0)
+
+    for i in range(12):
+        ratio = (
+            scaled_result["diesel_mnt"][i]["base"] / result["diesel_mnt"][i]["base"]
+        )
+        assert ratio == pytest.approx(2.0, rel=0.05)
+
+
+def test_spread_uses_named_volatility_source(synthetic_history):
+    """FCST-04: Every series' band uses its named volatility source, not one
+    flat spread percentage shared across series."""
+    result = forecast_all(synthetic_history, horizon=12, markup_pct=5.0)
+
+    relative_half_widths = {}
+    for key in ("hdan", "ppan", "diesel_usd_ton", "fx_rate"):
+        row = result[key][-1]
+        relative_half_widths[key] = (row["bull"] - row["base"]) / row["base"]
+
+    values = list(relative_half_widths.values())
+    for i in range(len(values)):
+        for j in range(i + 1, len(values)):
+            assert values[i] != pytest.approx(values[j], rel=1e-3), (
+                relative_half_widths
+            )
+
+    # HDAN's h=1 half-width matches the GARCH formula.
+    hdan_h1 = result["hdan"][0]
+    expected_hdan_half_width = hdan_h1["base"] * HDAN_GARCH_SIGMA_PCT[0] / 100.0
+    assert hdan_h1["bull"] - hdan_h1["base"] == pytest.approx(
+        expected_hdan_half_width, rel=1e-6
+    )
+
+    # PPAN's h=1 half-width matches its ARIMA(0,1,0) SE.
+    ppan_h1 = result["ppan"][0]
+    expected_ppan_se = _arima_forecast_se(
+        synthetic_history["ppan"], ARIMA_SE_ORDER["ppan"], 1
+    )[0]
+    assert ppan_h1["bull"] - ppan_h1["base"] == pytest.approx(
+        expected_ppan_se, rel=1e-6
+    )
+
+
+def test_spread_widens_with_horizon(synthetic_history):
+    """FCST-05: Every series' band widens with horizon."""
+    result = forecast_all(synthetic_history, horizon=12, markup_pct=5.0)
+
+    for key, rows in result.items():
+        half_widths = [row["bull"] - row["base"] for row in rows]
+        assert half_widths[-1] > half_widths[0], key
+        assert all(
+            half_widths[i] <= half_widths[i + 1] + 1e-9
+            for i in range(len(half_widths) - 1)
+        ), key
