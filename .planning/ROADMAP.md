@@ -5,7 +5,7 @@
 - [x] **Phase 1: App Skeleton & Data Layer** - Running Reflex app with seeded historical price data in SQLite (completed 2026-08-21)
 - [x] **Phase 2: Model Research & Backtesting** - Forecasting models chosen and validated via holdout backtest, per series (completed 2026-08-21)
 - [x] **Phase 3: Forecasting Module & Derived Series** - Base/bull/bear forecasts and derived Diesel-MNT computed from validated models (completed 2026-08-22)
-- [ ] **Phase 4: Data Entry UI & Historical View** - User manages monthly actuals in-app with validation and persistence
+- [x] **Phase 4: Data Entry UI & Historical View** - User manages monthly actuals in-app with validation and persistence (completed 2026-08-22)
 - [ ] **Phase 5: Forecast UI, Scenario Chart & Excel Export** - User views horizon-based scenario forecasts and exports data
 
 ## Phase Details
@@ -79,7 +79,7 @@ Plans:
 - [x] 04-01-PLAN.md — D-01/D-02 validators (numeric + unique-month date) with tests (wave 1)
 - [x] 04-02-PLAN.md — DashboardState write path: inline edit, deferred-persist draft row, two-click delete (wave 2)
 - [x] 04-03-PLAN.md — Editable table UI, Add row button, delete control, empty state (wave 3)
-- [ ] 04-04-PLAN.md — Historical chart with 16-series selector + human verification (wave 4)
+- [x] 04-04-PLAN.md — Historical chart with 16-series selector + human verification (wave 4)
 
 **UI hint**: yes
 
@@ -103,7 +103,7 @@ Plans:
 | 1. App Skeleton & Data Layer | 3/3 | Complete   | 2026-08-21 |
 | 2. Model Research & Backtesting | 7/7 | Complete   | 2026-08-21 |
 | 3. Forecasting Module & Derived Series | 4/4 | Complete   | 2026-08-22 |
-| 4. Data Entry UI & Historical View | 3/4 | In Progress|  |
+| 4. Data Entry UI & Historical View | 4/4 | Complete   | 2026-08-22 |
 | 5. Forecast UI, Scenario Chart & Excel Export | 0/? | Not started | - |
 
 ---
