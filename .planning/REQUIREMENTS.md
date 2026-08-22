@@ -10,7 +10,7 @@
 - [ ] **DATA-02**: User can edit an existing row's values inline, in the data table
       itself, without opening a separate modal or form
 - [ ] **DATA-03**: User can delete a row (with a confirm step) from the dashboard
-- [ ] **DATA-04**: Entered values are validated on save — numeric fields reject
+- [x] **DATA-04**: Entered values are validated on save — numeric fields reject
       non-numeric input and implausible values (e.g. negative prices, negative FX rate)
       before they reach storage
 - [ ] **DATA-05**: All entered/edited/deleted rows persist in SQLite and are visible again
@@ -87,7 +87,7 @@
 | DATA-01 | Phase 4 | Pending |
 | DATA-02 | Phase 4 | Pending |
 | DATA-03 | Phase 4 | Pending |
-| DATA-04 | Phase 4 | Pending |
+| DATA-04 | Phase 4 | Complete |
 | DATA-05 | Phase 4 | Pending |
 | DATA-06 | Phase 5 | Pending |
 | FCST-01 | Phase 5 | Pending |
