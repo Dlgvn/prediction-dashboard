@@ -40,6 +40,7 @@ this has happened once already in this project's history.
 |---|---|
 | `AN_HDAN_PPAN_Diesel_FX_Forecast_Model.xlsx` | **The live workbook.** 5 tabs: Input, PctChange, Regression, Forecast, Dashboard. |
 | `AN Data.csv`, `Diesel Data.csv` | Raw source data the workbook was built from |
+| `AN price weekly.csv` | Weekly-cadence driver data (JKM/Henry Hub/UK/Netherlands gas, US/China corn, Middle East Ammonia, Black Sea/China Urea), used only in `backend_research/`'s weekly-cadence backtest — not part of the monthly workbook build |
 | `AN forecast.xlsx` | A colleague's earlier, separate forecasting attempt — reference only (layout/style reference during design), untouched by any build script |
 | `PROJECT_VISION.md` | Who this is for, what it delivers, what it deliberately doesn't do, and the roadmap |
 | `docs/plans/2026-08-20-forecast-workbook-design.md` | Design intent: tab structure, model equations, coefficient provenance, what was deferred and why |
@@ -109,6 +110,16 @@ data says and what the business rule says, and it isn't resolved here: whoever o
 the contract terms should confirm which number is currently correct, then edit the
 cell if it needs to change. See `PROJECT_VISION.md` §6 for this as an open roadmap
 item.
+
+## Weekly cadence: tested, not adopted
+
+`AN Data.csv` is actually native weekly for HDAN/PPAN (the workbook resamples it to monthly), and
+`AN price weekly.csv` adds real weekly drivers not otherwise available. Both were backtested as a
+possible weekly forecast mode — see `backend_research/REPORT.md`'s "Weekly cadence (Phase 1
+follow-up)" section. Result: no-go. A weekly VAR(HDAN,PPAN) rolled forward 4 weeks underperforms
+the monthly VAR this workbook uses (10.35%/16.01% vs. 9.49%/10.08% MAPE), so the workbook's
+monthly cadence and models are unchanged. See `.planning/STATE.md` for the current status of this
+as an open item.
 
 ## What this deliberately doesn't do
 
