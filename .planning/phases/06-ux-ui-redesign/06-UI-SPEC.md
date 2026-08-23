@@ -1,7 +1,7 @@
 ---
 phase: 6
 slug: ux-ui-redesign
-status: draft
+status: as-built
 shadcn_initialized: false
 preset: none
 created: 2026-08-23
@@ -61,15 +61,31 @@ Exactly 3-4 sizes / 2 weights, per contract: 12 / 14 / 20 / 28px; weights 400 an
 | Role | Value | Usage |
 |------|-------|-------|
 | Dominant (60%) | `#FAFAFA` (near-white, Radix `gray.1`/App background) | Page background |
-| Secondary (30%) | `#FFFFFF` white with `1px solid #E4E4E7` (Radix `gray.5`) border | Card surfaces: forecast summary cards, chart boxes, table container, freshness chips |
-| Accent (10%) | `#3B82F6` (indigo/blue — already used as the fan chart's base-forecast line color and band fill, keep as the single locked accent hex) | Reserved strictly for: (1) fan chart base-forecast line + band fill (already implemented, keep), (2) horizon slider active track/thumb, (3) primary CTA buttons (Export to Excel, Add row), (4) selected/active state on the Series `rx.select` control, (5) the "Forecast" section heading's accent underline/icon if added. Do NOT use accent for card borders, table headers, or body text. |
+| Secondary (30%) | `#FFFFFF` white with `1px solid #8E9096` border | Card surfaces: forecast summary cards, chart boxes, table container, freshness chips |
+| Accent (10%) | `#2563EB` (indigo/blue) | Reserved strictly for: (1) fan chart base-forecast line + band fill, (2) horizon slider active track/thumb, (3) primary CTA buttons (Export to Excel, Add row), (4) selected/active state on the Series `rx.select` control. Do NOT use accent for card borders, table headers, or body text. |
 | Destructive | `#DC2626` (red, Radix `red.9` — matches existing `color_scheme="red"` on delete button/confirm) | Reserved strictly for: delete-row confirm button, delete-row icon button, validation error text (`edit_error`), export failure message text. |
 
 Second semantic pairing (not a third accent color, but a functional pair used only for forecast direction, per D-05/D-11):
-- Up: `#16A34A` (green, Radix `green.9`) + `↑` glyph — direction text, never color alone
+- Up: `#15803D` (green) + `↑` glyph — direction text, never color alone
 - Down: `#DC2626` (same red as destructive, reused — Radix `red.9`) + `↓` glyph
 
 Accent reserved for: fan chart base line/band, horizon slider, primary buttons (Export to Excel, Add row), active Series select state. Never used for card borders, headings, or table chrome — those stay neutral gray per D-05/D-06 (no navy header, no dark mode).
+
+### Amendment (Task 06-03 — WCAG AA contrast pass)
+
+The three tokens below were measured against WCAG 2.1 AA thresholds (4.5:1 normal text,
+3:1 non-text UI boundaries) in `app/tests/test_app_components.py::test_theme_contrast_pairings_meet_wcag_aa`
+and darkened within their original hue where they fell short. No new accent color was
+introduced; `ACCENT_FILL` was updated to the matching rgba of the new `ACCENT` hex.
+
+| Token | Original | Amended | Measured ratio | Pairing | Threshold |
+|-------|----------|---------|-----------------|---------|-----------|
+| `BORDER` | `#E4E4E7` | `#8E9096` | 3.19:1 | BORDER vs `SURFACE` | 3:1 (non-text boundary) |
+| `ACCENT` | `#3B82F6` | `#2563EB` | 5.17:1 | ACCENT bg vs white label | 4.5:1 (normal text) |
+| `UP` | `#16A34A` | `#15803D` | 5.02:1 | UP vs `SURFACE` | 4.5:1 (normal text) |
+
+Tokens that already passed without amendment: `MUTED_TEXT` (`#71717A`) vs `SURFACE` measures
+4.83:1; `DOWN`/`DESTRUCTIVE` (`#DC2626`) vs `SURFACE` measures 4.83:1.
 
 ---
 
@@ -125,11 +141,33 @@ Component naming convention for the new card row: `forecast_summary_cards()` in 
 
 ## Checker Sign-Off
 
-- [ ] Dimension 1 Copywriting: PASS
-- [ ] Dimension 2 Visuals: PASS
-- [ ] Dimension 3 Color: PASS
-- [ ] Dimension 4 Typography: PASS
-- [ ] Dimension 5 Spacing: PASS
-- [ ] Dimension 6 Registry Safety: PASS
+- [x] Dimension 1 Copywriting: PASS — every Copywriting Contract row (CTAs, empty states,
+      forecast error, summary-card no-data copy, "Confirm delete?", "vs. latest actual",
+      "Expected range", section headings) is verbatim in `app.py`/`state.py`. "confidence
+      interval" and "guaranteed" appear nowhere (`grep -ci` over both files returns 0).
+- [x] Dimension 2 Visuals: PASS — page order matches the locked Layout & Page Order list
+      exactly (header, summary cards, horizon control, fan chart, forecast table,
+      freshness chips + export, Historical, Data Entry), verified by
+      `test_index_heading_order_matches_locked_layout`. Card surfaces use white
+      background + bordered radius per the Secondary role.
+- [x] Dimension 3 Color: PASS — accent (`#2563EB` post-amendment) appears only on the
+      fan chart base line/band, horizon slider, Export to Excel / Add row buttons, and
+      the active Series select state; red is used only for delete confirm/icon,
+      validation error text, export failure text, and the down-direction pair. No other
+      component uses accent or destructive red.
+- [x] Dimension 4 Typography: PASS — only the 12/14/20/28px sizes (`RADIX_SIZE_LABEL`/
+      `RADIX_SIZE_BODY`/`RADIX_SIZE_HEADING`/`FONT_SIZE_DISPLAY`) and weights 400/600 are
+      used for text and headings; the page title keeps its documented `size="9"`
+      exception. The former stray `size="6"` on the "Forecast" heading (outside the
+      4-size contract) was corrected to `RADIX_SIZE_HEADING` in Task 06-03.
+- [x] Dimension 5 Spacing: PASS — all padding/spacing values trace to the token scale
+      (`SPACE_XS`..`SPACE_XXL`) or the documented `1.5rem` section-padding /
+      `8px 12px` chip-padding conventions; the icon-only delete button's
+      `32px`×`32px` hit target remains the sole, documented exception.
+- [x] Dimension 6 Registry Safety: PASS — zero new packages added; `app/requirements.txt`
+      is unchanged by this phase (`reflex==0.9.8.post1`, `plotly==6.9.0` only).
 
-**Approval:** pending
+**Approval:** Verified as-built by the above per-dimension audit (Task 06-03, Task 2).
+Final human sign-off on the rendered dashboard is recorded in
+`.planning/phases/06-ux-ui-redesign/06-03-SUMMARY.md` after the Task 3 browser
+verification checkpoint.
