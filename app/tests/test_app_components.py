@@ -5,10 +5,12 @@ booting a browser, catching invalid Var operations (bad .to_string(),
 bad ~ negation, bad dict indexing) at test time.
 """
 
+import re
+
 import app.app as app_module
 import reflex as rx
 
-from app import state
+from app import state, theme
 from app.models import PriceRow
 
 
@@ -181,3 +183,48 @@ def test_index_has_no_theme_toggle():
     rendered = str(app_module.index().render())
     assert "color_mode" not in rendered
     assert "dark_mode" not in rendered
+
+
+def test_app_py_source_uses_only_theme_hex_literals():
+    # Scan app.py's own source (not the fully rendered page) for hardcoded
+    # hex literals — the rendered index() page also embeds Plotly's own
+    # default colorway/template hexes inside forecast/historical figure
+    # JSON, which are unrelated to this plan's component styling and are
+    # out of scope (figure builders live in state.py, restyled in 06-01).
+    import inspect
+
+    source = inspect.getsource(app_module)
+    theme_hexes = {
+        value
+        for name, value in vars(theme).items()
+        if isinstance(value, str) and value.upper().startswith("#")
+    }
+    found = set(re.findall(r"#[0-9A-Fa-f]{6}", source))
+    assert found - theme_hexes == set()
+
+
+def test_index_preserves_locked_copy_strings():
+    rendered = str(app_module.index().render())
+    for copy in [
+        "No price data yet",
+        "Add a row to start tracking monthly actuals.",
+        "Export to Excel",
+        "Add row",
+        "Confirm delete?",
+    ]:
+        assert copy in rendered
+
+
+def test_empty_state_compiles_to_component():
+    component = app_module.empty_state()
+    assert isinstance(component, rx.Component)
+
+
+def test_export_button_still_compiles_with_theme_colors():
+    component = app_module.export_button()
+    assert isinstance(component, rx.Component)
+
+
+def test_historical_chart_still_compiles_with_theme_colors():
+    component = app_module.historical_chart()
+    assert isinstance(component, rx.Component)

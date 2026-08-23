@@ -14,6 +14,7 @@ from app.theme import (
     CARD_BORDER,
     CARD_PADDING,
     CARD_RADIUS,
+    DESTRUCTIVE,
     DOWN,
     FONT_SIZE_DISPLAY,
     FONT_WEIGHT_SEMIBOLD,
@@ -136,6 +137,7 @@ def add_row_button() -> rx.Component:
         on_click=DashboardState.add_row,
         disabled=~DashboardState.can_add_row,
         size="2",
+        color_scheme="blue",
     )
 
 
@@ -144,12 +146,17 @@ def historical_chart() -> rx.Component:
     return rx.box(
         rx.vstack(
             rx.hstack(
-                rx.text("Series", weight="bold", size="2"),
+                rx.text(
+                    "Series",
+                    font_weight=FONT_WEIGHT_SEMIBOLD,
+                    size=RADIX_SIZE_BODY,
+                ),
                 rx.select(
                     list(SERIES_LABELS.values()),
                     value=DashboardState.series_label,
                     on_change=DashboardState.select_series,
                     size="2",
+                    color_scheme="blue",
                 ),
                 spacing="2",
                 align="center",
@@ -161,6 +168,9 @@ def historical_chart() -> rx.Component:
             ),
             spacing="3",
         ),
+        background=SURFACE,
+        border=CARD_BORDER,
+        border_radius=CARD_RADIUS,
         padding="1.5rem",
         width="100%",
     )
@@ -168,8 +178,16 @@ def historical_chart() -> rx.Component:
 
 def empty_state() -> rx.Component:
     return rx.vstack(
-        rx.heading("No price data yet", size="4"),
-        rx.text("Add a row to start tracking monthly actuals."),
+        rx.heading("No price data yet", size=RADIX_SIZE_HEADING),
+        rx.text(
+            "Add a row to start tracking monthly actuals.",
+            size=RADIX_SIZE_BODY,
+            color=MUTED_TEXT,
+        ),
+        background=SURFACE,
+        border=CARD_BORDER,
+        border_radius=CARD_RADIUS,
+        padding=CARD_PADDING,
     )
 
 
@@ -180,7 +198,11 @@ def horizon_control() -> rx.Component:
     live during drag, per D-02 — no Forecast button, no debounce.
     """
     return rx.hstack(
-        rx.text("Forecast horizon", weight="bold", size="2"),
+        rx.text(
+            "Forecast horizon",
+            font_weight=FONT_WEIGHT_SEMIBOLD,
+            size=RADIX_SIZE_BODY,
+        ),
         rx.slider(
             value=[DashboardState.horizon_months],
             min=1,
@@ -189,11 +211,12 @@ def horizon_control() -> rx.Component:
             on_change=DashboardState.set_horizon,
             size="2",
             width="240px",
+            color_scheme="blue",
         ),
         rx.text(
             DashboardState.horizon_months.to_string()
             + rx.cond(DashboardState.horizon_months != 1, " months", " month"),
-            size="2",
+            size=RADIX_SIZE_BODY,
         ),
         align="center",
         spacing="2",
@@ -206,20 +229,24 @@ def _freshness_chip(chip: rx.Var) -> rx.Component:
         rx.vstack(
             rx.text(
                 chip["label"],
-                size="1",
+                size=RADIX_SIZE_LABEL,
                 color_scheme="gray",
                 text_transform="uppercase",
             ),
             rx.cond(
                 chip["has_data"] == "yes",
-                rx.text(chip["date"], size="2", weight="bold"),
-                rx.text("no data yet", size="2", color_scheme="gray"),
+                rx.text(
+                    chip["date"],
+                    size=RADIX_SIZE_BODY,
+                    font_weight=FONT_WEIGHT_SEMIBOLD,
+                ),
+                rx.text("no data yet", size=RADIX_SIZE_BODY, color=MUTED_TEXT),
             ),
-            spacing="1",
+            spacing="2",
         ),
-        border="1px solid var(--gray-5)",
+        border=CARD_BORDER,
         border_style=rx.cond(chip["has_data"] == "yes", "solid", "dashed"),
-        border_radius="8px",
+        border_radius=CARD_RADIUS,
         padding="8px 12px",
     )
 
@@ -241,17 +268,18 @@ def export_button() -> rx.Component:
             "Export to Excel",
             on_click=DashboardState.export_to_excel,
             size="2",
+            color_scheme="blue",
         ),
         rx.cond(
             DashboardState.export_message != "",
             rx.text(
                 DashboardState.export_message,
-                size="1",
-                color_scheme=rx.cond(DashboardState.export_failed, "red", "gray"),
+                size=RADIX_SIZE_LABEL,
+                color=rx.cond(DashboardState.export_failed, DESTRUCTIVE, MUTED_TEXT),
             ),
             rx.fragment(),
         ),
-        spacing="1",
+        spacing="2",
     )
 
 
@@ -262,12 +290,17 @@ def forecast_chart() -> rx.Component:
     return rx.box(
         rx.vstack(
             rx.hstack(
-                rx.text("Series", weight="bold", size="2"),
+                rx.text(
+                    "Series",
+                    font_weight=FONT_WEIGHT_SEMIBOLD,
+                    size=RADIX_SIZE_BODY,
+                ),
                 rx.select(
                     list(FORECAST_SERIES_LABELS.values()),
                     value=DashboardState.forecast_series_label,
                     on_change=DashboardState.select_forecast_series,
                     size="2",
+                    color_scheme="blue",
                 ),
                 spacing="2",
                 align="center",
@@ -279,6 +312,9 @@ def forecast_chart() -> rx.Component:
             ),
             spacing="3",
         ),
+        background=SURFACE,
+        border=CARD_BORDER,
+        border_radius=CARD_RADIUS,
         padding="1.5rem",
         width="100%",
     )
@@ -315,8 +351,16 @@ def forecast_table() -> rx.Component:
         rx.cond(
             DashboardState.forecast_table_rows.length() > 0,
             table,
-            rx.text(DashboardState.forecast_error, size="2", color_scheme="gray"),
+            rx.text(
+                DashboardState.forecast_error,
+                size=RADIX_SIZE_BODY,
+                color=MUTED_TEXT,
+            ),
         ),
+        background=SURFACE,
+        border=CARD_BORDER,
+        border_radius=CARD_RADIUS,
+        padding=CARD_PADDING,
         overflow_x="auto",
         width="100%",
     )
@@ -349,7 +393,7 @@ def _summary_card(card: rx.Var) -> rx.Component:
                             color=MUTED_TEXT,
                         ),
                         rx.text(card["range_text"], size=RADIX_SIZE_BODY),
-                        spacing="1",
+                        spacing="2",
                     ),
                     rx.hstack(
                         rx.text(
@@ -363,7 +407,7 @@ def _summary_card(card: rx.Var) -> rx.Component:
                             size=RADIX_SIZE_BODY,
                         ),
                         rx.text(card["caption"], size=RADIX_SIZE_LABEL, color=MUTED_TEXT),
-                        spacing="1",
+                        spacing="2",
                     ),
                 ),
                 rx.text(card["no_data_text"], size=RADIX_SIZE_BODY, color=MUTED_TEXT),
@@ -433,6 +477,10 @@ def data_entry_section() -> rx.Component:
             (DashboardState.rows.length() + DashboardState.draft_rows.length()) > 0,
             rx.box(
                 data_table(),
+                background=SURFACE,
+                border=CARD_BORDER,
+                border_radius=CARD_RADIUS,
+                padding=CARD_PADDING,
                 overflow_x="auto",
                 overflow_y="auto",
                 max_height="80vh",
