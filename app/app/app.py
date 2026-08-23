@@ -18,9 +18,12 @@ from app.theme import (
     FONT_SIZE_DISPLAY,
     FONT_WEIGHT_SEMIBOLD,
     MUTED_TEXT,
+    PAGE_BG,
     RADIX_SIZE_BODY,
     RADIX_SIZE_HEADING,
     RADIX_SIZE_LABEL,
+    SPACE_LG,
+    SPACE_XXL,
     SURFACE,
     UP,
 )
@@ -394,23 +397,38 @@ def forecast_summary_cards() -> rx.Component:
 
 
 def forecast_section() -> rx.Component:
-    """Phase 5's forecast UI block, in the exact order the UI-SPEC locks (D-06)."""
+    """Phase 5's forecast UI block, in the exact order the UI-SPEC locks (D-06).
+
+    Freshness chips and the export button move to the end of the block
+    (D-04) — they describe forecast provenance/export, not the forecast
+    itself, so they trail the chart and table rather than leading them.
+    """
     return rx.vstack(
         rx.heading("Forecast", size="6"),
         horizon_control(),
-        freshness_chips_row(),
         forecast_chart(),
-        rx.heading("Forecast — base / bull / bear", size="4"),
+        rx.heading("Forecast — base / bull / bear", size=RADIX_SIZE_HEADING),
         forecast_table(),
+        freshness_chips_row(),
         export_button(),
         spacing="3",
     )
 
 
-def index() -> rx.Component:
-    return rx.container(
-        rx.heading("Prediction Dashboard", size="9"),
-        rx.text("Click any cell to edit a month's actuals."),
+def historical_section() -> rx.Component:
+    """Historical chart under its own heading, trailing forecast content (D-02/D-03)."""
+    return rx.vstack(
+        rx.heading("Historical", size=RADIX_SIZE_HEADING),
+        historical_chart(),
+        spacing="3",
+    )
+
+
+def data_entry_section() -> rx.Component:
+    """Data-entry table under its own heading, at the bottom of the page (D-02/D-03)."""
+    return rx.vstack(
+        rx.heading("Data Entry", size=RADIX_SIZE_HEADING),
+        rx.text("Click any cell to edit a month's actuals.", size=RADIX_SIZE_BODY),
         rx.cond(
             (DashboardState.rows.length() + DashboardState.draft_rows.length()) > 0,
             rx.box(
@@ -423,10 +441,26 @@ def index() -> rx.Component:
             empty_state(),
         ),
         add_row_button(),
-        historical_chart(),
-        rx.box(height="2rem"),
+        spacing="3",
+    )
+
+
+def index() -> rx.Component:
+    return rx.container(
+        rx.heading("Prediction Dashboard", size="9"),
+        rx.text(
+            "Forecasts and actuals for ammonium nitrate, diesel, and the FX rate.",
+            size=RADIX_SIZE_BODY,
+        ),
+        forecast_summary_cards(),
         forecast_section(),
-        spacing="4",
+        rx.box(height=SPACE_XXL),
+        historical_section(),
+        data_entry_section(),
+        background=PAGE_BG,
+        min_height="100vh",
+        spacing="6",
+        padding_y=SPACE_LG,
         on_mount=[DashboardState.load_rows, DashboardState.load_markup_pct],
     )
 

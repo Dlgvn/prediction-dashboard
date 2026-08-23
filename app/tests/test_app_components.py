@@ -150,3 +150,34 @@ def test_forecast_summary_cards_has_no_forbidden_copy():
     rendered = str(app_module.forecast_summary_cards().render()).lower()
     assert "confidence" not in rendered
     assert "guaranteed" not in rendered
+
+
+def test_historical_section_compiles_to_component():
+    component = app_module.historical_section()
+    assert isinstance(component, rx.Component)
+
+
+def test_data_entry_section_compiles_to_component():
+    component = app_module.data_entry_section()
+    assert isinstance(component, rx.Component)
+
+
+def test_index_heading_order_matches_locked_layout():
+    rendered = str(app_module.index().render())
+    summary_idx = rendered.find("Forecast Summary")
+    # The em dash is JSON-escaped (—) in the compiled render tree, so
+    # anchor on the surrounding literal text rather than the raw glyph.
+    forecast_idx = rendered.find("u2014 base / bull / bear")
+    historical_idx = rendered.find("Historical")
+    data_entry_idx = rendered.find("Data Entry")
+    assert summary_idx != -1
+    assert forecast_idx != -1
+    assert historical_idx != -1
+    assert data_entry_idx != -1
+    assert summary_idx < forecast_idx < historical_idx < data_entry_idx
+
+
+def test_index_has_no_theme_toggle():
+    rendered = str(app_module.index().render())
+    assert "color_mode" not in rendered
+    assert "dark_mode" not in rendered
