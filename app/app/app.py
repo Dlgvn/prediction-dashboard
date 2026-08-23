@@ -3,7 +3,13 @@
 import reflex as rx
 
 from app.models import AppSetting, PriceRow  # noqa: F401  (registers tables for reflex db migrate)
-from app.state import SERIES_ATTRS, SERIES_LABELS, DashboardState
+from app.state import (
+    FORECAST_SERIES_LABELS,
+    FORECAST_TABLE_COLUMNS,
+    SERIES_ATTRS,
+    SERIES_LABELS,
+    DashboardState,
+)
 
 # Header labels in display order, paired with the PriceRow attribute they render.
 # Order and labels follow the D-05b/D-05c 17-column contract (Date + 16 series).
@@ -150,6 +156,169 @@ def empty_state() -> rx.Component:
     )
 
 
+def horizon_control() -> rx.Component:
+    """Forecast horizon slider with a live numeric readout (D-01/D-02).
+
+    Uses on_change (not on_value_commit) so the fan chart and table recompute
+    live during drag, per D-02 — no Forecast button, no debounce.
+    """
+    return rx.hstack(
+        rx.text("Forecast horizon", weight="bold", size="2"),
+        rx.slider(
+            value=[DashboardState.horizon_months],
+            min=1,
+            max=12,
+            step=1,
+            on_change=DashboardState.set_horizon,
+            size="2",
+            width="240px",
+        ),
+        rx.text(
+            DashboardState.horizon_months.to_string()
+            + rx.cond(DashboardState.horizon_months != 1, " months", " month"),
+            size="2",
+        ),
+        align="center",
+        spacing="2",
+    )
+
+
+def _freshness_chip(chip: rx.Var) -> rx.Component:
+    """Render one freshness chip from a foreach item Var (DATA-06/D-07)."""
+    return rx.box(
+        rx.vstack(
+            rx.text(
+                chip["label"],
+                size="1",
+                color_scheme="gray",
+                text_transform="uppercase",
+            ),
+            rx.cond(
+                chip["has_data"] == "yes",
+                rx.text(chip["date"], size="2", weight="bold"),
+                rx.text("no data yet", size="2", color_scheme="gray"),
+            ),
+            spacing="1",
+        ),
+        border="1px solid var(--gray-5)",
+        border_style=rx.cond(chip["has_data"] == "yes", "solid", "dashed"),
+        border_radius="8px",
+        padding="8px 12px",
+    )
+
+
+def freshness_chips_row() -> rx.Component:
+    """Row of four as-of-date chips, one per independently-modeled series."""
+    return rx.hstack(
+        rx.foreach(DashboardState.freshness_chips, _freshness_chip),
+        spacing="2",
+        wrap="wrap",
+    )
+
+
+def export_button() -> rx.Component:
+    """Excel export trigger with inline result copy (D-08/EXPORT-01)."""
+    return rx.vstack(
+        rx.button(
+            rx.icon("download", size=16),
+            "Export to Excel",
+            on_click=DashboardState.export_to_excel,
+            size="2",
+        ),
+        rx.cond(
+            DashboardState.export_message != "",
+            rx.text(
+                DashboardState.export_message,
+                size="1",
+                color_scheme=rx.cond(DashboardState.export_failed, "red", "gray"),
+            ),
+            rx.fragment(),
+        ),
+        spacing="1",
+    )
+
+
+def forecast_chart() -> rx.Component:
+    """Fan chart with its own Series selector, independent of Phase 4's
+    historical chart (VIS-02/D-03/D-04/D-05/D-06).
+    """
+    return rx.box(
+        rx.vstack(
+            rx.hstack(
+                rx.text("Series", weight="bold", size="2"),
+                rx.select(
+                    list(FORECAST_SERIES_LABELS.values()),
+                    value=DashboardState.forecast_series_label,
+                    on_change=DashboardState.select_forecast_series,
+                    size="2",
+                ),
+                spacing="2",
+                align="center",
+            ),
+            rx.plotly(
+                data=DashboardState.forecast_chart_figure,
+                width="100%",
+                height="360px",
+            ),
+            spacing="3",
+        ),
+        padding="1.5rem",
+        width="100%",
+    )
+
+
+def forecast_table() -> rx.Component:
+    """Read-only all-series base/bull/bear table (FCST-06/VIS-03), with a
+    graceful empty state fallback showing forecast_error copy.
+    """
+    table = rx.table.root(
+        rx.table.header(
+            rx.table.row(
+                rx.table.column_header_cell("Month"),
+                *[
+                    rx.table.column_header_cell(label)
+                    for _, label in FORECAST_TABLE_COLUMNS
+                ],
+            )
+        ),
+        rx.table.body(
+            rx.foreach(
+                DashboardState.forecast_table_rows,
+                lambda row: rx.table.row(
+                    rx.table.cell(row["month"]),
+                    *[
+                        rx.table.cell(row[key])
+                        for key, _ in FORECAST_TABLE_COLUMNS
+                    ],
+                ),
+            )
+        ),
+    )
+    return rx.box(
+        rx.cond(
+            DashboardState.forecast_table_rows.length() > 0,
+            table,
+            rx.text(DashboardState.forecast_error, size="2", color_scheme="gray"),
+        ),
+        overflow_x="auto",
+        width="100%",
+    )
+
+
+def forecast_section() -> rx.Component:
+    """Phase 5's forecast UI block, in the exact order the UI-SPEC locks (D-06)."""
+    return rx.vstack(
+        rx.heading("Forecast", size="6"),
+        horizon_control(),
+        freshness_chips_row(),
+        forecast_chart(),
+        rx.heading("Forecast — base / bull / bear", size="4"),
+        forecast_table(),
+        export_button(),
+        spacing="3",
+    )
+
+
 def index() -> rx.Component:
     return rx.container(
         rx.heading("Prediction Dashboard", size="9"),
@@ -168,8 +337,9 @@ def index() -> rx.Component:
         add_row_button(),
         historical_chart(),
         rx.box(height="2rem"),
+        forecast_section(),
         spacing="4",
-        on_mount=DashboardState.load_rows,
+        on_mount=[DashboardState.load_rows, DashboardState.load_markup_pct],
     )
 
 
