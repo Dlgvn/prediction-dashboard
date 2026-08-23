@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: verifying
 stopped_at: Phase 06 UI-SPEC approved
-last_updated: "2026-08-23T06:58:27.785Z"
+last_updated: "2026-08-23T07:09:20.087Z"
 last_activity: 2026-08-23
 progress:
   total_phases: 6
   completed_phases: 5
-  total_plans: 22
-  completed_plans: 22
+  total_plans: 25
+  completed_plans: 23
   percent: 83
 ---
 
@@ -30,12 +30,12 @@ series — without opening Excel.
 
 Phase: 05 (Forecast UI, Scenario Chart & Excel Export) — COMPLETE (final phase of v1)
 Plan: 4 of 4
-Status: v1 fully complete. All 5 phases done, all v1 requirements verified in a live
+Status: Phase complete — ready for verification
 running app via the Phase 5 acceptance-gate checkpoint (horizon slider, freshness chips,
 shaded fan chart, all-series forecast table, Excel export, no Phase 1-4 regression).
 Last activity: 2026-08-23
 
-Progress: [██████████] 100%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -78,6 +78,7 @@ Progress: [██████████] 100%
 | Phase 05 P02 | 25min | 3 tasks | 2 files |
 | Phase 05 P03 | 20min | 3 tasks | 2 files |
 | Phase 05 P04 | 10min | 3 tasks | 1 files |
+| Phase 06-ux-ui-redesign P01 | 35 min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -122,6 +123,7 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-02: FORECAST_TABLE_COLUMNS derived programmatically from FORECAST_SERIES_LABELS x scenario names
 - [Phase ?]: 05-03: Task 1+2 combined into one app.py commit per 04-03 precedent; test_index_on_mount_loads_markup_pct uses inspect.getsource since render() doesn't surface on_mount
 - [Phase ?]: 05-04: Human-verified v1 acceptance gate approved in-browser; Phase 5 requirements ledger closed out, marking v1 scope fully complete
+- [Phase ?]: Design tokens locked in app/theme.py; summary_cards derives from existing forecast_results with no new state var — Follows D-05..D-13 contract from 06-UI-SPEC.md/06-CONTEXT.md
 
 ### Pending Todos
 
@@ -145,6 +147,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-23T06:58:27.778Z
+Last session: 2026-08-23T07:09:16.926Z
 Stopped at: Phase 06 UI-SPEC approved
-Resume file: .planning/phases/06-ux-ui-redesign/06-UI-SPEC.md
+Resume file: None
