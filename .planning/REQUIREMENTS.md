@@ -84,17 +84,17 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| DATA-01 | Phase 4 | Pending (state layer done in 04-02; UI in 04-03/04-04) |
-| DATA-02 | Phase 4 | Pending (state layer done in 04-02; UI in 04-03/04-04) |
-| DATA-03 | Phase 4 | Pending (state layer done in 04-02; UI in 04-03/04-04) |
+| DATA-01 | Phase 4 | Complete |
+| DATA-02 | Phase 4 | Complete |
+| DATA-03 | Phase 4 | Complete |
 | DATA-04 | Phase 4 | Complete |
 | DATA-05 | Phase 4 | Complete |
 | DATA-06 | Phase 5 | Complete |
 | FCST-01 | Phase 5 | Complete |
-| FCST-02 | Phase 3 | Pending (HDAN done in 03-02; PPAN/Diesel/FX in 03-03; dispatcher in 03-04) |
+| FCST-02 | Phase 3 | Complete |
 | FCST-03 | Phase 3 | Complete |
-| FCST-04 | Phase 3 | Pending (HDAN done in 03-02; PPAN/Diesel/FX in 03-03; dispatcher in 03-04) |
-| FCST-05 | Phase 3 | Pending (HDAN done in 03-02; PPAN/Diesel/FX in 03-03; dispatcher in 03-04) |
+| FCST-04 | Phase 3 | Complete |
+| FCST-05 | Phase 3 | Complete |
 | FCST-06 | Phase 5 | Complete |
 | FCST-07 | Phase 2 | Complete |
 | VIS-01 | Phase 4 | Complete |
