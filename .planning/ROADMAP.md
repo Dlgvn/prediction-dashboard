@@ -113,18 +113,26 @@ Plans:
 | 3. Forecasting Module & Derived Series | 4/4 | Complete   | 2026-08-22 |
 | 4. Data Entry UI & Historical View | 4/4 | Complete   | 2026-08-22 |
 | 5. Forecast UI, Scenario Chart & Excel Export | 4/4 | Complete   | 2026-08-23 |
-| 6. UX/UI Redesign — Financial Forecasting Terminal | 0/0 | Not planned   | — |
+| 6. UX/UI Redesign — Financial Forecasting Terminal | 0/3 | Planned       | — |
 
 ### Phase 6: UX/UI Redesign — Financial Forecasting Terminal
 **Goal**: The dashboard is redesigned as a professional financial forecasting terminal — information architecture, forecast summary, chart, three-scenario display, horizon selector, upload/error/loading states, design system, color system, and accessibility all rework so a finance/procurement user grasps current price, forecast, and range within 10-20 seconds.
 **Depends on**: Phase 5
-**Requirements**: TBD (UX/design phase — no formal REQUIREMENTS.md line items yet)
+**Requirements**: D-01..D-13 (06-CONTEXT.md decisions) + 06-UI-SPEC.md design contract — no formal REQUIREMENTS.md line items for this presentational phase
 **Success Criteria** (what must be TRUE):
-  1. TBD — to be defined during discuss/plan
-**Plans**: TBD
+  1. Four forecast summary cards (HDAN, PPAN, Diesel MNT, FX Rate) are visible together at the top of the page, each showing base forecast, expected range, and direction vs. the latest actual
+  2. Dragging the horizon slider updates the cards, fan chart, and forecast table in sync, with no new state variable
+  3. The page reads header -> summary cards -> horizon -> fan chart -> forecast table -> freshness/export -> Historical -> Data Entry
+  4. The fan chart visually separates history from forecast (forecast-start marker) and formats hover values as 1,234.56
+  5. One fixed light theme with a single blue accent ships; no dark mode and no theme toggle exist
+  6. Uncertainty is described as an "expected range" — the words "confidence interval" and "guaranteed" appear nowhere in the UI
+  7. Cards reflow across viewport widths without page-level horizontal scroll, and all text/background pairings meet WCAG AA contrast (machine-verified)
+**Plans**: 3 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 6 to break down)
+- [ ] 06-01-PLAN.md — Design token module, in-place Plotly restyle, horizon-reactive summary_cards var (wave 1)
+- [ ] 06-02-PLAN.md — forecast_summary_cards() component, page reorder, light design system applied (wave 2)
+- [ ] 06-03-PLAN.md — Responsive + accessibility pass, UI-SPEC sign-off, human verification (wave 3)
 
 ---
 *Roadmap created: 2026-08-21*
