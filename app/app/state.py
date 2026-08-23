@@ -302,6 +302,127 @@ class DashboardState(rx.State):
         return chips
 
 
+    @rx.var
+    def forecast_chart_figure(self) -> go.Figure:
+        """Fan chart for the selected forecast series (VIS-02/D-04/D-05).
+
+        Reads self.forecast_results (never re-invokes forecast_all -- Pitfall
+        2 guard) and builds a single continuous date axis: 12 trailing
+        historical months feeding into a shaded bull/bear band with a solid
+        base line drawn on top.
+        """
+        attr = self.forecast_series
+        results = self.forecast_results
+        series = results.get(attr, [])
+
+        # Historical segment (D-05): last 12 non-null observations for the
+        # selected series, diesel_mnt derived per diesel_mnt_forecast's
+        # exact multiplier convention.
+        hist_dates: list = []
+        hist_values: list = []
+        for row in self.rows:
+            if attr == "diesel_mnt":
+                if row.diesel_usd_ton is None or row.fx_rate is None:
+                    continue
+                multiplier = 1 + self.markup_pct / 100.0
+                value = row.diesel_usd_ton * row.fx_rate * multiplier
+            else:
+                value = getattr(row, attr)
+                if value is None:
+                    continue
+            hist_dates.append(row.date)
+            hist_values.append(value)
+
+        hist_dates = hist_dates[-12:]
+        hist_values = hist_values[-12:]
+
+        if not series or not hist_dates:
+            figure = go.Figure()
+            figure.update_layout(
+                xaxis_title="Month",
+                yaxis_title=FORECAST_SERIES_LABELS[attr],
+                showlegend=False,
+                margin=dict(l=40, r=16, t=16, b=40),
+                annotations=[
+                    dict(
+                        text="No forecast available for this series yet.",
+                        xref="paper",
+                        yref="paper",
+                        x=0.5,
+                        y=0.5,
+                        showarrow=False,
+                    )
+                ],
+            )
+            return figure
+
+        hist_dates_dt = pd.to_datetime(hist_dates).tolist()
+        last_hist_date = hist_dates_dt[-1]
+        last_hist_value = hist_values[-1]
+
+        fc_dates = [
+            last_hist_date + pd.DateOffset(months=entry["month"]) for entry in series
+        ]
+        fc_base = [entry["base"] for entry in series]
+        fc_bull = [entry["bull"] for entry in series]
+        fc_bear = [entry["bear"] for entry in series]
+
+        # Bridge the visual seam: prepend the last historical point to each
+        # forecast trace so the band/base line starts at the last actual.
+        bridge_dates = [last_hist_date, *fc_dates]
+        bear_y = [last_hist_value, *fc_bear]
+        bull_y = [last_hist_value, *fc_bull]
+        base_y = [last_hist_value, *fc_base]
+
+        figure = go.Figure()
+        figure.add_trace(
+            go.Scatter(
+                x=hist_dates_dt,
+                y=hist_values,
+                mode="lines",
+                line=dict(color="#697177"),
+                name="Historical",
+            )
+        )
+        figure.add_trace(
+            go.Scatter(
+                x=bridge_dates,
+                y=bear_y,
+                mode="lines",
+                line=dict(width=0),
+                showlegend=False,
+                name="Bear",
+            )
+        )
+        figure.add_trace(
+            go.Scatter(
+                x=bridge_dates,
+                y=bull_y,
+                mode="lines",
+                line=dict(width=0),
+                fill="tonexty",
+                fillcolor="rgba(59,130,246,0.15)",
+                name="Forecast band",
+            )
+        )
+        figure.add_trace(
+            go.Scatter(
+                x=bridge_dates,
+                y=base_y,
+                mode="lines",
+                line=dict(color="#3B82F6", width=2),
+                name="Base forecast",
+            )
+        )
+        figure.update_layout(
+            xaxis_title="Month",
+            yaxis_title=FORECAST_SERIES_LABELS[attr],
+            margin=dict(l=40, r=16, t=16, b=40),
+            legend=dict(orientation="h"),
+        )
+        return figure
+
+
 
     def load_markup_pct(self) -> None:
         """Read the live markup_pct AppSetting (D-04). Confirmed seeded by

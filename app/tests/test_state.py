@@ -753,3 +753,118 @@ def test_freshness_chips_does_not_query_db(session, monkeypatch):
     assert len(chips) == 4
 
 
+
+
+# ---------------------------------------------------------------------------
+# Forecast chart figure (VIS-02 / D-04 / D-05)
+# ---------------------------------------------------------------------------
+
+
+def test_forecast_chart_figure_traces(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    figure = state.forecast_chart_figure
+
+    assert [t.name for t in figure.data] == [
+        "Historical",
+        "Bear",
+        "Forecast band",
+        "Base forecast",
+    ]
+
+
+def test_forecast_chart_band_fill(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    figure = state.forecast_chart_figure
+
+    assert figure.data[2].fill == "tonexty"
+    assert figure.data[2].fillcolor == "rgba(59,130,246,0.15)"
+    assert figure.data[1].line.width == 0
+    assert figure.data[2].line.width == 0
+    assert figure.data[1].showlegend is False
+
+
+def test_forecast_chart_base_line_drawn_last(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    figure = state.forecast_chart_figure
+
+    assert figure.data[3].line.color == "#3B82F6"
+    assert len(figure.data) == 4
+
+
+def test_forecast_chart_historical_window_is_twelve_months(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    rows = _rows_from_synthetic_history(synthetic_history)
+    state.rows = rows
+    state.horizon_months = 4
+
+    figure = state.forecast_chart_figure
+
+    assert len(figure.data[0].x) <= 12
+    last_hist_date = pd.to_datetime(rows[-1].date)
+    assert pd.to_datetime(figure.data[0].x[-1]) == last_hist_date
+
+
+def test_forecast_chart_x_axis_is_continuous_dates(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    rows = _rows_from_synthetic_history(synthetic_history)
+    state.rows = rows
+    state.horizon_months = 4
+
+    figure = state.forecast_chart_figure
+
+    last_hist_x = pd.to_datetime(figure.data[0].x[-1])
+    for trace in figure.data[1:]:
+        assert pd.to_datetime(trace.x[0]) >= last_hist_x
+        for x in trace.x:
+            pd.to_datetime(x)  # must not raise -- confirms datetime-typed
+
+
+def test_forecast_chart_respects_selected_forecast_series(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+    state.forecast_series = "hdan"
+
+    hdan_figure = state.forecast_chart_figure
+    hdan_base_y = list(hdan_figure.data[3].y)
+    hdan_y_title = hdan_figure.layout.yaxis.title.text
+
+    state.forecast_series = "fx_rate"
+    fx_figure = state.forecast_chart_figure
+
+    assert list(fx_figure.data[3].y) != hdan_base_y
+    assert fx_figure.layout.yaxis.title.text != hdan_y_title
+
+
+def test_forecast_chart_empty_state(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = []
+
+    figure = state.forecast_chart_figure  # noqa: F841 -- must not raise
+
+    annotations = figure.layout.annotations
+    assert any(
+        "No forecast available for this series yet." in a.text for a in annotations
+    )
+
+
