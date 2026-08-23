@@ -89,18 +89,18 @@
 | DATA-03 | Phase 4 | Pending (state layer done in 04-02; UI in 04-03/04-04) |
 | DATA-04 | Phase 4 | Complete |
 | DATA-05 | Phase 4 | Complete |
-| DATA-06 | Phase 5 | Pending (computed var done in 05-02; UI chips in 05-03) |
-| FCST-01 | Phase 5 | Pending (state layer done in 05-01; UI slider in 05-03) |
+| DATA-06 | Phase 5 | Complete |
+| FCST-01 | Phase 5 | Complete |
 | FCST-02 | Phase 3 | Pending (HDAN done in 03-02; PPAN/Diesel/FX in 03-03; dispatcher in 03-04) |
 | FCST-03 | Phase 3 | Complete |
 | FCST-04 | Phase 3 | Pending (HDAN done in 03-02; PPAN/Diesel/FX in 03-03; dispatcher in 03-04) |
 | FCST-05 | Phase 3 | Pending (HDAN done in 03-02; PPAN/Diesel/FX in 03-03; dispatcher in 03-04) |
-| FCST-06 | Phase 5 | Pending (computed var done in 05-02; UI table in 05-03) |
+| FCST-06 | Phase 5 | Complete |
 | FCST-07 | Phase 2 | Complete |
 | VIS-01 | Phase 4 | Complete |
-| VIS-02 | Phase 5 | Pending (computed var done in 05-02; UI chart in 05-03) |
-| VIS-03 | Phase 5 | Pending (computed var done in 05-02; UI table in 05-03) |
-| EXPORT-01 | Phase 5 | Pending (state layer done in 05-01; UI button in 05-03) |
+| VIS-02 | Phase 5 | Complete |
+| VIS-03 | Phase 5 | Complete (resolved per CONTEXT D-03 via the combination of the selector-driven forecast chart and the all-series forecast table, not by the chart alone) |
+| EXPORT-01 | Phase 5 | Complete |
 
 ---
 *Requirements defined: 2026-08-21*
