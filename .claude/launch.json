@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "reflex-dashboard",
+      "runtimeExecutable": "bash",
+      "runtimeArgs": ["-c", "cd app && .venv/bin/reflex run --frontend-port 3005 --backend-port 8005"],
+      "port": 3005
+    }
+  ]
+}

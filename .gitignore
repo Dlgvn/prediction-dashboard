@@ -4,3 +4,4 @@ __pycache__/
 .code-review-graph/
 .web/
 *.db
+.claude/settings.local.json
