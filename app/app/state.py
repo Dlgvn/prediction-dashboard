@@ -491,9 +491,17 @@ class DashboardState(rx.State):
                 PriceRow.select().order_by(PriceRow.date)
             ).all()
 
-    def start_edit(self, key: str, current: str) -> None:
+    def start_edit(self, key: str, current: str | float | None) -> None:
         self.editing_key = key
-        self.draft_value = current or ""
+        # `current` arrives from a numeric cell as a raw JS number, not a
+        # string — Reflex's Var-level string casting (.to_string()/f-string
+        # interpolation) either JSON-quotes it or is a no-op depending on
+        # the value's underlying type, so coerce here instead of trying to
+        # force a particular Var cast in app.py's click handler.
+        if current is None or current == "":
+            self.draft_value = ""
+        else:
+            self.draft_value = str(current)
         self.edit_error = ""
         # Opening an editor disarms any pending delete.
         self.pending_delete = ""

@@ -78,6 +78,37 @@ def test_load_rows_reassigns_not_appends(session, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
+def test_start_edit_accepts_raw_float_from_numeric_cell(session, monkeypatch):
+    """Regression: numeric cells pass their raw float value (not a string)
+    as start_edit's `current` argument, since Reflex's Var-level string
+    casting doesn't force JS number->string conversion for a bare Var. This
+    previously crashed validate_numeric with
+    AttributeError: 'float' object has no attribute 'strip'.
+    """
+    session.add(PriceRow(date="2026-01-01", hdan=463.165))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+    state.start_edit("2026-01-01:hdan", 463.165)
+
+    assert state.draft_value == "463.165"
+    assert state.edit_error == ""
+
+
+def test_start_edit_accepts_none_from_empty_numeric_cell(session, monkeypatch):
+    session.add(PriceRow(date="2026-01-01", hdan=None))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+    state.start_edit("2026-01-01:hdan", None)
+
+    assert state.draft_value == ""
+
+
 def test_commit_edit_updates_db(session, monkeypatch):
     session.add(PriceRow(date="2026-01-01", hdan=1.0))
     session.commit()
