@@ -6,7 +6,7 @@
 - [x] **Phase 2: Model Research & Backtesting** - Forecasting models chosen and validated via holdout backtest, per series (completed 2026-08-21)
 - [x] **Phase 3: Forecasting Module & Derived Series** - Base/bull/bear forecasts and derived Diesel-MNT computed from validated models (completed 2026-08-22)
 - [x] **Phase 4: Data Entry UI & Historical View** - User manages monthly actuals in-app with validation and persistence (completed 2026-08-22)
-- [ ] **Phase 5: Forecast UI, Scenario Chart & Excel Export** - User views horizon-based scenario forecasts and exports data
+- [x] **Phase 5: Forecast UI, Scenario Chart & Excel Export** - User views horizon-based scenario forecasts and exports data (completed 2026-08-23)
 
 ## Phase Details
 
@@ -99,7 +99,7 @@ Plans:
 - [x] 05-01-PLAN.md — Forecast state core: horizon, history DataFrame, markup_pct, forecast_results, Excel export handler (wave 1)
 - [x] 05-02-PLAN.md — Freshness chips, fan-chart figure, all-series forecast table data (wave 2)
 - [x] 05-03-PLAN.md — Slider, chips, fan chart, forecast table and export button wired into index() (wave 3)
-- [ ] 05-04-PLAN.md — Regression run, human verification of the full flow, v1 requirements close-out (wave 4)
+- [x] 05-04-PLAN.md — Regression run, human verification of the full flow, v1 requirements close-out (wave 4)
 
 **UI hint**: yes
 
@@ -111,7 +111,7 @@ Plans:
 | 2. Model Research & Backtesting | 7/7 | Complete   | 2026-08-21 |
 | 3. Forecasting Module & Derived Series | 4/4 | Complete   | 2026-08-22 |
 | 4. Data Entry UI & Historical View | 4/4 | Complete   | 2026-08-22 |
-| 5. Forecast UI, Scenario Chart & Excel Export | 3/4 | In Progress|  |
+| 5. Forecast UI, Scenario Chart & Excel Export | 4/4 | Complete   | 2026-08-23 |
 
 ---
 *Roadmap created: 2026-08-21*
