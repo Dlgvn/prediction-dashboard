@@ -868,3 +868,73 @@ def test_forecast_chart_empty_state(session, monkeypatch):
     )
 
 
+
+
+# ---------------------------------------------------------------------------
+# Forecast table rows (FCST-06 / VIS-03)
+# ---------------------------------------------------------------------------
+
+
+def test_forecast_table_rows_shape(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    rows = state.forecast_table_rows
+
+    assert len(rows) == 4
+    assert [r["month"] for r in rows] == ["1", "2", "3", "4"]
+
+
+def test_forecast_table_includes_all_series(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    rows = state.forecast_table_rows
+
+    for series in ("hdan", "ppan", "diesel_usd_ton", "diesel_mnt", "fx_rate"):
+        for scenario in ("base", "bull", "bear"):
+            assert f"{series}_{scenario}" in rows[0]
+
+
+def test_forecast_table_values_match_forecast_results(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    results = state.forecast_results
+    rows = state.forecast_table_rows
+
+    expected = f"{results['hdan'][1]['base']:,.2f}"
+    assert rows[1]["hdan_base"] == expected
+
+
+def test_forecast_table_rows_empty_when_insufficient_history(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)[:5]
+
+    rows = state.forecast_table_rows
+
+    assert rows == []
+    assert state.forecast_error != ""
+
+
+def test_forecast_table_row_length_follows_horizon(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+
+    state.horizon_months = 4
+    assert len(state.forecast_table_rows) == 4
+
+    state.horizon_months = 9
+    assert len(state.forecast_table_rows) == 9

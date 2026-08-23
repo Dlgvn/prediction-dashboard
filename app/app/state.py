@@ -83,6 +83,14 @@ FORECAST_LABEL_TO_ATTR: dict[str, str] = {
 # diesel_mnt is derived (diesel_usd * fx * markup) and has no own date.
 FRESHNESS_SERIES: tuple[str, ...] = ("hdan", "ppan", "diesel_usd_ton", "fx_rate")
 
+# Derived programmatically (not a hand-written 15-entry literal) so headers
+# and forecast_table_rows' composite keys can never drift apart (FCST-06).
+FORECAST_TABLE_COLUMNS: list[tuple[str, str]] = [
+    (f"{series_key}_{scenario}", f"{label} {scenario}")
+    for series_key, label in FORECAST_SERIES_LABELS.items()
+    for scenario in ("base", "bull", "bear")
+]
+
 
 class DashboardState(rx.State):
     """Holds the price table for display, reflecting the DB as source of truth."""
@@ -301,7 +309,6 @@ class DashboardState(rx.State):
                 )
         return chips
 
-
     @rx.var
     def forecast_chart_figure(self) -> go.Figure:
         """Fan chart for the selected forecast series (VIS-02/D-04/D-05).
@@ -422,7 +429,31 @@ class DashboardState(rx.State):
         )
         return figure
 
+    @rx.var
+    def forecast_table_rows(self) -> list[dict[str, str]]:
+        """Month-major all-series forecast table data (FCST-06/VIS-03).
 
+        Transposes self.forecast_results (series-major) into one flat row
+        per horizon month, carrying all five series' base/bull/bear values
+        simultaneously, preformatted to strings.
+        """
+        results = self.forecast_results
+        if not any(results.get(key) for key in FORECAST_SERIES_LABELS):
+            return []
+
+        rows: list[dict[str, str]] = []
+        for month in range(1, self.horizon_months + 1):
+            row: dict[str, str] = {"month": str(month)}
+            for series_key in FORECAST_SERIES_LABELS:
+                series = results.get(series_key, [])
+                entry = series[month - 1] if month - 1 < len(series) else None
+                for scenario in ("base", "bull", "bear"):
+                    value = entry[scenario] if entry is not None else None
+                    row[f"{series_key}_{scenario}"] = (
+                        f"{value:,.2f}" if value is not None else ""
+                    )
+            rows.append(row)
+        return rows
 
     def load_markup_pct(self) -> None:
         """Read the live markup_pct AppSetting (D-04). Confirmed seeded by
