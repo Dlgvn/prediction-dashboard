@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Phase 5 planned (4 plans, 4 waves)
-last_updated: "2026-08-23T05:58:57.747Z"
+last_updated: "2026-08-23T06:03:29.808Z"
 last_activity: 2026-08-23
 progress:
   total_phases: 5
   completed_phases: 4
   total_plans: 22
-  completed_plans: 20
+  completed_plans: 21
   percent: 80
 ---
 
@@ -29,11 +29,11 @@ series — without opening Excel.
 ## Current Position
 
 Phase: 05 (Forecast UI, Scenario Chart & Excel Export) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-08-23
 
-Progress: [█████████░] 91%
+Progress: [██████████] 95%
 
 ## Performance Metrics
 
@@ -74,6 +74,7 @@ Progress: [█████████░] 91%
 | Phase 04 P04 | 55min | 3 tasks | 4 files |
 | Phase 05 P01 | 35min | 3 tasks | 2 files |
 | Phase 05 P02 | 25min | 3 tasks | 2 files |
+| Phase 05 P03 | 20min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -116,6 +117,7 @@ Recent decisions affecting current work:
 - [Phase 05]: 05-01: row.model_dump() misbehaves on PriceRow during export; _export_bytes builds records manually from date+SERIES_ATTRS instead
 - [Phase ?]: 05-02: diesel_mnt historical values in forecast_chart_figure use the exact same diesel_usd*fx*(1+markup_pct/100) convention as forecasting.py's diesel_mnt_forecast
 - [Phase ?]: 05-02: FORECAST_TABLE_COLUMNS derived programmatically from FORECAST_SERIES_LABELS x scenario names
+- [Phase ?]: 05-03: Task 1+2 combined into one app.py commit per 04-03 precedent; test_index_on_mount_loads_markup_pct uses inspect.getsource since render() doesn't surface on_mount
 
 ### Pending Todos
 
@@ -139,6 +141,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-08-23T05:56:55.645Z
+Last session: 2026-08-23T06:02:50.685Z
 Stopped at: Phase 5 planned (4 plans, 4 waves)
 Resume file: None

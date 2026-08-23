@@ -15,12 +15,12 @@
       before they reach storage
 - [x] **DATA-05**: All entered/edited/deleted rows persist in SQLite and are visible again
       after the app is restarted or the page is refreshed
-- [ ] **DATA-06**: Each series (HDAN, PPAN, Diesel-USD, FX) shows an "as of" / last-updated
+- [x] **DATA-06**: Each series (HDAN, PPAN, Diesel-USD, FX) shows an "as of" / last-updated
       date so the user knows whether the data feeding the forecast is current
 
 ### Forecasting & Scenarios
 
-- [ ] **FCST-01**: User can select a forecast horizon from 1 to 12 months
+- [x] **FCST-01**: User can select a forecast horizon from 1 to 12 months
 - [x] **FCST-02**: For the selected horizon, the app computes a base (point), bull, and
       bear forecast value for each month, for HDAN, PPAN, Diesel-USD, and FX rate
 - [x] **FCST-03**: Diesel purchasing price in MNT is computed as a derived series
@@ -30,7 +30,7 @@
       backtested error/volatility (not one flat percentage applied to every series)
 - [x] **FCST-05**: Bull/bear spread widens as the horizon extends further out, rather than
       staying a fixed percentage regardless of how many months ahead the forecast is
-- [ ] **FCST-06**: Forecast values are shown in a table (exact numbers per month, per
+- [x] **FCST-06**: Forecast values are shown in a table (exact numbers per month, per
       series, per scenario) in addition to any chart — not chart-only
 - [x] **FCST-07**: Forecasting models are selected via a research/backtest process before
       being used — no un-backtested model is used in the shipped app (see Model Research
@@ -40,15 +40,15 @@
 
 - [x] **VIS-01**: User can view a historical chart of actual prices (no forecast) for each
       series, to see the trend the forecast is based on
-- [ ] **VIS-02**: User can view a forecast chart showing base/bull/bear as a shaded
+- [x] **VIS-02**: User can view a forecast chart showing base/bull/bear as a shaded
       confidence band (not three unstyled crisp lines) across the selected horizon
-- [ ] **VIS-03**: All four tracked series (HDAN, PPAN, Diesel-MNT, FX) are visible together
+- [x] **VIS-03**: All four tracked series (HDAN, PPAN, Diesel-MNT, FX) are visible together
       on a single dashboard page, not requiring the user to switch between separate pages
       or tabs to see each one
 
 ### Data Portability
 
-- [ ] **EXPORT-01**: User can export the current stored price table to an `.xlsx` file
+- [x] **EXPORT-01**: User can export the current stored price table to an `.xlsx` file
 
 ## v2 Requirements (Deferred)
 
