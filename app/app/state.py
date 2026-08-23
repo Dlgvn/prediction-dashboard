@@ -16,6 +16,18 @@ import reflex as rx
 
 from app.forecasting import MAX_HORIZON, InsufficientHistoryError, forecast_all
 from app.models import AppSetting, PriceRow
+from app.theme import (
+    ACCENT,
+    ACCENT_FILL,
+    ARROW_DOWN,
+    ARROW_FLAT,
+    ARROW_UP,
+    BORDER,
+    MUTED_TEXT,
+    NEUTRAL_LINE,
+    NUMBER_FORMAT,
+    PLOTLY_HOVER_NUMBER,
+)
 from app.validators import validate_date, validate_numeric
 
 # The 16 series columns on PriceRow, defined once so both the draft-row
@@ -157,6 +169,10 @@ class DashboardState(rx.State):
                 yaxis_title=SERIES_LABELS[attr],
                 showlegend=False,
                 margin=dict(l=40, r=16, t=16, b=40),
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                yaxis=dict(tickformat=NUMBER_FORMAT),
+                font=dict(size=14, color=MUTED_TEXT),
                 annotations=[
                     dict(
                         text="No data for this series yet.",
@@ -176,8 +192,15 @@ class DashboardState(rx.State):
             yaxis_title=SERIES_LABELS[attr],
             showlegend=False,
             margin=dict(l=40, r=16, t=16, b=40),
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            yaxis=dict(tickformat=NUMBER_FORMAT),
+            font=dict(size=14, color=MUTED_TEXT),
         )
-        figure.update_traces(line_color="#697177")
+        figure.update_traces(
+            line_color=NEUTRAL_LINE,
+            hovertemplate=f"%{{x}}<br>{PLOTLY_HOVER_NUMBER}<extra></extra>",
+        )
         return figure
 
     def _export_bytes(self) -> bytes:
@@ -350,6 +373,10 @@ class DashboardState(rx.State):
                 yaxis_title=FORECAST_SERIES_LABELS[attr],
                 showlegend=False,
                 margin=dict(l=40, r=16, t=16, b=40),
+                plot_bgcolor="rgba(0,0,0,0)",
+                paper_bgcolor="rgba(0,0,0,0)",
+                yaxis=dict(tickformat=NUMBER_FORMAT),
+                font=dict(size=14, color=MUTED_TEXT),
                 annotations=[
                     dict(
                         text="No forecast available for this series yet.",
@@ -387,8 +414,9 @@ class DashboardState(rx.State):
                 x=hist_dates_dt,
                 y=hist_values,
                 mode="lines",
-                line=dict(color="#697177"),
+                line=dict(color=NEUTRAL_LINE, dash="solid"),
                 name="Historical",
+                hovertemplate=f"%{{x}}<br>{PLOTLY_HOVER_NUMBER}<extra>Historical</extra>",
             )
         )
         figure.add_trace(
@@ -399,6 +427,7 @@ class DashboardState(rx.State):
                 line=dict(width=0),
                 showlegend=False,
                 name="Bear",
+                hoverinfo="skip",
             )
         )
         figure.add_trace(
@@ -408,8 +437,9 @@ class DashboardState(rx.State):
                 mode="lines",
                 line=dict(width=0),
                 fill="tonexty",
-                fillcolor="rgba(59,130,246,0.15)",
-                name="Forecast band",
+                fillcolor=ACCENT_FILL,
+                name="Expected range",
+                hovertemplate=f"%{{x}}<br>{PLOTLY_HOVER_NUMBER}<extra>Expected range</extra>",
             )
         )
         figure.add_trace(
@@ -417,15 +447,27 @@ class DashboardState(rx.State):
                 x=bridge_dates,
                 y=base_y,
                 mode="lines",
-                line=dict(color="#3B82F6", width=2),
+                line=dict(color=ACCENT, width=2, dash="dash"),
                 name="Base forecast",
+                hovertemplate=f"%{{x}}<br>{PLOTLY_HOVER_NUMBER}<extra>Base forecast</extra>",
             )
+        )
+        figure.add_vline(
+            x=last_hist_date,
+            line=dict(color=BORDER, dash="dash"),
+            annotation_text="Forecast start",
+            annotation_position="top left",
         )
         figure.update_layout(
             xaxis_title="Month",
             yaxis_title=FORECAST_SERIES_LABELS[attr],
             margin=dict(l=40, r=16, t=16, b=40),
             legend=dict(orientation="h"),
+            plot_bgcolor="rgba(0,0,0,0)",
+            paper_bgcolor="rgba(0,0,0,0)",
+            yaxis=dict(tickformat=NUMBER_FORMAT),
+            font=dict(size=14, color=MUTED_TEXT),
+            hovermode="x unified",
         )
         return figure
 

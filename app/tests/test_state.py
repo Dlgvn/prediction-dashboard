@@ -802,7 +802,7 @@ def test_forecast_chart_figure_traces(session, monkeypatch, synthetic_history):
     assert [t.name for t in figure.data] == [
         "Historical",
         "Bear",
-        "Forecast band",
+        "Expected range",
         "Base forecast",
     ]
 
@@ -897,6 +897,107 @@ def test_forecast_chart_empty_state(session, monkeypatch):
     assert any(
         "No forecast available for this series yet." in a.text for a in annotations
     )
+
+
+# ---------------------------------------------------------------------------
+# Chart restyle (D-08/D-09, Phase 6 plan 06-01)
+# ---------------------------------------------------------------------------
+
+
+def test_forecast_chart_has_four_traces_and_forecast_start_marker(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    figure = state.forecast_chart_figure
+
+    assert len(figure.data) == 4
+    shapes = figure.layout.shapes
+    assert shapes is not None and len(shapes) >= 1
+    annotations = figure.layout.annotations
+    assert any("Forecast start" in (a.text or "") for a in annotations)
+
+
+def test_historical_chart_has_one_trace(session, monkeypatch):
+    session.add(PriceRow(date="2026-01-01", hdan=1.0))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+
+    figure = state.historical_chart_figure
+    assert len(figure.data) == 1
+
+
+def test_charts_do_not_use_confidence_language(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    forecast_figure = state.forecast_chart_figure
+    for trace in forecast_figure.data:
+        name = trace.name or ""
+        assert "confidence" not in name.lower()
+        assert "guaranteed" not in name.lower()
+    for annotation in forecast_figure.layout.annotations:
+        text = annotation.text or ""
+        assert "confidence" not in text.lower()
+        assert "guaranteed" not in text.lower()
+
+
+def test_charts_have_transparent_background_populated_and_empty(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    populated_state = DashboardState()
+    populated_state.rows = _rows_from_synthetic_history(synthetic_history)
+    populated_state.horizon_months = 4
+    populated_figure = populated_state.forecast_chart_figure
+    assert populated_figure.layout.paper_bgcolor == "rgba(0,0,0,0)"
+
+    empty_state = DashboardState()
+    empty_state.rows = []
+    empty_figure = empty_state.forecast_chart_figure
+    assert empty_figure.layout.paper_bgcolor == "rgba(0,0,0,0)"
+
+    empty_hist_figure = empty_state.historical_chart_figure
+    assert empty_hist_figure.layout.paper_bgcolor == "rgba(0,0,0,0)"
+
+
+def test_forecast_chart_traces_have_formatted_hovertemplate(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    figure = state.forecast_chart_figure
+    for trace in figure.data:
+        if trace.name == "Bear":
+            # Invisible boundary trace intentionally has no tooltip.
+            continue
+        assert trace.hovertemplate is not None
+        assert ",.2f" in trace.hovertemplate
+
+
+def test_historical_chart_trace_has_formatted_hovertemplate(session, monkeypatch):
+    session.add(PriceRow(date="2026-01-01", hdan=1.0))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+
+    figure = state.historical_chart_figure
+    assert figure.data[0].hovertemplate is not None
+    assert ",.2f" in figure.data[0].hovertemplate
 
 
 
