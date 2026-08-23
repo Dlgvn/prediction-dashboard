@@ -1070,3 +1070,180 @@ def test_forecast_table_row_length_follows_horizon(session, monkeypatch, synthet
 
     state.horizon_months = 9
     assert len(state.forecast_table_rows) == 9
+
+
+# ---------------------------------------------------------------------------
+# Forecast summary cards (D-10..D-13, Phase 6 plan 06-01)
+# ---------------------------------------------------------------------------
+
+
+def test_summary_cards_length_and_order_empty(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = []
+
+    cards = state.summary_cards
+
+    assert len(cards) == 4
+    assert [c["series_key"] for c in cards] == ["hdan", "ppan", "diesel_mnt", "fx_rate"]
+    for card in cards:
+        assert card["has_data"] == "no"
+        assert card["base"] == ""
+        assert card["no_data_text"] == "Add pricing data to see a forecast"
+
+
+def test_summary_cards_length_and_order_populated(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    cards = state.summary_cards
+
+    assert len(cards) == 4
+    assert [c["series_key"] for c in cards] == ["hdan", "ppan", "diesel_mnt", "fx_rate"]
+
+
+def test_summary_cards_all_values_are_strings(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    for card in state.summary_cards:
+        assert all(isinstance(v, str) for v in card.values())
+
+    empty_state = DashboardState()
+    empty_state.rows = []
+    for card in empty_state.summary_cards:
+        assert all(isinstance(v, str) for v in card.values())
+
+
+def test_summary_cards_base_formatted_with_separator(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    for card in cards.values():
+        assert card["has_data"] == "yes"
+        assert "." in card["base"]
+
+
+def test_summary_cards_horizon_reactive_without_new_state(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+
+    state.horizon_months = 3
+    cards_3 = {c["series_key"]: c["base"] for c in state.summary_cards}
+
+    state.horizon_months = 6
+    cards_6 = {c["series_key"]: c["base"] for c in state.summary_cards}
+
+    assert cards_3 != cards_6
+
+
+def test_summary_cards_direction_up(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = [PriceRow(date="2026-01-01", hdan=100.0, ppan=100.0, fx_rate=1.0)]
+    state.horizon_months = 1
+
+    fake_results = {
+        "hdan": [{"month": 1, "base": 150.0, "bull": 160.0, "bear": 140.0}],
+        "ppan": [{"month": 1, "base": 90.0, "bull": 95.0, "bear": 85.0}],
+        "diesel_usd_ton": [],
+        "diesel_mnt": [],
+        "fx_rate": [{"month": 1, "base": 1.0, "bull": 1.1, "bear": 0.9}],
+    }
+    monkeypatch.setattr(
+        state_module.DashboardState,
+        "forecast_results",
+        property(lambda self: fake_results),
+    )
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    assert cards["hdan"]["direction"] == "up"
+    assert cards["hdan"]["arrow"] == "↑"
+    assert cards["hdan"]["delta_text"] == "50.0%"
+
+
+def test_summary_cards_direction_down(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = [PriceRow(date="2026-01-01", hdan=100.0, ppan=100.0, fx_rate=1.0)]
+    state.horizon_months = 1
+
+    fake_results = {
+        "hdan": [{"month": 1, "base": 80.0, "bull": 85.0, "bear": 75.0}],
+        "ppan": [],
+        "diesel_usd_ton": [],
+        "diesel_mnt": [],
+        "fx_rate": [],
+    }
+    monkeypatch.setattr(
+        state_module.DashboardState,
+        "forecast_results",
+        property(lambda self: fake_results),
+    )
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    assert cards["hdan"]["direction"] == "down"
+    assert cards["hdan"]["arrow"] == "↓"
+    assert cards["hdan"]["delta_text"] == "20.0%"
+
+
+def test_summary_cards_zero_latest_actual_is_flat_no_crash(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = [PriceRow(date="2026-01-01", hdan=0.0)]
+    state.horizon_months = 1
+
+    fake_results = {
+        "hdan": [{"month": 1, "base": 50.0, "bull": 55.0, "bear": 45.0}],
+        "ppan": [],
+        "diesel_usd_ton": [],
+        "diesel_mnt": [],
+        "fx_rate": [],
+    }
+    monkeypatch.setattr(
+        state_module.DashboardState,
+        "forecast_results",
+        property(lambda self: fake_results),
+    )
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    assert cards["hdan"]["direction"] == "flat"
+    assert cards["hdan"]["delta_text"] == ""
+
+
+def test_summary_cards_does_not_call_forecast_all_more_than_once(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 3
+
+    call_count = {"n": 0}
+    real_forecast_all = state_module.forecast_all
+
+    def _counting_forecast_all(history, horizon, markup_pct):
+        call_count["n"] += 1
+        return real_forecast_all(history, horizon, markup_pct)
+
+    monkeypatch.setattr("app.state.forecast_all", _counting_forecast_all)
+
+    _ = state.summary_cards
+
+    assert call_count["n"] == 1

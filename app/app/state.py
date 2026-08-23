@@ -95,6 +95,12 @@ FORECAST_LABEL_TO_ATTR: dict[str, str] = {
 # diesel_mnt is derived (diesel_usd * fx * markup) and has no own date.
 FRESHNESS_SERIES: tuple[str, ...] = ("hdan", "ppan", "diesel_usd_ton", "fx_rate")
 
+# D-01: exactly four forecast-summary cards, in display order. Deliberately
+# excludes diesel_usd_ton from FORECAST_SERIES_LABELS' five keys because the
+# user tracks the MNT purchasing price (diesel_mnt), not the raw USD/ton
+# input.
+SUMMARY_CARD_SERIES: tuple[str, ...] = ("hdan", "ppan", "diesel_mnt", "fx_rate")
+
 # Derived programmatically (not a hand-written 15-entry literal) so headers
 # and forecast_table_rows' composite keys can never drift apart (FCST-06).
 FORECAST_TABLE_COLUMNS: list[tuple[str, str]] = [
@@ -331,6 +337,106 @@ class DashboardState(rx.State):
                     }
                 )
         return chips
+
+    @rx.var
+    def summary_cards(self) -> list[dict[str, str]]:
+        """Four horizon-reactive forecast-summary cards (D-10..D-13).
+
+        Returns a LIST of flat ALL-STRING dicts, one per SUMMARY_CARD_SERIES
+        entry in order, always length 4 — mirrors freshness_chips' shape
+        discipline so app.py can rx.foreach without dict-Var indexing.
+        Reads self.forecast_results only; never re-invokes forecast_all
+        (Pitfall 2 guard, T-06-02).
+        """
+        results = self.forecast_results
+        cards: list[dict[str, str]] = []
+
+        for key in SUMMARY_CARD_SERIES:
+            label = FORECAST_SERIES_LABELS[key]
+            series = results.get(key, [])
+
+            if not series:
+                cards.append(
+                    {
+                        "series_key": key,
+                        "label": label,
+                        "has_data": "no",
+                        "base": "",
+                        "range_text": "",
+                        "range_label": "Expected range",
+                        "arrow": ARROW_FLAT,
+                        "direction": "flat",
+                        "delta_text": "",
+                        "caption": "vs. latest actual",
+                        "no_data_text": "Add pricing data to see a forecast",
+                    }
+                )
+                continue
+
+            # T-06-01: index the LAST entry rather than assuming length
+            # equals horizon_months, so a client-driven horizon can never
+            # index out of range.
+            entry = series[-1]
+            base_value = entry["base"]
+            bull_value = entry["bull"]
+            bear_value = entry["bear"]
+
+            latest_actual = self._latest_actual_for(key)
+
+            if latest_actual is None or latest_actual == 0:
+                arrow = ARROW_FLAT
+                direction = "flat"
+                delta_text = ""
+            elif base_value > latest_actual:
+                arrow = ARROW_UP
+                direction = "up"
+                delta_text = f"{abs((base_value - latest_actual) / latest_actual * 100):.1f}%"
+            elif base_value < latest_actual:
+                arrow = ARROW_DOWN
+                direction = "down"
+                delta_text = f"{abs((base_value - latest_actual) / latest_actual * 100):.1f}%"
+            else:
+                arrow = ARROW_FLAT
+                direction = "flat"
+                delta_text = ""
+
+            cards.append(
+                {
+                    "series_key": key,
+                    "label": label,
+                    "has_data": "yes",
+                    "base": f"{base_value:{NUMBER_FORMAT}}",
+                    "range_text": f"{bear_value:{NUMBER_FORMAT}} – {bull_value:{NUMBER_FORMAT}}",
+                    "range_label": "Expected range",
+                    "arrow": arrow,
+                    "direction": direction,
+                    "delta_text": delta_text,
+                    "caption": "vs. latest actual",
+                    "no_data_text": "Add pricing data to see a forecast",
+                }
+            )
+
+        return cards
+
+    def _latest_actual_for(self, key: str) -> float | None:
+        """Last non-None actual value for a SUMMARY_CARD_SERIES key.
+
+        For diesel_mnt, derives from the last row where BOTH diesel_usd_ton
+        and fx_rate are non-None, matching forecast_chart_figure's exact
+        multiplier convention.
+        """
+        if key == "diesel_mnt":
+            multiplier = 1 + self.markup_pct / 100.0
+            for row in reversed(self.rows):
+                if row.diesel_usd_ton is not None and row.fx_rate is not None:
+                    return row.diesel_usd_ton * row.fx_rate * multiplier
+            return None
+
+        for row in reversed(self.rows):
+            value = getattr(row, key)
+            if value is not None:
+                return value
+        return None
 
     @rx.var
     def forecast_chart_figure(self) -> go.Figure:
