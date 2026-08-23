@@ -7,6 +7,7 @@
 - [x] **Phase 3: Forecasting Module & Derived Series** - Base/bull/bear forecasts and derived Diesel-MNT computed from validated models (completed 2026-08-22)
 - [x] **Phase 4: Data Entry UI & Historical View** - User manages monthly actuals in-app with validation and persistence (completed 2026-08-22)
 - [x] **Phase 5: Forecast UI, Scenario Chart & Excel Export** - User views horizon-based scenario forecasts and exports data (completed 2026-08-23)
+- [ ] **Phase 6: UX/UI Redesign — Financial Forecasting Terminal** - Dashboard redesigned so a finance/procurement user grasps price, forecast, and range within 10-20 seconds
 
 ## Phase Details
 
@@ -112,6 +113,18 @@ Plans:
 | 3. Forecasting Module & Derived Series | 4/4 | Complete   | 2026-08-22 |
 | 4. Data Entry UI & Historical View | 4/4 | Complete   | 2026-08-22 |
 | 5. Forecast UI, Scenario Chart & Excel Export | 4/4 | Complete   | 2026-08-23 |
+| 6. UX/UI Redesign — Financial Forecasting Terminal | 0/0 | Not planned   | — |
+
+### Phase 6: UX/UI Redesign — Financial Forecasting Terminal
+**Goal**: The dashboard is redesigned as a professional financial forecasting terminal — information architecture, forecast summary, chart, three-scenario display, horizon selector, upload/error/loading states, design system, color system, and accessibility all rework so a finance/procurement user grasps current price, forecast, and range within 10-20 seconds.
+**Depends on**: Phase 5
+**Requirements**: TBD (UX/design phase — no formal REQUIREMENTS.md line items yet)
+**Success Criteria** (what must be TRUE):
+  1. TBD — to be defined during discuss/plan
+**Plans**: TBD
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 6 to break down)
 
 ---
 *Roadmap created: 2026-08-21*
