@@ -8,6 +8,7 @@ bad ~ negation, bad dict indexing) at test time.
 import app.app as app_module
 import reflex as rx
 
+from app import state
 from app.models import PriceRow
 
 
@@ -54,3 +55,68 @@ def test_editable_cell_start_edit_arg_not_json_stringified_for_numeric():
     rendered = _start_edit_arg_source(row, "hdan")
     assert "to_string" not in rendered
     assert "toJSON" not in rendered
+
+
+# --- Phase 5 ---------------------------------------------------------------
+
+
+def test_horizon_control_compiles_to_component():
+    component = app_module.horizon_control()
+    assert isinstance(component, rx.Component)
+
+
+def test_freshness_chips_row_compiles_to_component():
+    component = app_module.freshness_chips_row()
+    assert isinstance(component, rx.Component)
+
+
+def test_forecast_chart_compiles_to_component():
+    component = app_module.forecast_chart()
+    assert isinstance(component, rx.Component)
+
+
+def test_forecast_table_compiles_to_component():
+    component = app_module.forecast_table()
+    assert isinstance(component, rx.Component)
+
+
+def test_export_button_compiles_to_component():
+    component = app_module.export_button()
+    assert isinstance(component, rx.Component)
+
+
+def test_forecast_section_compiles_to_component():
+    component = app_module.forecast_section()
+    assert isinstance(component, rx.Component)
+
+
+def test_index_still_compiles_with_forecast_section():
+    component = app_module.index()
+    assert isinstance(component, rx.Component)
+
+
+def test_forecast_table_columns_count_is_fifteen():
+    assert len(state.FORECAST_TABLE_COLUMNS) == 15
+
+
+def test_forecast_chart_uses_its_own_selector():
+    rendered = str(app_module.forecast_chart().render())
+    assert "select_forecast_series" in rendered
+    assert "select_series" not in rendered
+
+
+def test_index_on_mount_loads_markup_pct():
+    # component.render() does not surface the on_mount prop (it lives on the
+    # rx.Container wrapper's event trigger dict, not the child render tree),
+    # so this falls back to a source-level assertion per the plan's
+    # substitution allowance.
+    import inspect
+
+    source = inspect.getsource(app_module.index)
+    assert "load_markup_pct" in source
+
+
+def test_forecast_table_has_no_edit_wiring():
+    rendered = str(app_module.forecast_table().render())
+    assert "start_edit" not in rendered
+    assert "update_draft" not in rendered
