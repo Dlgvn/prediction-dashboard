@@ -24,6 +24,7 @@ from app.theme import (
     RADIX_SIZE_HEADING,
     RADIX_SIZE_LABEL,
     SPACE_LG,
+    SPACE_MD,
     SPACE_XXL,
     SURFACE,
     UP,
@@ -173,6 +174,7 @@ def historical_chart() -> rx.Component:
         border_radius=CARD_RADIUS,
         padding="1.5rem",
         width="100%",
+        aria_label="Historical actual prices for the selected series",
     )
 
 
@@ -210,7 +212,8 @@ def horizon_control() -> rx.Component:
             step=1,
             on_change=DashboardState.set_horizon,
             size="2",
-            width="240px",
+            width="100%",
+            max_width="15rem",
             color_scheme="blue",
         ),
         rx.text(
@@ -220,6 +223,7 @@ def horizon_control() -> rx.Component:
         ),
         align="center",
         spacing="2",
+        wrap="wrap",
     )
 
 
@@ -317,6 +321,7 @@ def forecast_chart() -> rx.Component:
         border_radius=CARD_RADIUS,
         padding="1.5rem",
         width="100%",
+        aria_label="Fan chart of forecast base value with expected range",
     )
 
 
@@ -363,6 +368,7 @@ def forecast_table() -> rx.Component:
         padding=CARD_PADDING,
         overflow_x="auto",
         width="100%",
+        min_width="0",
     )
 
 
@@ -428,7 +434,7 @@ def _summary_card(card: rx.Var) -> rx.Component:
 def forecast_summary_cards() -> rx.Component:
     """Four-card forecast summary row, all series visible at once (D-01)."""
     return rx.vstack(
-        rx.heading("Forecast Summary", size=RADIX_SIZE_HEADING),
+        rx.heading("Forecast Summary", size=RADIX_SIZE_HEADING, as_="h2"),
         rx.hstack(
             rx.foreach(DashboardState.summary_cards, _summary_card),
             spacing="3",
@@ -437,6 +443,8 @@ def forecast_summary_cards() -> rx.Component:
             align="stretch",
         ),
         spacing="3",
+        aria_label="Forecast summary",
+        role="region",
     )
 
 
@@ -448,30 +456,36 @@ def forecast_section() -> rx.Component:
     itself, so they trail the chart and table rather than leading them.
     """
     return rx.vstack(
-        rx.heading("Forecast", size="6"),
+        rx.heading("Forecast", size=RADIX_SIZE_HEADING, as_="h2"),
         horizon_control(),
         forecast_chart(),
-        rx.heading("Forecast — base / bull / bear", size=RADIX_SIZE_HEADING),
+        rx.heading(
+            "Forecast — base / bull / bear", size=RADIX_SIZE_HEADING, as_="h3"
+        ),
         forecast_table(),
         freshness_chips_row(),
         export_button(),
         spacing="3",
+        aria_label="Forecast",
+        role="region",
     )
 
 
 def historical_section() -> rx.Component:
     """Historical chart under its own heading, trailing forecast content (D-02/D-03)."""
     return rx.vstack(
-        rx.heading("Historical", size=RADIX_SIZE_HEADING),
+        rx.heading("Historical", size=RADIX_SIZE_HEADING, as_="h2"),
         historical_chart(),
         spacing="3",
+        aria_label="Historical prices",
+        role="region",
     )
 
 
 def data_entry_section() -> rx.Component:
     """Data-entry table under its own heading, at the bottom of the page (D-02/D-03)."""
     return rx.vstack(
-        rx.heading("Data Entry", size=RADIX_SIZE_HEADING),
+        rx.heading("Data Entry", size=RADIX_SIZE_HEADING, as_="h2"),
         rx.text("Click any cell to edit a month's actuals.", size=RADIX_SIZE_BODY),
         rx.cond(
             (DashboardState.rows.length() + DashboardState.draft_rows.length()) > 0,
@@ -485,17 +499,20 @@ def data_entry_section() -> rx.Component:
                 overflow_y="auto",
                 max_height="80vh",
                 width="100%",
+                min_width="0",
             ),
             empty_state(),
         ),
         add_row_button(),
         spacing="3",
+        aria_label="Data entry",
+        role="region",
     )
 
 
 def index() -> rx.Component:
     return rx.container(
-        rx.heading("Prediction Dashboard", size="9"),
+        rx.heading("Prediction Dashboard", size="9", as_="h1"),
         rx.text(
             "Forecasts and actuals for ammonium nitrate, diesel, and the FX rate.",
             size=RADIX_SIZE_BODY,
@@ -507,8 +524,10 @@ def index() -> rx.Component:
         data_entry_section(),
         background=PAGE_BG,
         min_height="100vh",
+        width="100%",
         spacing="6",
         padding_y=SPACE_LG,
+        padding_x=SPACE_MD,
         on_mount=[DashboardState.load_rows, DashboardState.load_markup_pct],
     )
 

@@ -18,12 +18,21 @@ constants without pulling in the Reflex runtime.
 
 PAGE_BG = "#FAFAFA"
 SURFACE = "#FFFFFF"
-BORDER = "#E4E4E7"
-ACCENT = "#3B82F6"
-ACCENT_FILL = "rgba(59,130,246,0.15)"
+# Amended in Task 06-03 (responsive/a11y pass): #E4E4E7 measured 1.27:1
+# against SURFACE, below the WCAG 3:1 non-text-boundary threshold.
+# Darkened within the same neutral-gray hue to #8E9096 (3.19:1 measured).
+BORDER = "#8E9096"
+# Amended in Task 06-03: #3B82F6 measured 3.68:1 with a white label,
+# below the WCAG 4.5:1 normal-text threshold. Darkened within the same
+# blue hue to #2563EB (5.17:1 measured).
+ACCENT = "#2563EB"
+ACCENT_FILL = "rgba(37,99,235,0.15)"
 DESTRUCTIVE = "#DC2626"
 NEUTRAL_LINE = "#697177"
-UP = "#16A34A"
+# Amended in Task 06-03: #16A34A measured 3.30:1 against SURFACE, below
+# the WCAG 4.5:1 normal-text threshold. Darkened within the same green
+# hue to #15803D (5.02:1 measured).
+UP = "#15803D"
 DOWN = "#DC2626"
 # Radix gray.11-equivalent neutral gray for muted/secondary text.
 MUTED_TEXT = "#71717A"

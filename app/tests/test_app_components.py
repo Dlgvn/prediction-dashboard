@@ -143,8 +143,10 @@ def test_forecast_summary_cards_wires_direction_colors():
     # appear in the compiled component tree's static render() output.
     # The UP/DOWN hex constants ARE literal in the rx.cond color branch,
     # so their presence proves both cond branches are wired.
+    # Amended in Task 06-03: UP darkened from #16A34A to #15803D to meet
+    # WCAG AA contrast against SURFACE.
     rendered = str(app_module.forecast_summary_cards().render())
-    assert "#16A34A" in rendered
+    assert "#15803D" in rendered
     assert "#DC2626" in rendered
 
 
@@ -228,3 +230,70 @@ def test_export_button_still_compiles_with_theme_colors():
 def test_historical_chart_still_compiles_with_theme_colors():
     component = app_module.historical_chart()
     assert isinstance(component, rx.Component)
+
+
+# --- Phase 6 Plan 03: responsive reflow + accessibility -----------------------
+
+
+def _srgb_channel_to_linear(channel_255: float) -> float:
+    """Convert one 0-255 sRGB channel to a linearized value per WCAG 2.1."""
+    c = channel_255 / 255
+    if c <= 0.03928:
+        return c / 12.92
+    return ((c + 0.055) / 1.055) ** 2.4
+
+
+def _relative_luminance(hex_color: str) -> float:
+    """WCAG 2.1 relative luminance (1.4.3 / 1.4.11) for a `#RRGGBB` hex string."""
+    hex_color = hex_color.lstrip("#")
+    r, g, b = (int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
+    r_lin, g_lin, b_lin = (_srgb_channel_to_linear(v) for v in (r, g, b))
+    return 0.2126 * r_lin + 0.7152 * g_lin + 0.0722 * b_lin
+
+
+def _contrast_ratio(hex_a: str, hex_b: str) -> float:
+    """WCAG 2.1 contrast ratio between two `#RRGGBB` hex colors."""
+    l_a, l_b = _relative_luminance(hex_a), _relative_luminance(hex_b)
+    lighter, darker = max(l_a, l_b), min(l_a, l_b)
+    return (lighter + 0.05) / (darker + 0.05)
+
+
+def test_theme_contrast_pairings_meet_wcag_aa():
+    # Normal-text pairings require 4.5:1; the border/surface pairing is a
+    # non-text UI boundary and requires 3:1 (WCAG 1.4.3 / 1.4.11).
+    normal_text_pairs = [
+        ("MUTED_TEXT/SURFACE", theme.MUTED_TEXT, theme.SURFACE),
+        ("UP/SURFACE", theme.UP, theme.SURFACE),
+        ("DOWN/SURFACE", theme.DOWN, theme.SURFACE),
+        ("ACCENT/white-label", theme.ACCENT, "#FFFFFF"),
+    ]
+    for name, fg, bg in normal_text_pairs:
+        ratio = _contrast_ratio(fg, bg)
+        assert ratio >= 4.5, f"{name} contrast {ratio:.2f} below WCAG AA 4.5:1"
+
+    border_ratio = _contrast_ratio(theme.BORDER, theme.SURFACE)
+    assert border_ratio >= 3.0, (
+        f"BORDER/SURFACE contrast {border_ratio:.2f} below WCAG AA 3:1"
+    )
+
+
+def test_index_has_section_landmarks_and_chart_labels():
+    rendered = str(app_module.index().render())
+    for label in ["Forecast summary", "Forecast", "Historical prices", "Data entry"]:
+        assert f'aria-label:"{label}"' in rendered or label in rendered
+    assert "Fan chart of forecast base value with expected range" in rendered
+    assert "Historical actual prices for the selected series" in rendered
+
+
+def test_summary_card_row_wraps_with_flex_basis():
+    rendered = str(app_module.forecast_summary_cards().render())
+    assert 'wrap:"wrap"' in rendered or "wrap" in rendered
+    assert "flex" in rendered
+    assert "200px" in rendered
+
+
+def test_no_fixed_pixel_width_on_horizon_slider():
+    source_path = app_module.__file__
+    with open(source_path) as f:
+        source = f.read()
+    assert 'width="240px"' not in source

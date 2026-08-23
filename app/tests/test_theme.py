@@ -6,7 +6,9 @@ from app import theme
 
 
 def test_accent_is_locked_hex():
-    assert theme.ACCENT == "#3B82F6"
+    # Amended in Task 06-03: darkened from #3B82F6 to #2563EB within the
+    # same blue hue to meet WCAG AA 4.5:1 contrast with a white label.
+    assert theme.ACCENT == "#2563EB"
 
 
 def test_spacing_values_are_multiples_of_four():
@@ -42,13 +44,15 @@ def test_only_two_font_weights_declared():
 
 
 def test_all_locked_color_hex_values_present():
+    # Amended in Task 06-03: BORDER, ACCENT, and UP were darkened within
+    # their original hues to meet WCAG AA contrast thresholds.
     for hex_value in (
         "#FAFAFA",
         "#FFFFFF",
-        "#E4E4E7",
-        "#3B82F6",
+        "#8E9096",
+        "#2563EB",
         "#DC2626",
-        "#16A34A",
+        "#15803D",
     ):
         assert hex_value in (
             theme.PAGE_BG,
