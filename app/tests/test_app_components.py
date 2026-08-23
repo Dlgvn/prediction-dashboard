@@ -120,3 +120,33 @@ def test_forecast_table_has_no_edit_wiring():
     rendered = str(app_module.forecast_table().render())
     assert "start_edit" not in rendered
     assert "update_draft" not in rendered
+
+
+# --- Phase 6 -----------------------------------------------------------------
+
+
+def test_forecast_summary_cards_compiles_to_component():
+    component = app_module.forecast_summary_cards()
+    assert isinstance(component, rx.Component)
+
+
+def test_forecast_summary_cards_references_state_var():
+    rendered = str(app_module.forecast_summary_cards().render())
+    assert "summary_cards" in rendered
+
+
+def test_forecast_summary_cards_wires_direction_colors():
+    # Arrow glyphs themselves come from DashboardState.summary_cards data
+    # (Var-driven, not literal Python strings in app.py), so they never
+    # appear in the compiled component tree's static render() output.
+    # The UP/DOWN hex constants ARE literal in the rx.cond color branch,
+    # so their presence proves both cond branches are wired.
+    rendered = str(app_module.forecast_summary_cards().render())
+    assert "#16A34A" in rendered
+    assert "#DC2626" in rendered
+
+
+def test_forecast_summary_cards_has_no_forbidden_copy():
+    rendered = str(app_module.forecast_summary_cards().render()).lower()
+    assert "confidence" not in rendered
+    assert "guaranteed" not in rendered

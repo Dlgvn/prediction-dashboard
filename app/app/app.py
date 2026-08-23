@@ -10,6 +10,20 @@ from app.state import (
     SERIES_LABELS,
     DashboardState,
 )
+from app.theme import (
+    CARD_BORDER,
+    CARD_PADDING,
+    CARD_RADIUS,
+    DOWN,
+    FONT_SIZE_DISPLAY,
+    FONT_WEIGHT_SEMIBOLD,
+    MUTED_TEXT,
+    RADIX_SIZE_BODY,
+    RADIX_SIZE_HEADING,
+    RADIX_SIZE_LABEL,
+    SURFACE,
+    UP,
+)
 
 # Header labels in display order, paired with the PriceRow attribute they render.
 # Order and labels follow the D-05b/D-05c 17-column contract (Date + 16 series).
@@ -302,6 +316,80 @@ def forecast_table() -> rx.Component:
         ),
         overflow_x="auto",
         width="100%",
+    )
+
+
+def _summary_card(card: rx.Var) -> rx.Component:
+    """Render one forecast summary card from a foreach item Var (D-01/D-10/D-11/D-13)."""
+    return rx.box(
+        rx.vstack(
+            rx.text(
+                card["label"],
+                size=RADIX_SIZE_LABEL,
+                color_scheme="gray",
+                text_transform="uppercase",
+                font_weight=FONT_WEIGHT_SEMIBOLD,
+            ),
+            rx.cond(
+                card["has_data"] == "yes",
+                rx.fragment(
+                    rx.text(
+                        card["base"],
+                        font_size=FONT_SIZE_DISPLAY,
+                        font_weight=FONT_WEIGHT_SEMIBOLD,
+                        line_height="1.2",
+                    ),
+                    rx.hstack(
+                        rx.text(
+                            card["range_label"] + ":",
+                            size=RADIX_SIZE_LABEL,
+                            color=MUTED_TEXT,
+                        ),
+                        rx.text(card["range_text"], size=RADIX_SIZE_BODY),
+                        spacing="1",
+                    ),
+                    rx.hstack(
+                        rx.text(
+                            card["arrow"] + " " + card["delta_text"],
+                            color=rx.cond(
+                                card["direction"] == "up",
+                                UP,
+                                rx.cond(card["direction"] == "down", DOWN, MUTED_TEXT),
+                            ),
+                            font_weight=FONT_WEIGHT_SEMIBOLD,
+                            size=RADIX_SIZE_BODY,
+                        ),
+                        rx.text(card["caption"], size=RADIX_SIZE_LABEL, color=MUTED_TEXT),
+                        spacing="1",
+                    ),
+                ),
+                rx.text(card["no_data_text"], size=RADIX_SIZE_BODY, color=MUTED_TEXT),
+            ),
+            spacing="2",
+            align="start",
+        ),
+        background=SURFACE,
+        border=CARD_BORDER,
+        border_radius=CARD_RADIUS,
+        padding=CARD_PADDING,
+        min_width="200px",
+        flex="1 1 200px",
+        aria_label=card["label"] + " " + card["base"] + " " + card["delta_text"],
+    )
+
+
+def forecast_summary_cards() -> rx.Component:
+    """Four-card forecast summary row, all series visible at once (D-01)."""
+    return rx.vstack(
+        rx.heading("Forecast Summary", size=RADIX_SIZE_HEADING),
+        rx.hstack(
+            rx.foreach(DashboardState.summary_cards, _summary_card),
+            spacing="3",
+            wrap="wrap",
+            width="100%",
+            align="stretch",
+        ),
+        spacing="3",
     )
 
 
