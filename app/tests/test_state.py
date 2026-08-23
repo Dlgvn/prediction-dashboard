@@ -680,3 +680,76 @@ def test_export_exports_actuals_not_forecast(session, monkeypatch):
 
     assert df.iloc[0]["hdan"] == 9.5
     assert df.iloc[0]["ppan"] == 8.25
+
+
+# ---------------------------------------------------------------------------
+# Freshness chips (DATA-06 / D-07)
+# ---------------------------------------------------------------------------
+
+
+def test_freshness_chips_returns_four_entries(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = []
+
+    chips = state.freshness_chips
+
+    assert len(chips) == 4
+    assert [c["label"] for c in chips] == ["HDAN", "PPAN", "Diesel USD/t", "FX Rate"]
+
+
+def test_freshness_chips_uses_max_date_per_series(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = [
+        PriceRow(date="2026-01-01", hdan=1.0),
+        PriceRow(date="2026-03-01", hdan=None, ppan=5.0),
+    ]
+
+    chips = {c["label"]: c for c in state.freshness_chips}
+
+    assert chips["HDAN"]["date"] == "2026-01-01"
+    assert chips["PPAN"]["date"] == "2026-03-01"
+
+
+def test_freshness_chips_ignores_null_values(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = [
+        PriceRow(date="2026-01-01", hdan=1.0),
+        PriceRow(date="2026-02-01", hdan=None),
+    ]
+
+    chips = {c["label"]: c for c in state.freshness_chips}
+
+    assert chips["HDAN"]["date"] == "2026-01-01"
+
+
+def test_freshness_chips_empty_series_flags_no_data(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = [PriceRow(date="2026-01-01", hdan=None)]
+
+    chips = {c["label"]: c for c in state.freshness_chips}
+
+    assert chips["HDAN"]["date"] == ""
+    assert chips["HDAN"]["has_data"] == "no"
+
+
+def test_freshness_chips_does_not_query_db(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = [PriceRow(date="2026-01-01", hdan=1.0)]
+
+    def _raise():
+        raise AssertionError("freshness_chips must not query the DB")
+
+    monkeypatch.setattr("reflex.session", _raise)
+
+    assert "rx.session" not in inspect.getsource(
+        DashboardState.__dict__["freshness_chips"].fget
+    )
+    chips = state.freshness_chips
+    assert len(chips) == 4
+
+

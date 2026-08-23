@@ -269,6 +269,40 @@ class DashboardState(rx.State):
         """Human label for forecast_series; rx.select's value prop needs the label."""
         return FORECAST_SERIES_LABELS[self.forecast_series]
 
+    @rx.var
+    def freshness_chips(self) -> list[dict[str, str]]:
+        """Four ordered as-of-date chips (DATA-06/D-07), pure over self.rows.
+
+        Returns a LIST of flat dicts (not a dict[str, str]) so app.py can
+        render it with rx.foreach without dict-Var indexing.
+        """
+        chips: list[dict[str, str]] = []
+        for attr in FRESHNESS_SERIES:
+            dates = [
+                row.date
+                for row in self.rows
+                if getattr(row, attr) is not None
+            ]
+            if dates:
+                chips.append(
+                    {
+                        "label": SERIES_LABELS[attr],
+                        "date": max(dates),
+                        "has_data": "yes",
+                    }
+                )
+            else:
+                chips.append(
+                    {
+                        "label": SERIES_LABELS[attr],
+                        "date": "",
+                        "has_data": "no",
+                    }
+                )
+        return chips
+
+
+
     def load_markup_pct(self) -> None:
         """Read the live markup_pct AppSetting (D-04). Confirmed seeded by
         Phase 1 (id=1, value=0.0); the None branch is defence-in-depth
