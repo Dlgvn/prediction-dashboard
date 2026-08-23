@@ -15,7 +15,7 @@
       before they reach storage
 - [x] **DATA-05**: All entered/edited/deleted rows persist in SQLite and are visible again
       after the app is restarted or the page is refreshed
-- [ ] **DATA-06**: Each series (HDAN, PPAN, Diesel-USD, FX) shows an "as of" / last-updated
+- [x] **DATA-06**: Each series (HDAN, PPAN, Diesel-USD, FX) shows an "as of" / last-updated
       date so the user knows whether the data feeding the forecast is current
 
 ### Forecasting & Scenarios
@@ -30,7 +30,7 @@
       backtested error/volatility (not one flat percentage applied to every series)
 - [x] **FCST-05**: Bull/bear spread widens as the horizon extends further out, rather than
       staying a fixed percentage regardless of how many months ahead the forecast is
-- [ ] **FCST-06**: Forecast values are shown in a table (exact numbers per month, per
+- [x] **FCST-06**: Forecast values are shown in a table (exact numbers per month, per
       series, per scenario) in addition to any chart — not chart-only
 - [x] **FCST-07**: Forecasting models are selected via a research/backtest process before
       being used — no un-backtested model is used in the shipped app (see Model Research
@@ -40,9 +40,9 @@
 
 - [x] **VIS-01**: User can view a historical chart of actual prices (no forecast) for each
       series, to see the trend the forecast is based on
-- [ ] **VIS-02**: User can view a forecast chart showing base/bull/bear as a shaded
+- [x] **VIS-02**: User can view a forecast chart showing base/bull/bear as a shaded
       confidence band (not three unstyled crisp lines) across the selected horizon
-- [ ] **VIS-03**: All four tracked series (HDAN, PPAN, Diesel-MNT, FX) are visible together
+- [x] **VIS-03**: All four tracked series (HDAN, PPAN, Diesel-MNT, FX) are visible together
       on a single dashboard page, not requiring the user to switch between separate pages
       or tabs to see each one
 
@@ -89,17 +89,17 @@
 | DATA-03 | Phase 4 | Pending (state layer done in 04-02; UI in 04-03/04-04) |
 | DATA-04 | Phase 4 | Complete |
 | DATA-05 | Phase 4 | Complete |
-| DATA-06 | Phase 5 | Pending |
+| DATA-06 | Phase 5 | Complete |
 | FCST-01 | Phase 5 | Pending (state layer done in 05-01; UI slider in 05-03) |
 | FCST-02 | Phase 3 | Pending (HDAN done in 03-02; PPAN/Diesel/FX in 03-03; dispatcher in 03-04) |
 | FCST-03 | Phase 3 | Complete |
 | FCST-04 | Phase 3 | Pending (HDAN done in 03-02; PPAN/Diesel/FX in 03-03; dispatcher in 03-04) |
 | FCST-05 | Phase 3 | Pending (HDAN done in 03-02; PPAN/Diesel/FX in 03-03; dispatcher in 03-04) |
-| FCST-06 | Phase 5 | Pending |
+| FCST-06 | Phase 5 | Complete |
 | FCST-07 | Phase 2 | Complete |
 | VIS-01 | Phase 4 | Complete |
-| VIS-02 | Phase 5 | Pending |
-| VIS-03 | Phase 5 | Pending |
+| VIS-02 | Phase 5 | Complete |
+| VIS-03 | Phase 5 | Complete |
 | EXPORT-01 | Phase 5 | Pending (state layer done in 05-01; UI button in 05-03) |
 
 ---
