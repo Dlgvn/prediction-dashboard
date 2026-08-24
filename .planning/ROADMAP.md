@@ -152,7 +152,13 @@ Plans:
   1. Each forecast summary card shows the series' historical high and low, computed from stored actuals
   2. Each forecast summary card shows a year-over-year percentage change alongside the existing direction indicator
   3. High/low and YoY figures are derived from the same underlying data and helper logic as the rest of the dashboard, so they never disagree with other displayed numbers
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 08-01-PLAN.md — Shared `_actual_series_for` diesel_mnt helper, all-time high/low and calendar-month YoY keys on `summary_cards` (wave 1)
+- [ ] 08-02-PLAN.md — Two new `_summary_card()` lines, extended `aria_label`, component tests + human verification (wave 2)
+
+**UI hint**: yes
 
 ### Phase 9: Excel Export Polish
 **Goal**: The Excel export becomes a more complete data-portability artifact — it includes forecast values, not just actuals.
@@ -187,7 +193,7 @@ Plans:
 | 5. Forecast UI, Scenario Chart & Excel Export | 4/4 | Complete   | 2026-08-23 |
 | 6. UX/UI Redesign — Financial Forecasting Terminal | 3/3 | Complete   | 2026-08-23 |
 | 7. Table Pagination / Windowing | 0/2 | Not started | — |
-| 8. Forecast Context Enrichment | 0/? | Not started | — |
+| 8. Forecast Context Enrichment | 0/2 | Not started | — |
 | 9. Excel Export Polish | 0/? | Not started | — |
 | 10. CSV Bulk Import | 0/? | Not started | — |
 
