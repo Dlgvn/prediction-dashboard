@@ -31,7 +31,7 @@ improvements to export/import UX, forecast context, and performance at data scal
 ## Current Position
 
 Milestone: v1.2
-Status: Phase 10 in progress — 10-01 (CSV import parsing core) done; IMPORT-01/IMPORT-02 closed. 10-02 (DB write path) not yet started.
+Status: Phase 10 in progress — 10-01 (CSV import parsing core) done; IMPORT-01/IMPORT-02 not yet closed (state/UI layers pending). 10-02 (DB write path) not yet started.
 Last activity: 2026-08-24
 
 Progress: [█████████░] 94%

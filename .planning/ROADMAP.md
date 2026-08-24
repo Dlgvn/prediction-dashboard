@@ -8,7 +8,7 @@
 - [x] **Phase 4: Data Entry UI & Historical View** - User manages monthly actuals in-app with validation and persistence (completed 2026-08-22)
 - [x] **Phase 5: Forecast UI, Scenario Chart & Excel Export** - User views horizon-based scenario forecasts and exports data (completed 2026-08-23)
 - [x] **Phase 6: UX/UI Redesign — Financial Forecasting Terminal** - Dashboard redesigned so a finance/procurement user grasps price, forecast, and range within 10-20 seconds (completed 2026-08-23)
-- [ ] **Phase 7: Table Pagination / Windowing** - Data Entry table defaults to recent months, with a toggle to show full history, without hanging the browser
+- [x] **Phase 7: Table Pagination / Windowing** - Data Entry table defaults to recent months, with a toggle to show full history, without hanging the browser (completed 2026-08-24)
 - [x] **Phase 8: Forecast Context Enrichment** - Forecast summary cards show historical high/low and year-over-year % change (completed 2026-08-24)
 - [x] **Phase 9: Excel Export Polish** - Excel export includes a forecast sheet (base/bull/bear) alongside the existing actuals sheet (completed 2026-08-24)
 - [ ] **Phase 10: CSV Bulk Import** - User can bulk-import historical prices via CSV with preview, confirm, and duplicate-date skipping
@@ -202,10 +202,10 @@ Plans:
 | 4. Data Entry UI & Historical View | 4/4 | Complete   | 2026-08-22 |
 | 5. Forecast UI, Scenario Chart & Excel Export | 4/4 | Complete   | 2026-08-23 |
 | 6. UX/UI Redesign — Financial Forecasting Terminal | 3/3 | Complete   | 2026-08-23 |
-| 7. Table Pagination / Windowing | 0/2 | Not started | — |
+| 7. Table Pagination / Windowing | 2/2 | Complete   | 2026-08-24 |
 | 8. Forecast Context Enrichment | 2/2 | Complete   | 2026-08-24 |
-| 9. Excel Export Polish | 0/1 | Not started | — |
-| 10. CSV Bulk Import | 0/3 | Not started | — |
+| 9. Excel Export Polish | 1/1 | Complete   | 2026-08-24 |
+| 10. CSV Bulk Import | 1/3 | In Progress | — |
 
 ---
 *Roadmap created: 2026-08-21*
