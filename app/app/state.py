@@ -109,6 +109,10 @@ FORECAST_TABLE_COLUMNS: list[tuple[str, str]] = [
     for scenario in ("base", "bull", "bear")
 ]
 
+# D-01 (Phase 7): the Data Entry table's default display window is the most
+# recent 12 rows. Data is monthly cadence, so 12 rows == 12 months.
+TABLE_WINDOW_ROWS: int = 12
+
 
 class DashboardState(rx.State):
     """Holds the price table for display, reflecting the DB as source of truth."""
@@ -131,6 +135,11 @@ class DashboardState(rx.State):
 
     pending_delete: str = ""
 
+    # D-01/D-02 (Phase 7): controls the Data Entry table's rendered window
+    # ONLY (see visible_rows below) — never affects self.rows, which stays
+    # the full-history source of truth for every other computed var.
+    show_all_history: bool = False
+
     selected_series: str = "hdan"
 
     # Phase 5 forecast state (FCST-01/EXPORT-01) — independent of the
@@ -141,6 +150,31 @@ class DashboardState(rx.State):
     forecast_error: str = ""
     export_message: str = ""
     export_failed: bool = False
+
+    @rx.var
+    def visible_rows(self) -> list[PriceRow]:
+        """Display-only windowed slice of self.rows for the Data Entry table.
+
+        Per PITFALLS.md Pitfall 1 (self.rows is overloaded): this is a pure
+        read that never assigns to self.rows, never calls load_rows, and
+        never touches draft_rows (drafts are rendered by a separate foreach
+        and stay always-visible per 07-CONTEXT.md discretion). self.rows
+        remains the full-history source for forecast_results, _history_df,
+        historical_chart_figure, freshness_chips, summary_cards, and
+        _export_bytes — none of those read this var.
+        """
+        if self.show_all_history:
+            return self.rows
+        return self.rows[-TABLE_WINDOW_ROWS:]
+
+    @rx.var
+    def history_window_caption(self) -> str:
+        """Muted caption describing the current table window (07-UI-SPEC.md
+        Copywriting Contract, verbatim strings).
+        """
+        if self.show_all_history:
+            return f"Showing full history ({len(self.rows)} rows)."
+        return f"Showing the most recent {TABLE_WINDOW_ROWS} months."
 
     @rx.var
     def can_add_row(self) -> bool:
