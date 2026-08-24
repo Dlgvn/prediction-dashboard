@@ -7,7 +7,11 @@
 - [x] **Phase 3: Forecasting Module & Derived Series** - Base/bull/bear forecasts and derived Diesel-MNT computed from validated models (completed 2026-08-22)
 - [x] **Phase 4: Data Entry UI & Historical View** - User manages monthly actuals in-app with validation and persistence (completed 2026-08-22)
 - [x] **Phase 5: Forecast UI, Scenario Chart & Excel Export** - User views horizon-based scenario forecasts and exports data (completed 2026-08-23)
-- [ ] **Phase 6: UX/UI Redesign — Financial Forecasting Terminal** - Dashboard redesigned so a finance/procurement user grasps price, forecast, and range within 10-20 seconds
+- [x] **Phase 6: UX/UI Redesign — Financial Forecasting Terminal** - Dashboard redesigned so a finance/procurement user grasps price, forecast, and range within 10-20 seconds (completed 2026-08-23)
+- [ ] **Phase 7: Table Pagination / Windowing** - Data Entry table defaults to recent months, with a toggle to show full history, without hanging the browser
+- [ ] **Phase 8: Forecast Context Enrichment** - Forecast summary cards show historical high/low and year-over-year % change
+- [ ] **Phase 9: Excel Export Polish** - Excel export includes a forecast sheet (base/bull/bear) alongside the existing actuals sheet
+- [ ] **Phase 10: CSV Bulk Import** - User can bulk-import historical prices via CSV with preview, confirm, and duplicate-date skipping
 
 ## Phase Details
 
@@ -104,17 +108,6 @@ Plans:
 
 **UI hint**: yes
 
-## Progress
-
-| Phase | Plans Complete | Status | Completed |
-|-------|----------------|--------|-----------|
-| 1. App Skeleton & Data Layer | 3/3 | Complete   | 2026-08-21 |
-| 2. Model Research & Backtesting | 7/7 | Complete   | 2026-08-21 |
-| 3. Forecasting Module & Derived Series | 4/4 | Complete   | 2026-08-22 |
-| 4. Data Entry UI & Historical View | 4/4 | Complete   | 2026-08-22 |
-| 5. Forecast UI, Scenario Chart & Excel Export | 4/4 | Complete   | 2026-08-23 |
-| 6. UX/UI Redesign — Financial Forecasting Terminal | 0/3 | Planned       | — |
-
 ### Phase 6: UX/UI Redesign — Financial Forecasting Terminal
 **Goal**: The dashboard is redesigned as a professional financial forecasting terminal — information architecture, forecast summary, chart, three-scenario display, horizon selector, upload/error/loading states, design system, color system, and accessibility all rework so a finance/procurement user grasps current price, forecast, and range within 10-20 seconds.
 **Depends on**: Phase 5
@@ -134,6 +127,65 @@ Plans:
 - [x] 06-02-PLAN.md — forecast_summary_cards() component, page reorder, light design system applied (wave 2)
 - [x] 06-03-PLAN.md — Responsive + accessibility pass, UI-SPEC sign-off, human verification (wave 3)
 
+### Phase 7: Table Pagination / Windowing
+**Goal**: The Data Entry table is usable at real data scale — it defaults to showing recent months only, with an explicit toggle to reveal full history, and never hangs the browser regardless of row count.
+**Depends on**: Phase 4
+**Requirements**: DATA-07, DATA-08
+**Success Criteria** (what must be TRUE):
+  1. The Data Entry table shows only recent months by default, not all 167+ rows since 2013
+  2. The table renders and responds without hanging at the reported real-data scale (167 rows × 17 columns)
+  3. User can toggle "show all history" to reveal the full table when they need to edit older rows
+  4. Every other page feature that depends on full history (forecasts, charts, freshness chips, export) continues to reflect the complete dataset, not just the visible window
+**Plans**: TBD
+
+### Phase 8: Forecast Context Enrichment
+**Goal**: Each forecast summary card gives the user more range context — historical high/low and year-over-year change — beyond just the forecast band and current-vs-latest-actual direction.
+**Depends on**: Phase 7
+**Requirements**: FCST-08, FCST-09
+**Success Criteria** (what must be TRUE):
+  1. Each forecast summary card shows the series' historical high and low, computed from stored actuals
+  2. Each forecast summary card shows a year-over-year percentage change alongside the existing direction indicator
+  3. High/low and YoY figures are derived from the same underlying data and helper logic as the rest of the dashboard, so they never disagree with other displayed numbers
+**Plans**: TBD
+
+### Phase 9: Excel Export Polish
+**Goal**: The Excel export becomes a more complete data-portability artifact — it includes forecast values, not just actuals.
+**Depends on**: Phase 7
+**Requirements**: EXPORT-02
+**Success Criteria** (what must be TRUE):
+  1. The exported `.xlsx` file includes a forecast sheet with base/bull/bear values at the selected horizon, in addition to the existing actuals sheet
+  2. The existing actuals-only sheet remains present and unchanged in the export
+  3. Forecast values in the exported sheet match what the dashboard displays for the same horizon at export time
+**Plans**: TBD
+
+### Phase 10: CSV Bulk Import
+**Goal**: The user can bulk-import historical price data via CSV instead of entering it row by row, with a safe preview-and-confirm step that never silently overwrites existing data.
+**Depends on**: Phase 7, Phase 9
+**Requirements**: IMPORT-01, IMPORT-02
+**Success Criteria** (what must be TRUE):
+  1. User can upload a CSV file of historical price data matching the app's expected schema
+  2. Before any row is written to storage, the user sees a preview of the parsed rows with per-row validation status
+  3. User can confirm the import to commit only valid rows in a single batch write
+  4. CSV rows whose date already exists in storage are skipped, and existing data is never overwritten
+  5. The import summary tells the user how many rows were added vs. skipped
+**Plans**: TBD
+
+## Progress
+
+| Phase | Plans Complete | Status | Completed |
+|-------|----------------|--------|-----------|
+| 1. App Skeleton & Data Layer | 3/3 | Complete   | 2026-08-21 |
+| 2. Model Research & Backtesting | 7/7 | Complete   | 2026-08-21 |
+| 3. Forecasting Module & Derived Series | 4/4 | Complete   | 2026-08-22 |
+| 4. Data Entry UI & Historical View | 4/4 | Complete   | 2026-08-22 |
+| 5. Forecast UI, Scenario Chart & Excel Export | 4/4 | Complete   | 2026-08-23 |
+| 6. UX/UI Redesign — Financial Forecasting Terminal | 3/3 | Complete   | 2026-08-23 |
+| 7. Table Pagination / Windowing | 0/? | Not started | — |
+| 8. Forecast Context Enrichment | 0/? | Not started | — |
+| 9. Excel Export Polish | 0/? | Not started | — |
+| 10. CSV Bulk Import | 0/? | Not started | — |
+
 ---
 *Roadmap created: 2026-08-21*
+*v1.2 phases (7-10) added: 2026-08-24*
 *Granularity: coarse*
