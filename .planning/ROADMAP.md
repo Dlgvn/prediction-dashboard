@@ -9,7 +9,7 @@
 - [x] **Phase 5: Forecast UI, Scenario Chart & Excel Export** - User views horizon-based scenario forecasts and exports data (completed 2026-08-23)
 - [x] **Phase 6: UX/UI Redesign — Financial Forecasting Terminal** - Dashboard redesigned so a finance/procurement user grasps price, forecast, and range within 10-20 seconds (completed 2026-08-23)
 - [ ] **Phase 7: Table Pagination / Windowing** - Data Entry table defaults to recent months, with a toggle to show full history, without hanging the browser
-- [ ] **Phase 8: Forecast Context Enrichment** - Forecast summary cards show historical high/low and year-over-year % change
+- [x] **Phase 8: Forecast Context Enrichment** - Forecast summary cards show historical high/low and year-over-year % change (completed 2026-08-24)
 - [ ] **Phase 9: Excel Export Polish** - Excel export includes a forecast sheet (base/bull/bear) alongside the existing actuals sheet
 - [ ] **Phase 10: CSV Bulk Import** - User can bulk-import historical prices via CSV with preview, confirm, and duplicate-date skipping
 
@@ -156,7 +156,7 @@ Plans:
 
 Plans:
 - [x] 08-01-PLAN.md — Shared `_actual_series_for` diesel_mnt helper, all-time high/low and calendar-month YoY keys on `summary_cards` (wave 1)
-- [ ] 08-02-PLAN.md — Two new `_summary_card()` lines, extended `aria_label`, component tests + human verification (wave 2)
+- [x] 08-02-PLAN.md — Two new `_summary_card()` lines, extended `aria_label`, component tests + human verification (wave 2)
 
 **UI hint**: yes
 
@@ -193,7 +193,7 @@ Plans:
 | 5. Forecast UI, Scenario Chart & Excel Export | 4/4 | Complete   | 2026-08-23 |
 | 6. UX/UI Redesign — Financial Forecasting Terminal | 3/3 | Complete   | 2026-08-23 |
 | 7. Table Pagination / Windowing | 0/2 | Not started | — |
-| 8. Forecast Context Enrichment | 0/2 | Not started | — |
+| 8. Forecast Context Enrichment | 2/2 | Complete   | 2026-08-24 |
 | 9. Excel Export Polish | 0/? | Not started | — |
 | 10. CSV Bulk Import | 0/? | Not started | — |
 

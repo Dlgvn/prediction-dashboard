@@ -12,10 +12,10 @@
 
 ### Forecast Context
 
-- [ ] **FCST-08**: Each forecast summary card shows the series' historical high and low
+- [x] **FCST-08**: Each forecast summary card shows the series' historical high and low
       (computed from stored actuals), giving the user range context beyond just the
       forecast band
-- [ ] **FCST-09**: Each forecast summary card shows a year-over-year percentage change
+- [x] **FCST-09**: Each forecast summary card shows a year-over-year percentage change
       alongside the existing vs.-latest-actual direction indicator
 
 ### Data Portability
