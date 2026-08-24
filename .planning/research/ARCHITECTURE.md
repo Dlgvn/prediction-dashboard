@@ -1,82 +1,126 @@
-# Architecture Research: v1.2 Data Entry Fix & Forecast Enrichment
+# Architecture Research: v1.3 Dashboard Polish & Data-Entry Rework
 
-**Domain:** Reflex (Python) single-state-class dashboard app — integrating new features into existing architecture
+**Domain:** Integration architecture for 6 features into an existing single-state-class Reflex app
 **Researched:** 2026-08-24
-**Confidence:** HIGH (based on direct reading of `app/app/state.py`, `app/app/app.py`, `app/app/models.py`, `app/app/forecasting.py`)
+**Confidence:** HIGH (all findings grounded in direct reads of `app/app/state.py`, `app/app/app.py`, `app/app/forecasting.py`, `app/app/theme.py`, `app/app/validators.py`, `app/rxconfig.py`, and `.planning/STATE.md`'s recorded repro)
 
-## Existing Architecture Recap
+## Existing System Overview
 
-`DashboardState(rx.State)` in `app/app/state.py` is the **sole DB-access boundary** — every `rx.session()` call lives there, per the file's own docstring ("Per ARCHITECTURE.md Pattern 2, DashboardState is the only place... that opens an rx.session()"). `app/app/app.py` holds pure render/component functions that read `DashboardState` vars via `rx.foreach`/`rx.cond` and never touch the DB. `app/app/models.py` has two flat `rx.Model` tables: `PriceRow` (17 columns: `date` + 16 `Optional[float]` series) and `AppSetting` (key/value, currently just `markup_pct`). `app/app/forecasting.py` exposes one dispatcher, `forecast_all(history, horizon, markup_pct) -> dict`, called from exactly one place: the `forecast_results` computed var in `state.py` (documented "Pitfall 2 guard" — never re-invoke `forecast_all` elsewhere).
+```
+┌───────────────────────────────────────────────────────────────────┐
+│ rxconfig.py — RadixThemesPlugin(theme=rx.theme(appearance="light"))│
+│ (hardcoded, no toggle mechanism today)                             │
+├───────────────────────────────────────────────────────────────────┤
+│ app/app/app.py — ALL render/component functions, composed in       │
+│ index() as one long rx.container: cards → forecast → historical →  │
+│ data entry, all on one scroll, one route ("/")                     │
+├───────────────────────────────────────────────────────────────────┤
+│ app/app/state.py — DashboardState(rx.State), the SOLE DB boundary  │
+│ (rx.session() appears only here). Holds ~20 state fields, computed │
+│ @rx.var chart/table/card builders, and every event handler.        │
+├───────────────────────────────────────────────────────────────────┤
+│ app/app/forecasting.py — Reflex-free. forecast_all() dispatches 4  │
+│ frozen, hardcoded models; MAPEs live only in docstrings/comments.  │
+├───────────────────────────────────────────────────────────────────┤
+│ app/app/theme.py — dependency-free design-token constants (colors, │
+│ spacing, typography). No dark-mode variants exist yet.             │
+├───────────────────────────────────────────────────────────────────┤
+│ app/app/validators.py — pure validate_date/validate_numeric, no    │
+│ Reflex import, already correct and already returns error strings.  │
+└───────────────────────────────────────────────────────────────────┘
+```
 
-Two established data-flow conventions matter for planning new features:
-1. **Rendering-list vars are flat dicts / list-of-dicts, never nested dict Vars** — `freshness_chips`, `summary_cards`, `forecast_table_rows` are all `list[dict[str, str]]` built by plain Python inside a `@rx.var`, specifically to avoid unverified dict-Var-indexing syntax in `rx.foreach`. Any new list-rendering feature should follow this shape.
-2. **`self.rows: list[PriceRow]`** is the in-memory, DB-mirrored source of every derived var (charts, cards, forecast). It's fully reloaded (`load_rows()`) after every write — never incrementally patched. At 167+ rows this reload is still cheap (SQLite, single table, small dataset by any standard), so the actual bottleneck for target feature 1 is **rendering** all rows into the table (`rx.foreach` over `DashboardState.rows` with no windowing), not the DB read.
+Single Reflex process, single `DashboardState` class, single page/route. This pattern holds for all six v1.3 features — none of them require a new state class, a new DB table (except theme persistence), or a second route (nav bar is same-page section switching, not multi-route).
 
-## New Features vs Existing Architecture
+## (a) Date-cell error-rendering bug — root-cause diagnosis
 
-### 1. Data Entry table pagination/windowing
+**Code path traced:** `_editable_cell` (app.py:41-81) is the ONE function used for both `visible_rows` and `draft_rows` (app.py:117-130, `data_table()`) — there is no structural difference between the draft-row editor and the persisted-row editor. Both render the identical `rx.vstack(rx.input(...), rx.cond(edit_error != "", rx.text(edit_error), rx.fragment()))` block, gated by the same `rx.cond(DashboardState.editing_key == key, editor, display)`.
 
-**Root cause of the current problem:** `data_entry_section()` in `app.py` renders `data_table()` unconditionally over the full `DashboardState.rows` list via `rx.foreach`, and `rows` is loaded in full by `load_rows()` on every mount and after every mutation. There is no windowing anywhere in the stack — this is a pure **rendering-scale** problem, not a DB-query problem.
+**Key/state-machine trace for a draft row's date cell**, confirmed by reading `add_row`, `start_edit`, `commit_edit`, `_commit_draft_cell`, and `validate_date`:
+1. `add_row()` sets `draft_rows = [PriceRow(date="")]`, `editing_key = ""` — the draft's date cell renders as **display mode** (empty text), not already in edit mode. User must click it first.
+2. Clicking calls `start_edit(key, display_value)` where `key = row.date + ":" + attr` → `":date"` for the draft's date column (draft `date == ""`). This matches `_commit_draft_cell`'s own `editing_key.split(":", 1)` → `("", "date")` routing in `commit_edit()`. **This routing is correct — no key mismatch found.**
+3. User types (`update_draft` fires per keystroke, `draft_value` updates — no validation, no DB touch, as intended).
+4. Commit is triggered ONLY by `on_blur=DashboardState.commit_edit` or `on_key_down` Enter (`handle_key_down`). There is **no on_change/live validation** — this is the load-bearing fact.
+5. On commit, `commit_edit()` → `row_date == ""` → `_commit_draft_cell("date")` → `validate_date(self.draft_value, ...)`. For `"08/25/2027"`, `date.fromisoformat()` raises `ValueError` → returns `(False, "", DATE_INVALID_ERROR)`. `_commit_draft_cell` sets `self.edit_error = error` and returns — **it does not touch `editing_key`, `draft_value`, or `draft_rows`.**
+6. On the next render, `editing_key` is still `":date"`, so the editor still renders (correct), and `edit_error` is now `"Enter a valid date."` — the `rx.cond(DashboardState.edit_error != "", rx.text(...), ...)` block should render this text.
 
-**Integration point:** `DashboardState.rows` must stay authoritative (charts, `forecast_results`, freshness chips, export all read all of `self.rows`) — do not filter `load_rows()`'s query itself, since a windowed `rows` would silently break `historical_chart_figure`, `forecast_chart_figure` (needs 12 trailing months), `freshness_chips`, and `_export_bytes` (needs full history), all of which currently read `self.rows` directly.
+**Reading the code in isolation, the error-rendering wiring is structurally correct** — `edit_error` is set, and the same component that renders it for existing rows renders it for draft rows too. This rules out "draft rows use a different/broken editor" as the root cause; `_editable_cell` is shared, single-source code.
 
-**Recommended approach — add a display-only slice, don't touch `rows`:**
-- New state field: `show_all_history: bool = False`.
-- New computed var: `visible_rows: list[PriceRow]` (a `@rx.var`) — returns `self.rows` unmodified if `show_all_history` else the last N (e.g. 12 or 24) entries by date order, since `self.rows` is already date-ascending from `load_rows()`'s `order_by(PriceRow.date)`.
-- `data_table()` in `app.py` switches its `rx.foreach(DashboardState.rows, ...)` to `rx.foreach(DashboardState.visible_rows, ...)`.
-- `data_entry_section()`'s empty-state length check (`DashboardState.rows.length() + DashboardState.draft_rows.length()`) stays on `rows`/`draft_rows` (true DB emptiness), not `visible_rows`, so "no data yet" isn't shown when history exists but is just windowed out.
-- Toggle control: a simple `rx.switch` or button pair bound to a new `toggle_history_view()` event handler that flips `show_all_history` — no DB call needed (it's a pure client-visible re-slice of already-loaded data).
-- Edit/delete/add-row event handlers (`start_edit`, `commit_edit`, `request_delete`, `add_row`) are keyed by `row.date`, not list index, so windowing `visible_rows` requires **no changes** to any of those handlers — they already resolve rows by date against the DB or `draft_rows`, independent of what's currently rendered.
+**The actual, evidence-grounded root cause (per STATE.md's confirmed live-browser repro) is a UX/trigger problem, not a broken render:** `commit_edit()` only fires on `on_blur` or Enter keydown. If a user types an invalid date and **does not blur the field or press Enter** (e.g. types, then looks at the screen, or the browser's blur event doesn't fire the way they expect), `commit_edit()` is never invoked, `edit_error` is never set, and nothing renders — because nothing ran, not because rendering is broken. This matches "value stays in the input, zero error shown anywhere" exactly: the input still shows the typed value (never touched) and no validation ever ran. Compounding factors that make this easy to hit in practice:
+- No format hint anywhere near the input (raw ISO-only text field, `date.fromisoformat()` is strict — rejects `08/25/2027`, `2027-8-25`, `Aug 25 2027`, anything but `YYYY-MM-DD`).
+- The error text, when it DOES render, is small (`size="1"`) red text below a narrow table-cell input — easy to miss in a dense 17-column table, especially if the user's eye is elsewhere or the row scrolled.
+- `edit_error` is a single scalar (by design, per the code comment) — if the user moves to a different cell before blur/Enter fully registers, or if focus shifts unexpectedly, the error can be set-then-immediately-cleared by the next `start_edit` call (`start_edit` resets `edit_error = ""` unconditionally), making a genuinely-set error invisible if another cell-focus event races it.
 
-**Verdict:** This is additive and self-contained — one new bool field, one new computed var, one new event handler, one render-function line change. No DB schema change, no change to `forecast_results`/chart vars. Low risk, ships first.
+**Verdict:** No code defect in the render conditional itself — `_commit_draft_cell` and `_editable_cell` are wired correctly and consistently for both draft and persisted rows. The bug is behavioral: validation is blur/Enter-gated with no live feedback, no format affordance, and an easily-missed/racily-cleared error message, on a strict ISO-only text input. **This is exactly what the milestone's "deep-research a rework of Data Entry" note is asking for** — fix direction should not be "find the broken cond," it should be (1) add on_change/live or explicit inline validation feedback, (2) replace or augment the raw text input with a real date picker (removes the format-guessing problem entirely), (3) make the error impossible to miss (persistent banner or stronger inline treatment, not just small red text that can be raced away by a subsequent `start_edit`).
 
-### 2. Export/import UX improvements
+## (b) New state fields / components needed
 
-**Export polish** (existing `_export_bytes`/`export_to_excel` in `state.py`): currently a single flat sheet of raw actuals with no formatting. Polish (column widths, header styling, maybe a second sheet with forecast output) is additive to `_export_bytes` — it's already a plain (non-event-handler) method per its own docstring specifically "so it's unit-testable," which is the right place to extend. No new state fields strictly required unless you add user-configurable export options (e.g. "include forecast sheet" checkbox → one new bool field + a branch in `_export_bytes`).
+### Theme toggle (dark/light, persisted)
 
-**CSV bulk import (new capability, not in current code at all):** PROJECT.md's "Out of Scope" section explicitly deferred file-upload UI to a future milestone — this milestone's target features description says "possible CSV bulk import," meaning it's scoping-only, not committed. If pursued in a later phase, integration points:
-- `rx.upload` component (new) feeding a new `DashboardState` event handler, e.g. `handle_csv_upload(files)`.
-- Must reuse `validate_date`/`validate_numeric` from `app/validators.py` (already used per-cell in `commit_edit`/`_commit_draft_cell`) — do not write a parallel validation path for bulk rows, or the two paths will drift.
-- Must reuse the unique-date constraint logic already enforced in `validate_date` (rows keyed by unique `date`), and decide the upsert semantics (overwrite existing date rows vs reject duplicates) — this is a **product decision to research/scope in this milestone**, not to build.
-- Should call `self.load_rows()` once at the end of a batch import, not per-row (avoid N reloads for N CSV rows) — this is a new pattern relative to the existing single-row-at-a-time handlers, worth flagging explicitly in the phase plan.
-- SERIES_ATTRS (the 16-column tuple already defined once in `state.py`) is the correct single source of truth for expected CSV columns — reuse it rather than hardcoding a new column list.
+`rxconfig.py` currently hardcodes `rx.theme(appearance="light", ...)` at the plugin level — this is a **build-time** config, not a runtime toggle. To make it togglable at runtime you do NOT change `rxconfig.py`'s plugin (that only sets the initial/default); instead:
+- Add `theme_appearance: str = "light"` to `DashboardState` (or a small dedicated `ThemeState` — see Build Order note below on why a shared state field is simpler here given the single-state-class convention already established).
+- Reflex's Radix theme appearance is normally toggled via `rx.color_mode.button()`/`rx.color_mode_cond` or by binding the top-level `rx.theme`'s `appearance` prop to a state Var in `app.py` — this needs verifying against the installed Reflex 0.9.8 API (Context7/official docs) before implementation, since `rx.theme()` as used in `rxconfig.py` is the plugin-level default and the runtime override path is a different API surface (`rx.App(theme=...)` root wrapping, not the plugin). **Flag for phase-level research** — do not guess the exact Reflex 0.9.x runtime-appearance-toggle API without checking docs first.
+- Persistence: two realistic options — (1) `rx.Cookie`/`rx.LocalStorage`-backed state var (Reflex has built-in browser-persisted state vars — check exact API name for 0.9.8), which needs zero new DB table and survives only per-browser; or (2) a new `AppSetting` row (the `AppSetting` model already exists and is already used for `markup_pct` — `load_markup_pct` is the existing pattern to mirror) for persistence across devices/sessions server-side. Given this is a single-user app already using `AppSetting` for one persisted preference, **mirroring `markup_pct`'s `AppSetting` pattern is the lower-risk, consistent choice** over introducing a new browser-storage primitive.
+- New component: a toggle control (icon button or switch) placed in a header/nav area — new, small, e.g. `theme_toggle()` in app.py.
 
-**Verdict:** Export polish is small/independent, can ship anytime. CSV import (if built this milestone) is a materially bigger feature (new component, new validation-at-scale path, upsert-semantics decision) and should be scoped/researched as its own phase rather than bundled with pagination or export polish.
+### html/body transparent background fix
 
-### 3. Richer forecast context (drivers, historical high/low, % change stats)
+Not a state change — a component/CSS fix. `PAGE_BG` (theme.py) is currently only applied to the inner `rx.container` in `index()` (`background=PAGE_BG` on the container, app.py:719). The `html`/`body` elements are unstyled and transparent by default in Reflex's generated app shell, so anything outside the container's box (wide viewports, dark browser/OS chrome) shows through. Fix is to set a background at the true document root — via Reflex's global style mechanism (`rx.App(style=...)` global CSS, or a `rxconfig.py`-level style/stylesheet injection targeting `html, body`) rather than another per-component `background=` prop, since the bug is specifically that per-component props never reach `html`/`body`. **This interacts with the theme toggle**: once dark mode exists, this fix must set the background dynamically (light/dark token) rather than hardcoding `PAGE_BG`, or the same bug reappears in reverse for dark mode. Build these two together (see Build Order).
 
-**Integration point:** These are pure derived stats over `self.rows` (historical high/low, % change) or over `forecast_results` (drivers — see caveat below), following the exact same pattern as `summary_cards`/`freshness_chips`: a new `@rx.var` returning `list[dict[str, str]]`, rendered by a new small component function in `app.py`, placed near `forecast_summary_cards()`.
+### Tab/nav bar (Summary / Forecast / Data Entry)
 
-- **Historical high/low, % change stats**: computable entirely from `self.rows` with plain Python (min/max/first/last over non-None values per series) — no new DB fields, no new call to `forecast_all()`. Follow `_latest_actual_for`'s existing pattern (loop `self.rows`, skip `None`) rather than introducing pandas aggregation inside a computed var (the codebase's existing computed vars are hand-rolled Python loops, not pandas, presumably to avoid pandas-Var interaction surprises — stay consistent).
-- **"Drivers"**: ambiguous in the milestone brief — clarify during phase planning whether this means (a) the exogenous inputs already in `PriceRow` that feed each series' model (e.g. Brent → Diesel, Urals/Baltic AN → HDAN/PPAN per `forecasting.py`'s VAR/AR-lag structures), shown as a static "what feeds this forecast" caption, or (b) a magnitude-of-contribution breakdown requiring new computation inside `forecasting.py`. Reading `forecasting.py`'s dispatcher signatures (`forecast_hdan`, `forecast_ppan_var_system`, `forecast_diesel_usd`, `forecast_fx`) confirms the exogenous relationships already exist in code (e.g. `_build_future_exog`) — a **static, hardcoded "driven by: Brent, Urals" caption per series** is cheap and low-risk; an actual contribution-decomposition (e.g. Shapley-style attribution) would be a forecasting.py change, is far more research-heavy, and should not be assumed in scope without explicit confirmation.
-- **Placement**: extend `forecast_summary_cards()`'s existing card dict shape (`card["label"]`, `card["base"]`, etc.) with additional optional keys, OR add a second row of "context" cards below the existing summary cards — the latter is safer since `summary_cards`' dict shape is already load-bearing for `_summary_card()`'s rendering and adding new keys risks distracting from D-01..D-13's existing locked UI-SPEC contract (see the many `D-xx` references throughout `state.py`/`app.py` — this app has a formal UI spec that later phases must not silently violate).
+- New state field: `active_section: str = "summary"` (or reuse a small literal enum of the three section keys) on `DashboardState`.
+- New component: `nav_bar()` — three buttons/tabs bound to `DashboardState.set_active_section(section)` (new setter event handler, trivial, mirrors `select_series`'s pattern).
+- Render change in `index()`: today `index()` unconditionally composes `forecast_summary_cards()`, `forecast_section()`, `historical_section()`, `data_entry_section()` in sequence. Two implementation options: (1) conditional rendering — wrap each section in `rx.cond(DashboardState.active_section == "...", section_fn(), rx.fragment())`, hiding non-active sections from the DOM; or (2) scroll-anchor navigation — keep all sections rendered (cheap here since data volume is small and nothing lazy-loads) and have nav buttons `rx.el.a(href="#section-id")` / JS scroll-into-view. Given `forecast_results` and other `@rx.var`s are computed reactively regardless of visibility, **conditional rendering (option 1) has a real benefit**: it avoids rendering (though not recomputing) the Plotly figures and tables for hidden sections, which matters given the app already had a documented performance problem at scale (STATE.md's "2,950 editable cells" hang). Recommend option 1.
 
-**Verdict:** Historical high/low and % change stats are low-risk, additive computed vars — no forecasting.py change needed. "Drivers" needs scope clarification before estimation; the static-caption version is trivial, the attribution version is a forecasting research topic that would need its own backtest-style validation per PROJECT.md's "Model provenance" constraint ("no un-backtested model ships to the dashboard" — this constraint arguably extends to any new *derived* forecast-adjacent number, not just top-line forecasts).
+### Per-series model name + backtest accuracy display
 
-### 4. Performance patterns for growing data scale
+Purely additive — see (c) below for the data-flow change; the UI-facing new component is small: a caption/badge component (e.g. `_model_badge(label, mape)`) placed near each forecast summary card and/or the forecast chart/table headers, following the existing `_summary_card`/`_freshness_chip` "foreach over a list of flat string dicts" pattern already used twice in app.py (state.py's `summary_cards` and `freshness_chips`) — the codebase already has an established idiom for exactly this shape of data, so this feature should copy that idiom rather than invent a new one.
 
-At current scale (167 rows since 2013, 16 columns) SQLite + full in-memory `self.rows` is not itself a bottleneck — the pagination fix (feature 1) addresses the actual observed symptom (hanging table), which is a **rendering** cost (`rx.foreach` generating hundreds of editable-cell components client-side), not a DB or state-size cost. Confirm this diagnosis before over-building:
-- `load_rows()`'s single `SELECT ... ORDER BY date` on a table this size is sub-millisecond; no query optimization needed yet.
-- If data scale grows by 10-100x (e.g. weekly cadence backfill, per PROJECT.md's deferred weekly-mode work), reassess: `historical_chart_figure` and `forecast_chart_figure` already loop `self.rows` in Python per render — at very large row counts this loop cost (not just table rendering) would start to matter, and pushing the trailing-N-months slice (already done for `hist_dates`/`hist_values` via `[-12:]`) further upstream (e.g. querying only the needed window from SQLite rather than loading all rows into `self.rows` first) would be the next optimization tier. Not needed for this milestone's scale.
-- The one true "growing data" risk in the current code is `data_table()`'s **full-row rendering with per-cell editable components** (`_editable_cell` creates an `rx.cond`-wrapped input+text pair per cell per row) — that's O(rows × 17 columns) DOM nodes. Feature 1's windowing directly caps this. No other perf work is justified by current evidence.
+### Fan chart legend/axis-label overlap
 
-**Verdict:** Feature 1 (pagination/windowing) *is* the performance fix for this milestone. Don't scope additional performance work (query batching, caching layers, pagination at the SQL level) without a demonstrated bottleneck beyond the already-diagnosed rendering issue.
+Not a state change — a `forecast_chart_figure` (state.py:607-730) Plotly `update_layout` tuning fix. Current layout sets `legend=dict(orientation="h")` with default position and an `add_vline` annotation ("Forecast start") using `annotation_position="top left"` — these two are the likely overlap source (horizontal legend at top colliding with the top-left vline annotation, and/or the y-axis title colliding with tick labels at the given margins `margin=dict(l=40, r=16, t=16, b=40)`). Fix is purely a layout-property change (legend `y`/`yanchor` offset, or moving the vline annotation position, or increasing top margin) — no state/component structural change needed, low risk, isolated to one `@rx.var`.
 
-## Build Order
+## (c) Data flow: surfacing forecasting.py's hardcoded model names into the UI
 
-1. **Data Entry pagination/windowing (Feature 1)** — ship first, independently. Small, self-contained (`show_all_history` bool + `visible_rows` computed var + one render-function change), fixes the actual reported usability bug, and has zero dependency on the other three features. This is also effectively "Feature 4" (performance) — building it satisfies both target features in one phase.
-2. **Historical high/low & % change stats (part of Feature 3)** — independent of Feature 1, can be built in parallel or immediately after; low risk, same computed-var pattern as existing `freshness_chips`/`summary_cards`, no forecasting.py changes.
-3. **Export polish (part of Feature 2)** — independent of 1 and 2; touches only `_export_bytes`/`export_to_excel`, low risk, can slot in anywhere.
-4. **"Drivers" context (part of Feature 3, static-caption version)** — do after 2, since it likely reuses the same new "forecast context" component/section; needs an explicit scope decision (static caption vs. real attribution) before estimation. If real attribution is wanted, this becomes its own research-then-build phase, not a quick add.
-5. **CSV bulk import (part of Feature 2, if pursued this milestone)** — build last, as its own phase. It's the only feature here requiring a genuinely new component type (`rx.upload`), a new validation-at-scale path, and a product decision (upsert semantics) that doesn't yet exist in the codebase. Should not be bundled into the same phase as pagination or export polish — different risk profile and it's explicitly still just "possible" per the milestone framing, not committed scope.
+**Current state:** Model names and MAPEs (HDAN SARIMAX(0,1,0)+exog 13.33%, PPAN Direct-OLS VAR-system 23.80%, Diesel-USD Naive 7.04%, FX Naive 1.72%) exist **only as free-text in docstrings/comments** inside `forecasting.py` (e.g. lines 245-246, 299, 386, 404) — there is zero machine-readable structure for this today. `forecast_all()`'s return contract is strictly the 5-key `{hdan, ppan, diesel_usd_ton, fx_rate, diesel_mnt}` dict of row-lists (D-07's locked contract, explicitly documented as `{"month", "base", "bull", "bear"}` per row) — no model-identity field flows through it, and per D-08 `forecasting.py` must stay Reflex-free.
 
-**Dependency notes:**
-- Feature 1 has no dependency on 2, 3, or 4 and should not be blocked by them.
-- Feature 3's "drivers" sub-feature depends on a scope decision, not on any other feature's code.
-- Feature 2's CSV import depends on `app/validators.py`'s existing `validate_date`/`validate_numeric` (already available, no blocker) but is the highest-complexity, most research-worthy item — sequence it last so scope/risk is better understood by the time it's tackled.
-- None of features 2-4 require schema changes to `PriceRow`/`AppSetting` as currently read — flag this if a "drivers" attribution approach or CSV import's upsert semantics end up requiring new columns (e.g. an `imported_at` audit column), which would need a `reflex db migrate` step per the project's established migration pattern.
+**Required change, minimal and consistent with existing frozen-constants pattern:**
+1. Add a new frozen dict in `forecasting.py` alongside the other frozen constants (`HDAN_SARIMAX_ORDER`, etc.) — e.g. `MODEL_INFO: dict[str, dict[str, str | float]]` keyed by the same 5 series keys used everywhere else (`hdan`, `ppan`, `diesel_usd_ton`, `fx_rate`, `diesel_mnt`), each holding `{"name": "SARIMAX(0,1,0)+exog", "mape": 13.33}` transcribed from the same provenance already cited in the docstrings (`02-MODEL-DECISIONS.md`). This keeps forecasting.py's "no Reflex" and "frozen constants only" constraints intact — it's just another named constant, not new logic. `diesel_mnt` has no own model (derived) — decide whether to synthesize a composite label ("Derived: Diesel-USD × FX") or omit it from the badge display; omitting is simpler and matches how `FRESHNESS_SERIES` already excludes `diesel_mnt` for the same "derived, no own date" reason (state.py:97) — **reuse that same exclusion precedent**.
+2. In `state.py`, add one new `@rx.var` (e.g. `model_info_chips`) that maps `MODEL_INFO` into the same "list of flat string dicts" shape `summary_cards`/`freshness_chips` already use — this is a pure read of a new forecasting.py constant, no new DB access, no new computation, near-zero risk. It does not need to depend on `forecast_results` at all (model identity is static, not data-dependent), so it doesn't even need to be `@rx.var` if it's truly static — could be a plain module-level constant transformation, but `@rx.var` keeps it consistent with the existing chip-rendering idiom and lets it use `SERIES_LABELS`/`FORECAST_SERIES_LABELS` for display names.
+3. In `app.py`, add the small badge component described in (b) and place it near `forecast_summary_cards()`/`forecast_chart()`.
+
+This is a low-risk, additive, one-way data flow: `forecasting.py` (new constant) → `state.py` (new thin `@rx.var`) → `app.py` (new small component). No existing function signature changes, no changes to `forecast_all()`'s locked return contract.
+
+## (d) Suggested build order
+
+Ordered by dependency and risk, not by feature-list order:
+
+1. **html/body background fix** — zero dependencies, isolated CSS/global-style change, immediately fixes a visible bug. Do this FIRST but write it in a way that anticipates step 2 (don't hardcode `PAGE_BG` directly into the global style if theme toggle is coming right after — parameterize or revisit).
+2. **Theme toggle (persisted dark/light)** — do this second specifically because it invalidates/extends step 1's fix (a hardcoded light background at the html/body level will just reintroduce a mismatch in dark mode) and because it's the highest-unknown-risk item (needs Reflex 0.9.8 API verification for runtime appearance toggling — Context7/official docs lookup required before implementation, not assumption). Sequencing these two together avoids doing the background fix twice.
+3. **Fan chart legend/axis overlap** — isolated, low-risk, single-file (`state.py`) Plotly layout change. No dependency on anything else; can technically run in parallel with 1-2 but is listed here because it's trivial and unblocks visual QA of the chart work bundled with item 4.
+4. **Per-series model name + accuracy display** — additive, low-risk, no dependency on nav/theme work. Natural pairing with item 3 since both touch the forecast-chart/summary-card visual area.
+5. **Tab/nav bar** — depends conceptually on knowing final section boundaries, but not on 1-4 technically; do after the visual/theme work so the nav doesn't need to be re-tested against a still-changing background/theme. This is the biggest structural `app.py` change (conditional rendering wrapping every existing section), so isolate it to reduce blast radius from the smaller fixes above.
+6. **Data Entry rework (deep-research + fix)** — last, and deliberately separated from the other five: PROJECT.md explicitly calls for a "deep-research pass" before rework, this is the only item requiring genuine UX/product decisions (date-picker vs. inline-validation vs. banner), and per (a) above the fix is behavioral/UX (not a quick conditional-render bug fix), so it warrants its own dedicated research + phase rather than being bundled with the smaller polish items. Do this after nav bar so the reworked Data Entry section lands cleanly inside the new section-switching structure rather than needing to be re-integrated into it afterward.
+
+## Anti-Patterns to Avoid
+
+### Anti-Pattern: Introducing a second state class for the toggle/nav additions
+**What people might do:** Create `ThemeState`/`NavState` as separate `rx.State` classes since the additions feel "unrelated" to DashboardState's data-entry/forecast concerns.
+**Why it's wrong:** The codebase has a single, explicit, documented convention — "DashboardState is the only place in the app that opens an rx.session() or touches the ORM" (state.py's own module docstring) — and every existing feature, however unrelated in domain (CSV import, export, forecasting, editing), was added as more fields on the same class. Splitting now breaks that established pattern for no functional benefit at this app's scale and complicates cross-state coordination (e.g. nav needing to cancel in-progress edits, mirroring what `toggle_show_all_history` already does for `show_all_history`/`cancel_edit`).
+**Instead:** Add `theme_appearance`, `active_section`, and their setters as more fields/methods on `DashboardState`, exactly like `show_all_history`, `selected_series`, `import_stage`, etc. were added.
+
+### Anti-Pattern: Fixing the date-cell bug by only changing the render conditional
+**What people might do:** Assume `rx.cond(DashboardState.edit_error != "", ...)` itself is broken and "fix" it by restructuring the cond, without addressing that `commit_edit` is blur/Enter-gated with no format hint.
+**Why it's wrong:** Per (a) above, the cond and the state wiring are already correct on inspection — restructuring it without changing when/how validation triggers won't change user-observed behavior, since the underlying issue is that validation may simply never run for a user who doesn't blur/Enter, or whose error gets raced away by the next `start_edit` call resetting `edit_error = ""`.
+**Instead:** Treat this as the UX-rework item it's scoped as in PROJECT.md — add a real date input affordance (format hint or native date picker) and/or live validation, and make `start_edit`'s unconditional `edit_error = ""` reset not clobber a genuinely-pending error from a race with a near-simultaneous blur/commit — this needs the deep-research pass called for in the milestone goal, not a one-line render fix.
 
 ## Sources
 
-- Direct reading of `app/app/state.py`, `app/app/app.py`, `app/app/models.py`, `app/app/forecasting.py` (function signatures only) — HIGH confidence, these are the actual files this milestone builds on.
-- `.planning/PROJECT.md` — HIGH confidence, authoritative scope/constraints document, explicitly confirms CSV import was previously out-of-scope and is now only tentatively re-opened ("possible").
+- `app/app/state.py`, `app/app/app.py`, `app/app/forecasting.py`, `app/app/theme.py`, `app/app/validators.py`, `app/rxconfig.py` — read in full, HIGH confidence, this milestone's ground truth.
+- `.planning/STATE.md` (lines 28-34, 157-178) and `.planning/PROJECT.md` (lines 113-123) — recorded live-browser repro details (exact typed input `"08/25/2027"`, exact observed symptom) and prior confirmed bugs (light-appearance pin history, transparent html/body via `getComputedStyle`) — HIGH confidence, first-party project records.
+- Reflex 0.9.8's exact runtime dark-mode-toggle API and global `html`/`body` style-injection mechanism were **not verified against Context7/official docs in this pass** — flagged explicitly in (b) and (d) item 2 as needing a docs lookup before implementation; do not assume `rx.color_mode`/`toggle_color_mode` API shape without checking the installed 0.9.8 version's docs first.
+
+---
+*Architecture research for: v1.3 Dashboard Polish & Data-Entry Rework*
+*Researched: 2026-08-24*

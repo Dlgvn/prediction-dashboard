@@ -1,141 +1,159 @@
 # Feature Research
 
-**Domain:** Single-user financial/commodity forecasting dashboard — export/import UX, forecast context enrichment, large-table UX
+**Domain:** Internal financial forecasting dashboard (single/small user group, procurement/finance staff) — UI polish + data-entry fix milestone
 **Researched:** 2026-08-24
-**Confidence:** MEDIUM (WebSearch-verified against multiple sources; no Context7-eligible library for these UX patterns — this is a domain/UX question, not an API question)
-
-## Framing
-
-This app has **one user**, monthly-cadence data entry, ~167 rows today growing by ~1 row/series/month (~12-48 rows/year across 4 series depending on table shape). This is *not* a multi-tenant SaaS import pipeline or a BI tool serving many analysts. Recommendations below are filtered hard against that reality — most "enterprise CSV import" and "BI dashboard" patterns found in research are explicitly downgraded to anti-features here because they solve problems this app doesn't have (many users, adversarial/dirty data sources, huge row counts).
-
----
+**Confidence:** HIGH (Reflex-specific mechanics), MEDIUM (general dashboard UX conventions, sourced from NN/g and established design-pattern sites)
 
 ## Feature Landscape
 
 ### Table Stakes (Users Expect These)
 
+Features users assume exist on any modern dashboard. Missing these makes the app feel broken or unprofessional — directly matches this milestone's feedback items.
+
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Excel export retains one clean, formula-free data sheet (current raw price table) | Baseline already shipped; "garbage in, garbage out" — export must be trustworthy as a record, not just a dump | LOW (already exists) | Keep as Tab 1 (`Data_Raw`) in any multi-sheet redesign — no formulas, no merged cells, plain tabular data so it can be re-opened, re-sorted, or fed into the existing Excel workbook if needed. |
-| Export includes column headers + units (MNT, USD, etc.) and consistent number formatting | Finance/procurement users copy these numbers into other documents; ambiguous units or raw floats erode trust | LOW | Cheap win: set `number_format` per column in openpyxl (e.g. `#,##0.00`) instead of leaving default General format. |
-| CSV/bulk import validates before committing, and *shows* what will change | Standard expectation across all import UX research: users need a preview before data is written, not a silent success/fail | MEDIUM | Even a single-user app benefits from "show me the diff before you touch my 167-row history." A one-shot silent import risks corrupting the only copy of the data. |
-| Import gives row-level error messages, not just "import failed" | Universal finding across CSV import UX sources — vague failures force users to guess-and-recheck the whole file | MEDIUM | For this app's scale (a handful of rows per import), a simple in-page table listing "Row 3: PPAN value is not numeric" is sufficient — no need for a downloadable error-report file at this volume. |
-| Table shows recent history by default with a way to see everything | Already decided/in-scope in this milestone (recent-months default + "show all" toggle) — listed here only because it's the precondition every other table-scale feature below assumes | LOW (already scoped separately) | Not part of this research's export/import/context/scale scope, but forecast-context features (below) should reuse whatever date-range state this introduces rather than inventing a second filter. |
-| Historical high/low and % change vs. last period on the forecast summary cards | Nearly universal on financial/commodity dashboards — "where does today sit relative to history" is the single most common piece of context added beyond a raw forecast number | LOW-MEDIUM | Cheap to compute from existing SQLite data (`MAX`/`MIN`/`first row - last row` over the loaded history) — no new data source needed. Natural extension of the four existing summary cards. |
+| Full-width responsive layout (no dead margins) | Any web app rendered on a laptop/desktop is expected to use the viewport; unstyled/black margins read as a rendering bug, not a design choice | LOW | Root cause is almost certainly a missing `background-color` on `html`/`body` (they stay transparent, so the OS/browser chrome or a themed `<html>` shows through) plus a max-width container that isn't set to fill viewport. Fix at the `rx.app` / global stylesheet level (`style={"background": rx.color("gray", 1)}` or set `_html`/`body` in the theme), not per-page. |
+| Dark/light mode toggle | Standard on virtually all professional SaaS/dashboard tools since ~2020; users increasingly expect it, and its *absence* combined with a transparent-background bug is very likely what's producing the "black margins" complaint in dark-mode browsers specifically | LOW | Reflex ships this as a first-class primitive: `rx.color_mode.button()` / `rx.color_mode.switch()` plus `rx.color_mode_cond()` for conditional rendering, all driven by `rx.theme(appearance="...")`. State (user's last choice) persists automatically via Reflex's built-in `color_mode` local-storage var — no custom state model needed. This is the "just use the framework's built-in recipe" case, not a build-from-scratch feature. |
+| Tab/section navigation (Summary / Forecast / Data Entry) | Once a dashboard has 3+ logically distinct sections, users expect navigation instead of one continuous scroll — this is the default pattern on every BI tool (Tableau, PowerBI, Metabase, Looker) and even simple internal tools | LOW-MEDIUM | Reflex's `rx.tabs.root` / `rx.tabs.list` / `rx.tabs.trigger` / `rx.tabs.content` is a direct fit — controlled via `value` + `on_change` bound to a state var if the active tab needs to persist across reload, or `default_value` if not. Low complexity to wire up; the only real cost is restructuring the current single-scroll page into three content blocks. |
+| Legible, non-overlapping chart labels/legend | A chart where the axis label and legend visually collide is read as broken, not stylistic — this is a correctness bug more than a "feature" | LOW | Plotly (`rx.plotly`) exposes `legend=dict(orientation="h", y=-0.2, ...)` and margin/axis-title positioning directly in the figure's `layout`; typical fix is moving the legend below the plot area (horizontal orientation) or into the right margin with adequate `margin=dict(r=...)`, combined with `xaxis_title_standoff`/`yaxis_title_standoff` padding. No new library needed — it's a `go.Figure.update_layout()` tweak. |
+| Structured (non-free-text) date entry | Free-text date fields silently failing (accepting garbage or a non-ISO format with no error) is a textbook, well-documented UX failure (NN/g: "Date-Input Form Fields") — the standard fix in every modern web form is to remove the free-text failure mode entirely, not to add better error messages on top of it | LOW-MEDIUM | See dedicated analysis below — this is the deep-research item (#6). |
+| Visible per-forecast model provenance ("which model, how accurate") | Once a user has been burned by (or is scrutinizing) a forecast for procurement decisions, "why should I trust this number" becomes a real question — showing model name + backtest accuracy is a standard trust-building pattern in any tool presenting a statistical estimate (weather apps show confidence, financial estimate tools show source/methodology) | LOW | This is additive to the existing summary cards — a small caption/badge, not a new page. See dedicated analysis below — this is feedback item #4. |
 
 ### Differentiators (Competitive Advantage)
 
+Not required by users, but meaningfully improve this specific app given its audience (non-technical procurement staff who don't want to think about statistics).
+
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Excel export with a real multi-sheet workbook (Data / Summary-or-Pivot / Forecast) mirroring the existing `AN_HDAN_PPAN_Diesel_FX_Forecast_Model.xlsx` structure | User already has mental model of a 5-tab workbook (Input/PctChange/Regression/Forecast/Dashboard); an export that echoes that structure (Data, Forecast-with-scenarios, maybe a light Dashboard-style summary sheet) is *more* useful to them than a flat table, and directly serves the "companion, not replacement" positioning in PROJECT.md | MEDIUM | openpyxl supports multiple sheets and native Excel charts (`openpyxl.chart.LineChart`) in one file — no extra library needed. Embedding a real Excel-native line chart (not just a pasted image) lets the user keep exploring the forecast fan chart offline in Excel itself, which is a genuine differentiator over "export = CSV dump." |
-| YoY / period-over-period % change context alongside MoM | Standard on finance forecasting dashboards per research (YoY trend context improves forecast interpretability); for a procurement user asking "what will I pay N months from now," "vs. this time last year" is often more decision-relevant than vs. last month, since commodity/FX prices are seasonal | LOW-MEDIUM | Same computation pattern as high/low — subtract row from ~12 months back in the same series. Works cleanly with monthly-cadence data already in SQLite; do not attempt for weekly mode until that data-cadence question (already flagged in PROJECT.md as blocked) is resolved. |
-| "Drivers" explanation text (e.g. "Diesel-MNT forecast driven primarily by FX and Brent-linked Diesel-USD trend") | Plain-language explanation of *why* a forecast moved, using the model's own known structure (VAR for HDAN/PPAN, AR-lag-2-on-Brent for Diesel, AR(1) for FX) rather than a generic BI "anomaly detection" feature | MEDIUM | This can be templated, not ML-generated: since the model families are fixed and known (per PROJECT.md), a short static/templated sentence per series ("Diesel-MNT = Diesel-USD forecast × FX forecast × markup") is honest, cheap, and matches how the Excel workbook already documents its logic. Avoid dynamic LLM-generated driver text — no LLM dependency exists yet in this app (explicitly deferred to v2 per PROJECT.md), and templated text is more auditable for a finance use case anyway. |
-| CSV import with column-mapping UI (map arbitrary header names to the app's canonical columns) | Reduces friction if the source file's headers don't exactly match the DB schema (e.g. re-exports from the Excel workbook, or copy-pasted data with slightly different column names) | MEDIUM-HIGH | Worth doing only if import sources are genuinely variable. Given this app's only plausible import source is the user's own Excel workbook (fixed, known column layout) or a re-export of this app's own Excel export (round-trip), a *fixed* expected-column-order import with clear validation errors is likely sufficient — see Anti-Features below. Only add full fuzzy column-mapping if the user confirms multiple differently-shaped source files in practice. |
+| Plain-language accuracy framing next to MAPE (e.g. "SARIMAX — typically within ±13% of actual") | Non-technical procurement/finance users don't intuitively know what "13.3% MAPE" means; translating it into "how wrong has this model been historically" builds trust without requiring a stats background | LOW | Purely a string-formatting/copy decision on top of the number already being computed in `backend_research/`-style backtests — no new computation. |
+| System-preference-aware default color mode (respect OS light/dark setting on first visit, remember explicit override after) | Slightly better first-run experience than defaulting to a fixed mode; matches what users already expect from every modern app (browser, OS, VS Code, etc.) | LOW | Reflex's `rx.color_mode` already defaults to system preference via `prefers-color-scheme` unless a stored override exists — verify this is the default behavior in the installed 0.9.8 version rather than assuming; if not default, it's a one-line config (`appearance="inherit"` vs a fixed value in `rx.theme`). |
+| Inline model-comparison tooltip (hover to see all candidate models' backtest scores, not just the winner) | Gives an interested/skeptical user a path to "why this model and not another" without cluttering the default view | MEDIUM | Nice-to-have; requires surfacing the full backtest table (already exists in `backend_research/REPORT.md`-style output) into the UI as a hover/expand affordance. Reasonable v1.4+ candidate, not required for this milestone's stated ask. |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
+Things that look like reasonable "fixes" for this feedback but would create more problems than they solve for this specific app and user base.
+
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|------------------|-------------|
-| Fuzzy/AI-powered column auto-mapping for CSV import (as seen in tools like Dromo/CSVBox) | Looks impressive, commonly cited as "modern" import UX | Built for multi-tenant SaaS ingesting files from many different unknown external users/systems. This app has exactly one user importing from at most 1-2 known, fixed-shape sources (their own Excel workbook or this app's own export). Fuzzy mapping adds a new dependency/complexity for a mapping problem that barely exists here. | A fixed expected-column-order template (documented, maybe downloadable as a starter CSV) with clear "column X missing/misnamed" validation errors. |
-| Streaming/chunked validation for large file uploads (100MB+ CSV handling patterns) | Common CSV-import-best-practices advice | This app's entire historical dataset is ~167 rows across 4 series — a full import is a few KB, not tens of MB. Streaming validation infrastructure solves a scale problem that will not occur here for years, if ever, given monthly-cadence data entry. | Validate the whole (small) file synchronously in memory; show all row errors in one pass. |
-| Infinite scroll for the price-entry table | Feels "modern," common on consumer feeds | Research is consistent: infinite scroll is for discovery/feed content, not analytical/reference tables — it breaks scannability, loses position on refresh, and is harder to reconcile against "which row am I editing" in a data-entry context. Also conflicts with the already-decided recent-months-default approach for this milestone. | Recent-months default + explicit "show all history" toggle (already decided) ± a simple date-range filter if "show all" ever becomes sluggish again; add pagination only if row count grows into the thousands, which is not expected for a monthly-cadence single-series dataset for years. |
-| Automated anomaly detection / "predictive dashboarding" style AI insights on forecast variance | Appears in generic BI/forecasting-dashboard best-practice lists | Requires either an ML component beyond the backtested statsmodels models already scoped, or an LLM dependency — both explicitly out of scope/deferred per PROJECT.md ("Live news/sentiment-driven bull/bear scenario adjustment... explicitly deferred to v2"). Building ad hoc anomaly detection here duplicates that already-deferred, not-yet-researched work. | Use the templated "drivers" explanation (above) instead — cheap, honest, and grounded in the already-known/backtested model structure rather than a new inference layer. |
-| Real-time/auto-refreshing dashboard updates | Standard BI-dashboard checklist item | User enters data ~monthly and views the dashboard occasionally — there is no live external data feed to refresh against yet (API auto-fetch is explicitly out of scope for v1 per PROJECT.md). A refresh mechanism with nothing changing underneath it is complexity with zero payoff. | Static page reflecting current SQLite state; re-render on data entry/import as already happens. |
-| Resumable/multi-step wizard-style bulk import flow with saved partial progress | Common in enterprise import UX guides (Dromo, CSVBox) for large multi-minute imports | A single-user monthly import is a handful of rows and takes seconds to review — a multi-step wizard with resumable state adds UI surface area and session-state complexity disproportionate to the task size. | Single-page: upload → preview/validate table → confirm → commit. No wizard, no resume-later state. |
-
----
+| Freeform date text field + smarter regex/fuzzy-date parsing ("accept any format the user types") | Seems like a lower-effort fix than changing the input control — "just parse it better" | Fuzzy date parsing (e.g. trying to guess "03/04/25" as MM/DD or DD/MM) is exactly the failure mode already hurting this user — ambiguous formats silently resolve to the *wrong* date rather than erroring, which is worse than a visible rejection. Also adds an ongoing maintenance burden (new edge cases forever) instead of eliminating the class of bug. | Native `rx.input(type="date")` (HTML5 date input) — eliminates free-text parsing entirely; the browser renders a calendar picker and always returns an unambiguous ISO value. This is the standard, zero-parsing-code fix and directly targets the diagnosed root cause. |
+| Full custom-branded design system / theming overhaul while adding dark mode | "As long as we're touching colors, let's redesign" scope creep | This is a single-user/small-team internal tool, not a customer-facing product — a bespoke design system is disproportionate effort for the audience size and doesn't address any of the 6 reported issues | Use Reflex's built-in `rx.theme` + Radix-based component defaults; only override where the transparent-background bug and legend-overlap bug require it. |
+| Exposing raw statsmodels diagnostics (AIC/BIC, residual plots, ACF/PACF charts) next to the forecast, in the name of "transparency" | Feels like the maximally-transparent version of feature #4 | This audience is explicitly non-technical procurement/finance staff — raw model diagnostics are noise to them and undermine the actual goal (quick trust signal), reintroducing the same "overwhelming for non-technical user" problem the milestone question explicitly warns against | Single plain-language line: model family name + one accuracy number, phrased in real-world terms (see differentiator above). Keep deeper diagnostics, if ever needed, in `backend_research/` artifacts, not the live UI. |
+| A full multi-page router (distinct URL routes per section) instead of tabs on one page | Tabs vs. routes can look like a similar ask ("navigation between sections") | This is a single-process, single/small-user internal tool with no need for deep-linking, bookmarking a specific section, or SEO; a full router adds Reflex page/route complexity (`app.add_page` per section, cross-page state sharing concerns) for no user-facing benefit over an in-page `rx.tabs` component, which keeps all existing state wiring simpler | `rx.tabs.root` on a single page/route, as already identified in Table Stakes. |
 
 ## Feature Dependencies
 
 ```
-Excel export "Data_Raw" sheet (already shipped)
-    └──extended-by──> Multi-sheet Excel export (Data + Forecast-with-chart)
-                           └──requires──> existing forecast module output (base/bull/bear per series, already built)
+Fix transparent html/body background bug
+    └──requires──> (none — independent CSS/theme-config fix, do first)
 
-Recent-months-default table (already decided, separate scope)
-    └──enables──> Date-range-aware high/low & YoY context
-                      (context stats should read from full history in DB,
-                       not just the currently-displayed recent-months slice)
+Dark/light mode toggle
+    └──enhances──> Fix transparent html/body background bug
+                       (the black-margin bug is most visible/severe specifically in dark mode;
+                        fixing background transparency first makes the toggle's dark state look correct)
 
-CSV bulk import (validate → preview → commit)
-    └──requires──> existing rx.Model schema (already defined for price-entry table)
-    └──conflicts-with──> fuzzy column auto-mapping (unneeded complexity, see Anti-Features)
+Tab/nav bar (Summary / Forecast / Data Entry)
+    └──requires──> Existing page content already exists as separable blocks
+                       (already true — Summary cards, Forecast chart+table, Data Entry table
+                        are already distinct sections per PROJECT.md; this is a restructuring,
+                        not new content)
 
-"Drivers" explanation text
-    └──requires──> known, fixed model family per series (VAR / AR-lag-2-on-Brent / AR(1))
-                    (already decided in PROJECT.md — do NOT build if model selection
-                     research is still in flux for a given series)
+Per-series model name + backtest accuracy display
+    └──requires──> Backtest accuracy numbers already computed (already true — HDAN 9.4% MAPE,
+                    PPAN 10.0%, Diesel-USD 3.4%, FX 0.25% exist per PROJECT.md "Validated" section)
+    └──enhances──> Forecast tab content (natural home once tabs exist, though not a hard blocker
+                    — could ship independently of the tab restructuring)
 
-YoY % change
-    └──requires──> ≥ 1 full year of monthly history already in SQLite (available: data since 2013/2020)
-    └──blocked-for──> weekly-mode series until the weekly data-cadence gap (PROJECT.md §6) is resolved
+Fan chart legend/axis-label fix
+    └──requires──> (none — independent Plotly layout fix)
+
+Structured date-entry (rx.input type=date) rework
+    └──requires──> (none technically — but should be scoped and shipped together with clear
+                    inline validation messaging, since the milestone explicitly calls this out
+                    as needing "deep research", i.e. don't treat it as a one-line prop swap
+                    without checking downstream effects: CSV bulk-import date parsing,
+                    existing stored-date format in SQLite, edit-in-place row behavior)
+    └──conflicts with──> Freeform text date entry (mutually exclusive — pick one, per Anti-Features)
 ```
 
 ### Dependency Notes
 
-- **Multi-sheet Excel export requires the forecast module's existing base/bull/bear output** — no new forecasting logic needed, purely a presentation/export-layer change reusing data the app already computes for the on-screen forecast table.
-- **High/low and YoY context should query full history from SQLite, not the currently-rendered "recent months" table slice** — keep the context-stat computation independent of whatever windowing the data-entry table UI applies, so the two features (table UX fix vs. forecast context) don't get coupled by accident.
-- **"Drivers" text depends on model family being fixed and known** — since PROJECT.md states models must go through backtesting before shipping, drivers text should be written per confirmed model, not written speculatively ahead of the research/backtest step.
-- **YoY is blocked for weekly-cadence series** — same open gap PROJECT.md already flags for weekly forecasting (§6); don't build YoY logic assuming weekly data exists.
-- **CSV import explicitly conflicts with fuzzy auto-mapping** — pick the fixed-schema approach; revisit only if real usage proves multiple import source shapes exist.
+- **Dark/light mode toggle enhances the background-margin fix (not vice versa):** doing the background fix first means the dark-mode toggle "just works" visually instead of exposing the same margin bug in a new state. Sequence: background fix → dark mode toggle.
+- **Tab/nav bar requires no new content, only restructuring:** all three target sections (Summary, Forecast, Data Entry) already exist as of v1.2; this is UI reorganization risk (state scoping, conditional rendering cost when a tab is hidden), not a data/backend dependency.
+- **Model provenance display requires no new computation:** the backtest MAPE numbers are already validated and stored per PROJECT.md's "Validated" requirements section — this is purely a display/formatting task, which keeps its complexity LOW despite sounding like a "ML feature."
+- **Date-entry rework has the widest blast radius of the six items:** unlike the others, it touches the SQLite-backed `rx.Model` row-add/edit flow, the CSV bulk-import date-parsing path added in v1.2, and whatever validation currently exists on the Data Entry table's new-row form. This is why the milestone explicitly flagged it for deep research rather than a quick fix — recommend scoping it as its own phase, not bundled with the four cosmetic UI fixes.
 
----
+## MVP Definition (for this milestone, v1.3)
 
-## MVP Definition (for this milestone, v1.2)
+### Launch With (v1.3)
 
-### Launch With (v1.2)
+- [ ] Fix transparent `html`/`body` background — root cause of black-margin complaint; must ship regardless of dark mode, since it also affects wide-viewport light mode
+- [ ] Dark/light mode toggle using Reflex's built-in `rx.color_mode` primitives, with persisted user choice — directly requested (#1), low complexity, framework-native
+- [ ] Tab/nav bar (Summary / Forecast / Data Entry) using `rx.tabs` — directly requested (#3), restructures existing content only
+- [ ] Fan chart legend/axis-label overlap fix via Plotly layout config — directly requested (#5), isolated bug fix
+- [ ] Per-series model name + backtest MAPE shown near each forecast, in plain-language framing — directly requested (#4), no new computation needed
+- [ ] Replace free-text date entry with `rx.input(type="date")` (or equivalent structured/native date picker), with explicit inline validation feedback if any edge case still allows an invalid state — directly requested (#6), root cause already diagnosed; this is the deep-research item and should get its own scoping pass given it touches CSV import and stored-date formatting too
 
-- [ ] Excel export gains a second sheet with the base/bull/bear forecast table (reusing existing forecast output) — low effort, directly extends an already-shipped feature
-- [ ] Number formatting (units, decimals, thousands separators) applied to all exported columns — cheap correctness fix
-- [ ] Forecast summary cards gain historical high/low and % change vs. same-period-last-year (where ≥12 months of history exists) — reuses existing SQLite data, no new inputs
-- [ ] Simple CSV bulk import: fixed expected column order, in-page preview + row-level validation errors, explicit confirm-to-commit step — no wizard, no fuzzy mapping
+### Add After Validation (v1.4+)
 
-### Add After Validation (v1.x)
-
-- [ ] Native Excel line-chart embedded in the export's forecast sheet (vs. a plain data table) — do after confirming users actually open exports in Excel and want to interact with the chart there, not just view the numbers
-- [ ] Templated "drivers" explanation text per series — do once model family per series is fully confirmed post-backtest, so text doesn't need rewriting if model selection changes
+- [ ] Inline model-comparison tooltip showing all candidate models' backtest scores, not just the winner — useful once the basic provenance display is validated with real users
+- [ ] System-preference-aware default color mode (if not already default behavior in the installed Reflex version) — polish, not user-blocking
 
 ### Future Consideration (v2+)
 
-- [ ] Column-mapping UI for CSV import — only if a second real import source with a different column layout actually materializes
-- [ ] Any anomaly-detection or AI-generated forecast commentary — depends on the explicitly-deferred news/LLM provider research (PROJECT.md, out of scope)
-- [ ] Weekly-cadence YoY/context stats — blocked on the weekly data-cadence gap research (PROJECT.md §6)
-
----
+- [ ] Deeper model diagnostics view (AIC/BIC, residual plots) — explicitly deferred; this audience doesn't need it and it risks re-introducing the "overwhelming for non-technical user" problem this milestone is trying to avoid
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
 |---------|------------|---------------------|----------|
-| Historical high/low + YoY % change on summary cards | HIGH | LOW | P1 |
-| Multi-sheet Excel export (Data + Forecast) | HIGH | MEDIUM | P1 |
-| Number formatting in export | MEDIUM | LOW | P1 |
-| CSV bulk import (fixed schema, validated preview) | MEDIUM-HIGH | MEDIUM | P1 |
-| Embedded native Excel chart in export | MEDIUM | MEDIUM | P2 |
-| Templated drivers explanation | MEDIUM | MEDIUM | P2 |
-| Column-mapping UI for import | LOW (for this user) | HIGH | P3 |
-| Anomaly detection / AI commentary | LOW (out of scope) | HIGH | P3 (defer) |
+| Fix transparent background (black margins) | HIGH | LOW | P1 |
+| Dark/light mode toggle | HIGH | LOW | P1 |
+| Tab/nav bar | HIGH | LOW-MEDIUM | P1 |
+| Fan chart legend/axis fix | MEDIUM | LOW | P1 |
+| Model name + backtest accuracy display | MEDIUM-HIGH | LOW | P1 |
+| Structured date-entry rework | HIGH (blocks core Data Entry workflow entirely for affected users) | MEDIUM (deep-research flagged) | P1 |
+| Model-comparison tooltip | LOW-MEDIUM | MEDIUM | P3 |
+| System-preference-aware default mode | LOW | LOW | P3 |
+| Raw statsmodels diagnostics in UI | LOW (for this audience) | MEDIUM | Anti-feature — do not build |
 
 **Priority key:**
-- P1: In scope for this milestone's research-informed requirements
-- P2: Reasonable v1.x follow-up, not blocking
-- P3: Explicitly deferred, tied to other blocked/out-of-scope decisions
+- P1: Must have for this milestone (v1.3) — all six correspond directly to explicit user feedback items
+- P3: Nice to have, defer to a later milestone
 
----
+## Detailed Analysis: The Four Focus Questions
+
+### (1) Dark/light mode toggles on financial/internal dashboards
+
+Standard expectation, not a differentiator, on any tool built in the last several years — Reflex treats this as a built-in "recipe" (`rx.color_mode.button()`/`.switch()`/`.icon()`, `rx.color_mode_cond()` for conditional styling, driven by `rx.theme(appearance=...)`), with color-mode state and persistence handled by the framework rather than custom app state. The correct sequencing for this app specifically is to fix the transparent `html`/`body` background *before or alongside* adding the toggle, since the reported "black margins" symptom is consistent with a transparent background showing through in dark-mode/wide-viewport conditions — the toggle and the margin bug are very likely two views of the same root cause. (Confidence: HIGH — Reflex's own docs/recipes confirm `rx.color_mode` as the documented, current pattern.)
+
+### (3) Tab-based section navigation on single-page dashboards
+
+Standard pattern once a dashboard has 3+ distinct logical sections (this one has exactly three: Summary, Forecast, Data Entry) — every mainstream BI/dashboard tool defaults to tab or sidebar-section navigation over one long scroll at this content volume. Reflex's `rx.tabs.root`/`rx.tabs.list`/`rx.tabs.trigger`/`rx.tabs.content` (Radix-based) is the direct, low-complexity fit; `default_value` is enough if tab state doesn't need to survive a reload, `value` + `on_change` bound to state if it does. No new content needs to be created — this is a restructuring of existing sections, which keeps risk low. (Confidence: HIGH — confirmed against Reflex's current tabs documentation.)
+
+### (4) Model provenance/confidence without overwhelming a non-technical user
+
+The standard pattern across domains that show non-experts a statistical estimate (weather forecast confidence, price-estimate tools) is: **one model name + one accuracy number, translated into plain language**, not a diagnostics panel. For this app: a small caption near each forecast reading e.g. "SARIMAX — typically within ±13% of actual" accomplishes the ask (#4) without requiring the user to understand ARIMA orders, MAPE definitions, or backtest methodology. This is purely additive display work — the backtest MAPE values already exist per PROJECT.md's validated forecasting requirements (HDAN 9.4%, PPAN 10.0%, Diesel-USD 3.4%, FX 0.25%), so there's no new computation, only formatting/placement. Deeper diagnostics (AIC/BIC, residual plots, candidate-model comparison) should explicitly be treated as an anti-feature for the default view — that level of detail is for `backend_research/` artifacts, not the live dashboard, given the explicitly non-technical procurement/finance audience.
+
+### (6) Date-entry UX fix for the diagnosed silent-validation-error bug
+
+This is a well-documented, well-solved UX problem class (Nielsen Norman Group's "Date-Input Form Fields" guidance and current date-input pattern libraries agree): **free-text date fields are inherently error-prone for exactly the failure mode already diagnosed here** — a user types a plausible-looking date in an unexpected format, and the field either silently rejects it or (worse) silently misinterprets it. The standard, best-practice fix for a non-technical user in a monthly-cadence entry table is to **remove the free-text failure mode entirely** rather than improve error messaging on top of it:
+
+- **Primary fix:** use a native/structured date input — Reflex's `rx.input(type="date")` renders the browser's built-in HTML5 date input, which provides a calendar-picker widget and always returns an unambiguous, correctly-formatted date value. This eliminates format-guessing and silent rejection by construction, not by better validation messages.
+- **Secondary/defense-in-depth:** if any path still allows manual text entry (e.g. a fallback for browsers/environments where the native picker renders as plain text, or a paste path), add explicit, specific inline error messaging per NN/g guidance ("Invalid date format, use YYYY-MM-DD" rather than a generic "Invalid input"), and never silently discard user input.
+- **Scope note:** flagged in the milestone as needing "deep research" because the blast radius extends beyond the single input field — the same date-parsing assumptions likely exist in the CSV bulk-import path added in v1.2 and in however dates are currently stored/round-tripped through the SQLite `rx.Model`. Recommend treating this as its own phase with an explicit audit of every date-parsing entry point (manual add-row, manual edit-row, CSV import, Excel export round-trip) rather than a single-field prop swap.
+
+(Confidence: HIGH for the general UX pattern — NN/g and current date-input-pattern references agree closely; HIGH for Reflex's `rx.input(type="date")` existing and wrapping the native HTML5 date input, though the exact current-version prop surface should be double-checked against the installed Reflex 0.9.8 docs during implementation rather than assumed from general web search results.)
 
 ## Sources
 
-- [Financial Dashboard Template - Excel Dashboard School](https://exceldashboardschool.com/financial-dashboard-template/) — MEDIUM confidence, generic Excel dashboard structure advice (3-tab Data/Calculation/Dashboard pattern), consistent with multiple other sources in this search
-- [Best UX flow for spreadsheet imports - CSVBox Blog](https://blog.csvbox.io/spreadsheet-import-ux/) — MEDIUM confidence, file → map → validate → submit flow; vendor content but pattern is corroborated by other CSV-import UX sources
-- [How To Design Bulk Import UX (+ Figma Prototypes) — Smart Interface Design Patterns](https://smart-interface-design-patterns.com/articles/bulk-ux/) — MEDIUM confidence, general bulk-import UX patterns (preview, row-level errors)
-- [Best Practices for Handling Large CSV Files Efficiently](https://dromo.io/blog/best-practices-handling-large-csv-files) — MEDIUM confidence; explicitly noted here as describing a *different scale problem* than this app has (large-file streaming) — used as a negative reference to justify an anti-feature
-- [Key Features: Driver-Based Forecast Design | Medium](https://medium.com/@joshrapkin1/key-features-driver-based-forecast-design-b1b062045451) — LOW-MEDIUM confidence, single-author piece, but corroborates the general "driver-based" forecasting context pattern seen elsewhere
-- [Year-Over-Year (YOY) Growth: How to Calculate in Excel](https://www.xelplus.com/yoy-excel/) — MEDIUM confidence, standard YoY calculation approach, straightforward and uncontroversial
-- [The Ultimate Guide to Year-Over-Year Analysis](https://www.oneadvanced.com/resources/the-ultimate-guide-to-year-over-year-analysis/) — MEDIUM confidence, corroborates YoY as standard forecasting-context practice
-- [Data table design: Best practices for better UX - LogRocket Blog](https://blog.logrocket.com/ux-design/data-table-design-best-practices/) — MEDIUM confidence, corroborates pagination-over-infinite-scroll for analytical/reference tables
-- [Pagination UI design: Offset vs keyset vs infinite scroll | Setproduct Blog](https://www.setproduct.com/blog/pagination-ui-design) — MEDIUM confidence, corroborates pagination as the right pattern for structured/analytical data vs. feeds
-- Project files: `.planning/PROJECT.md` — source of hard constraints (single user, no LLM/news dependency yet, weekly-mode data gap, fixed backtested model families) used to filter generic research findings down to what's actually applicable here
+- https://reflex.dev/docs/recipes/others/dark-mode-toggle/ — Reflex's official dark-mode-toggle recipe — HIGH confidence
+- https://reflex.dev/docs/styling/theming/ — `rx.theme`, `appearance` prop, color-mode mechanics — HIGH confidence
+- https://reflex.dev/docs/library/disclosure/tabs/ — `rx.tabs.root`/`list`/`trigger`/`content` API — HIGH confidence
+- https://www.nngroup.com/articles/date-input/ — Nielsen Norman Group, "Date-Input Form Fields: UX Design Guidelines" — HIGH confidence (authoritative UX research org)
+- https://uxpatterns.dev/patterns/forms/date-input — current date-input pattern reference (masks, native pickers, error messaging) — MEDIUM confidence
+- General web search on native HTML5 date input as the standard fix for free-text date parsing failures — MEDIUM confidence (framework-specific `rx.input(type="date")` prop surface not directly confirmed against a Reflex-specific doc page in this pass; verify against installed 0.9.8 docs before implementation)
+- .planning/PROJECT.md — existing validated backtest MAPE figures, existing feature inventory (Summary/Forecast/Data Entry sections, CSV bulk import, Excel export), milestone feedback list — HIGH confidence (primary project source)
 
 ---
-*Feature research for: single-user commodity/FX forecasting dashboard — export/import UX, forecast context, large-table UX*
+*Feature research for: Prediction Dashboard v1.3 (Dashboard Polish & Data-Entry Rework)*
 *Researched: 2026-08-24*
