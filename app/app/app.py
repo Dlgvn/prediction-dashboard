@@ -537,6 +537,134 @@ def historical_section() -> rx.Component:
     )
 
 
+def csv_import_control() -> rx.Component:
+    """CSV bulk-import control: dropzone, preview, error, and done states (D-04/D-05/D-06).
+
+    Branches on DashboardState.import_stage using nested rx.cond, matching the
+    string-Var branching style already established by _summary_card /
+    _freshness_chip in this file (Reflex has no match on string Vars here).
+    """
+    error_state = rx.hstack(
+        rx.icon("circle-alert", size=16, color=DESTRUCTIVE),
+        rx.text(
+            DashboardState.import_error,
+            size=RADIX_SIZE_BODY,
+            color=DESTRUCTIVE,
+        ),
+        rx.button(
+            "Try again",
+            variant="ghost",
+            color_scheme="blue",
+            on_click=DashboardState.cancel_import,
+        ),
+        spacing="2",
+        align="center",
+    )
+
+    preview_state = rx.box(
+        rx.vstack(
+            rx.text(
+                "Import preview",
+                size=RADIX_SIZE_BODY,
+                font_weight=FONT_WEIGHT_SEMIBOLD,
+            ),
+            rx.text(DashboardState.import_added_text, size=RADIX_SIZE_BODY),
+            rx.text(
+                DashboardState.import_duplicate_text,
+                size=RADIX_SIZE_BODY,
+                color=DESTRUCTIVE,
+            ),
+            rx.text(
+                DashboardState.import_invalid_text,
+                size=RADIX_SIZE_BODY,
+                color=DESTRUCTIVE,
+            ),
+            rx.hstack(
+                rx.button(
+                    "Confirm import",
+                    on_click=DashboardState.confirm_import,
+                    disabled=~DashboardState.can_confirm_import,
+                    size="2",
+                    color_scheme="blue",
+                ),
+                rx.button(
+                    "Cancel",
+                    on_click=DashboardState.cancel_import,
+                    size="2",
+                    color_scheme="gray",
+                    variant="soft",
+                ),
+                spacing="2",
+            ),
+            spacing="2",
+        ),
+        background=SURFACE,
+        border=CARD_BORDER,
+        border_radius=CARD_RADIUS,
+        padding=CARD_PADDING,
+    )
+
+    done_state = rx.box(
+        rx.vstack(
+            rx.text(DashboardState.import_result_text, size=RADIX_SIZE_BODY),
+            rx.button(
+                "Done",
+                variant="ghost",
+                color_scheme="blue",
+                on_click=DashboardState.dismiss_import,
+            ),
+            spacing="2",
+        ),
+        background=SURFACE,
+        border=CARD_BORDER,
+        border_radius=CARD_RADIUS,
+        padding=CARD_PADDING,
+    )
+
+    idle_state = rx.upload(
+        rx.vstack(
+            rx.icon("upload", size=20, color=MUTED_TEXT),
+            rx.text(
+                "Drag and drop a CSV file here, or click to browse.",
+                size=RADIX_SIZE_BODY,
+                color=MUTED_TEXT,
+            ),
+            spacing="1",
+            align="center",
+        ),
+        id="csv_upload",
+        accept={"text/csv": [".csv"]},
+        max_files=1,
+        multiple=False,
+        on_drop=DashboardState.handle_csv_upload(
+            rx.upload_files(upload_id="csv_upload")
+        ),
+        border=CARD_BORDER,
+        border_style="dashed",
+        border_radius=CARD_RADIUS,
+        background=SURFACE,
+        padding=SPACE_MD,
+        width="100%",
+    )
+
+    return rx.box(
+        rx.cond(
+            DashboardState.import_stage == "error",
+            error_state,
+            rx.cond(
+                DashboardState.import_stage == "preview",
+                preview_state,
+                rx.cond(
+                    DashboardState.import_stage == "done",
+                    done_state,
+                    idle_state,
+                ),
+            ),
+        ),
+        aria_label="CSV bulk import",
+    )
+
+
 def data_entry_section() -> rx.Component:
     """Data-entry table under its own heading, at the bottom of the page (D-02/D-03)."""
     return rx.vstack(
@@ -559,7 +687,17 @@ def data_entry_section() -> rx.Component:
             ),
             empty_state(),
         ),
-        add_row_button(),
+        rx.hstack(
+            add_row_button(),
+            rx.text(
+                "Import CSV",
+                size=RADIX_SIZE_BODY,
+                font_weight=FONT_WEIGHT_SEMIBOLD,
+            ),
+            spacing="2",
+            align="center",
+        ),
+        csv_import_control(),
         spacing="3",
         aria_label="Data entry",
         role="region",
