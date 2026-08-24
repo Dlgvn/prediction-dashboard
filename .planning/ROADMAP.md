@@ -183,7 +183,14 @@ Plans:
   3. User can confirm the import to commit only valid rows in a single batch write
   4. CSV rows whose date already exists in storage are skipped, and existing data is never overwritten
   5. The import summary tells the user how many rows were added vs. skipped
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 10-01-PLAN.md — Reflex-free CSV parse + validator-reusing row validation core with schema fail-fast (wave 1)
+- [ ] 10-02-PLAN.md — DashboardState upload/preview/confirm/cancel handlers, insert-only batch write + load_rows refresh (wave 2)
+- [ ] 10-03-PLAN.md — rx.upload dropzone, summary preview panel, Confirm/Cancel UI + human verification (wave 3)
+
+**UI hint**: yes
 
 ## Progress
 
@@ -198,7 +205,7 @@ Plans:
 | 7. Table Pagination / Windowing | 0/2 | Not started | — |
 | 8. Forecast Context Enrichment | 2/2 | Complete   | 2026-08-24 |
 | 9. Excel Export Polish | 0/1 | Not started | — |
-| 10. CSV Bulk Import | 0/? | Not started | — |
+| 10. CSV Bulk Import | 0/3 | Not started | — |
 
 ---
 *Roadmap created: 2026-08-21*
