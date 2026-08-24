@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: data-entry-fix-forecast-enrichment
 status: completed
-stopped_at: Phase 09 UI-SPEC approved
-last_updated: "2026-08-24T01:47:47.835Z"
+stopped_at: Completed 09-01-PLAN.md — Phase 9 (excel-export-polish) complete
+last_updated: "2026-08-24T01:55:45.103Z"
 last_activity: 2026-08-24
 progress:
   total_phases: 10
-  completed_phases: 8
-  total_plans: 29
-  completed_plans: 29
-  percent: 80
+  completed_phases: 10
+  total_plans: 31
+  completed_plans: 31
+  percent: 100
 ---
 
 # Project State
@@ -31,10 +31,10 @@ improvements to export/import UX, forecast context, and performance at data scal
 ## Current Position
 
 Milestone: v1.2
-Status: Phase 8 complete — 08-01 (state layer) and 08-02 (UI wiring) both done; FCST-08/FCST-09 closed
+Status: Phase 9 complete — 09-01 (Excel export Forecast sheet) done; EXPORT-02 closed. All 10 phases of v1.2 complete.
 Last activity: 2026-08-24
 
-Progress: [████████░░] 80%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -84,6 +84,7 @@ Progress: [████████░░] 80%
 | Phase 07-table-pagination-windowing P02 | 15min | 3 tasks | 2 files |
 | Phase 08-forecast-context-enrichment P01 | 35min | 3 tasks | 2 files |
 | Phase 08-forecast-context-enrichment P02 | 25min | 3 tasks | 2 files |
+| Phase 09-excel-export-polish P01 | 25min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -138,6 +139,7 @@ Recent decisions affecting current work:
 - [Phase 08-forecast-context-enrichment]: 08-01: _actual_series_for(key) is now the sole diesel_mnt derivation site, replacing duplicated multiplier loops in _latest_actual_for and forecast_chart_figure; summary_cards high/low and YoY both reuse it, always reading self.rows (never visible_rows)
 - [Phase 08-forecast-context-enrichment]: 08-01: YoY matches by calendar-month (YYYY-MM date prefix), not a 12-row offset, so history gaps and non-day-01 dates still compare the correct prior-year month; empty (not "N/A") when not computable per D-03
 - [Phase 08-forecast-context-enrichment]: 08-02: YoY row is never wrapped in its own rx.cond — label always renders, only the value string is empty in the non-computable case, so card height never jumps; high/low value carries no directional color since it has no sign
+- [Phase 09-excel-export-polish]: 09-01: _forecast_export_records reads forecast_table_rows (never forecast_all/forecast_results) so export/screen parity is structural, not coincidental; empty forecast yields a header-only Forecast sheet via explicit columns=
 
 ### Pending Todos
 
@@ -164,6 +166,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-24T01:47:47.828Z
-Stopped at: Phase 09 UI-SPEC approved
-Resume file: .planning/phases/09-excel-export-polish/09-UI-SPEC.md
+Last session: 2026-08-24T01:55:45.097Z
+Stopped at: Completed 09-01-PLAN.md — Phase 9 (excel-export-polish) complete
+Resume file: None

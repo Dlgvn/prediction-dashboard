@@ -10,7 +10,7 @@
 - [x] **Phase 6: UX/UI Redesign — Financial Forecasting Terminal** - Dashboard redesigned so a finance/procurement user grasps price, forecast, and range within 10-20 seconds (completed 2026-08-23)
 - [ ] **Phase 7: Table Pagination / Windowing** - Data Entry table defaults to recent months, with a toggle to show full history, without hanging the browser
 - [x] **Phase 8: Forecast Context Enrichment** - Forecast summary cards show historical high/low and year-over-year % change (completed 2026-08-24)
-- [ ] **Phase 9: Excel Export Polish** - Excel export includes a forecast sheet (base/bull/bear) alongside the existing actuals sheet
+- [x] **Phase 9: Excel Export Polish** - Excel export includes a forecast sheet (base/bull/bear) alongside the existing actuals sheet (completed 2026-08-24)
 - [ ] **Phase 10: CSV Bulk Import** - User can bulk-import historical prices via CSV with preview, confirm, and duplicate-date skipping
 
 ## Phase Details
@@ -171,7 +171,7 @@ Plans:
 **Plans**: 1 plan
 
 Plans:
-- [ ] 09-01-PLAN.md — Two-sheet `_export_bytes` (Actuals + Forecast) reusing `forecast_table_rows`, with parity and single-call-site tests (wave 1)
+- [x] 09-01-PLAN.md — Two-sheet `_export_bytes` (Actuals + Forecast) reusing `forecast_table_rows`, with parity and single-call-site tests (wave 1)
 
 ### Phase 10: CSV Bulk Import
 **Goal**: The user can bulk-import historical price data via CSV instead of entering it row by row, with a safe preview-and-confirm step that never silently overwrites existing data.
