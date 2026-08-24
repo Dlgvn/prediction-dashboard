@@ -14,6 +14,7 @@ import plotly.express as px
 import plotly.graph_objects as go
 import reflex as rx
 
+from app.csv_import import parse_import_csv
 from app.forecasting import MAX_HORIZON, InsufficientHistoryError, forecast_all
 from app.models import AppSetting, PriceRow
 from app.theme import (
@@ -167,6 +168,21 @@ class DashboardState(rx.State):
     forecast_error: str = ""
     export_message: str = ""
     export_failed: bool = False
+
+    # Phase 10 (CSV bulk import) state — deliberately NOT reusing edit_error
+    # (PITFALLS.md): edit_error is a single scalar sized for one in-edit
+    # cell, while a multi-row import needs counts plus a stage, not one
+    # message.
+    import_stage: str = "idle"          # "idle" | "preview" | "error" | "done"
+    import_error: str = ""              # D-06 malformed/rejected-file message only
+    import_filename: str = ""           # for the "Parsing {filename}…" copy
+    import_added_count: int = 0         # rows that WILL be added (preview) / WERE added (done)
+    import_duplicate_count: int = 0
+    import_invalid_count: int = 0
+    # Backend-only var (leading underscore): parsed rows are never
+    # serialized to the frontend, per STACK.md's warning against putting a
+    # whole parsed CSV into reactive state.
+    _staged_import_rows: list[dict] = []
 
     @rx.var
     def visible_rows(self) -> list[PriceRow]:
@@ -932,3 +948,95 @@ class DashboardState(rx.State):
 
     def cancel_pending_delete(self) -> None:
         self.pending_delete = ""
+
+    # -------------------------------------------------------------------
+    # CSV bulk import (IMPORT-01, IMPORT-02, Phase 10)
+    # -------------------------------------------------------------------
+
+    @rx.var
+    def import_added_text(self) -> str:
+        return f"{self.import_added_count} rows will be added"
+
+    @rx.var
+    def import_duplicate_text(self) -> str:
+        return f"{self.import_duplicate_count} rows skipped (duplicate date)"
+
+    @rx.var
+    def import_invalid_text(self) -> str:
+        return f"{self.import_invalid_count} rows skipped (invalid value)"
+
+    @rx.var
+    def import_result_text(self) -> str:
+        return f"Import complete: {self.import_added_count} rows added."
+
+    @rx.var
+    def can_confirm_import(self) -> bool:
+        return self.import_stage == "preview" and self.import_added_count > 0
+
+    def _reset_import(self) -> None:
+        self.import_stage = "idle"
+        self.import_error = ""
+        self.import_filename = ""
+        self.import_added_count = 0
+        self.import_duplicate_count = 0
+        self.import_invalid_count = 0
+        self._staged_import_rows = []
+
+    @rx.event
+    async def handle_csv_upload(self, files: list[rx.UploadFile]) -> None:
+        self._reset_import()
+
+        if not files:
+            return
+
+        # rx.upload is configured max_files=1 (plan 10-03); only the first
+        # file is relevant.
+        file = files[0]
+        self.import_filename = getattr(file, "name", None) or getattr(
+            file, "filename", ""
+        )
+
+        try:
+            contents = await file.read()
+            result = parse_import_csv(
+                contents, SERIES_ATTRS, [r.date for r in self.rows]
+            )
+        except Exception:
+            self.import_error = (
+                "This file couldn't be read as a CSV. Save it as .csv and try again."
+            )
+            self.import_stage = "error"
+            return
+
+        if not result.ok:
+            self.import_error = result.error
+            self.import_stage = "error"
+            return
+
+        self._staged_import_rows = result.rows
+        self.import_added_count = result.added_count
+        self.import_duplicate_count = result.duplicate_count
+        self.import_invalid_count = result.invalid_count
+        self.import_stage = "preview"
+
+    def confirm_import(self) -> None:
+        if self.import_stage != "preview":
+            return
+
+        before = len(self.rows)
+
+        with rx.session() as session:
+            for record in self._staged_import_rows:
+                session.add(PriceRow(**record))
+            session.commit()
+
+        self._staged_import_rows = []
+        self.load_rows()
+        self.import_added_count = len(self.rows) - before
+        self.import_stage = "done"
+
+    def cancel_import(self) -> None:
+        self._reset_import()
+
+    def dismiss_import(self) -> None:
+        self._reset_import()
