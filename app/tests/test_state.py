@@ -7,6 +7,7 @@ import io
 import pandas as pd
 
 from app import state as state_module
+from app import theme
 from app import validators
 from app.models import PriceRow
 from app.state import (
@@ -1968,3 +1969,64 @@ def test_import_does_not_open_a_session_before_confirm(session, monkeypatch):
     asyncio.run(state.handle_csv_upload([_FakeUpload(csv_bytes)]))
 
     assert _db_row_count(session) == before
+
+
+# ---------------------------------------------------------------------------
+# Theme mode (THEME-01/THEME-02/THEME-03, Phase 11 Plan 02)
+# ---------------------------------------------------------------------------
+
+
+def test_theme_mode_defaults_to_light():
+    state = DashboardState()
+    assert state.theme_mode == "light"
+
+
+def test_toggle_theme_mode_flips_light_dark():
+    state = DashboardState()
+    state.toggle_theme_mode()
+    assert state.theme_mode == "dark"
+    state.toggle_theme_mode()
+    assert state.theme_mode == "light"
+
+
+def test_page_bg_resolves_per_mode():
+    state = DashboardState()
+    assert state.page_bg == theme.LIGHT["PAGE_BG"]
+    state.theme_mode = "dark"
+    assert state.page_bg == theme.DARK["PAGE_BG"]
+    # End-to-end anchor proving the theme.py -> theme_mode -> computed var
+    # chain is fully wired (11-02-PLAN.md Task 2).
+    assert state.page_bg == "#18181B"
+
+
+def test_surface_resolves_per_mode():
+    state = DashboardState()
+    assert state.surface == theme.LIGHT["SURFACE"]
+    state.theme_mode = "dark"
+    assert state.surface == theme.DARK["SURFACE"]
+
+
+def test_muted_text_resolves_per_mode():
+    state = DashboardState()
+    assert state.muted_text == theme.LIGHT["MUTED_TEXT"]
+    state.theme_mode = "dark"
+    assert state.muted_text == theme.DARK["MUTED_TEXT"]
+
+
+def test_card_border_resolves_per_mode():
+    state = DashboardState()
+    assert state.card_border == f"1px solid {theme.LIGHT['BORDER']}"
+    state.theme_mode = "dark"
+    assert state.card_border == f"1px solid {theme.DARK['BORDER']}"
+
+
+def test_up_down_destructive_colors_resolve_per_mode():
+    state = DashboardState()
+    assert state.up_color == theme.LIGHT["UP"]
+    assert state.down_color == theme.LIGHT["DOWN"]
+    assert state.destructive_color == theme.LIGHT["DESTRUCTIVE"]
+
+    state.theme_mode = "dark"
+    assert state.up_color == theme.DARK["UP"]
+    assert state.down_color == theme.DARK["DOWN"]
+    assert state.destructive_color == theme.DARK["DESTRUCTIVE"]
