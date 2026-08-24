@@ -10,6 +10,7 @@ from app import validators
 from app.models import PriceRow
 from app.state import (
     FORECAST_SERIES_LABELS,
+    FORECAST_TABLE_COLUMNS,
     SERIES_ATTRS,
     SERIES_LABELS,
     TABLE_WINDOW_ROWS,
@@ -664,7 +665,7 @@ def test_forecast_results_calls_forecast_all_once(session, monkeypatch, syntheti
 
 
 # ---------------------------------------------------------------------------
-# Excel export (EXPORT-01, D-08)
+# Excel export (EXPORT-01, EXPORT-02)
 # ---------------------------------------------------------------------------
 
 
@@ -707,7 +708,7 @@ def test_export_empty_rows_does_not_raise(session, monkeypatch):
     assert len(df) == 0
 
 
-def test_export_exports_actuals_not_forecast(session, monkeypatch):
+def test_export_actuals_sheet_values(session, monkeypatch):
     monkeypatch.setattr("reflex.session", lambda: session)
     state = DashboardState()
     state.rows = [PriceRow(date="2026-01-01", hdan=9.5, ppan=8.25)]
@@ -717,6 +718,103 @@ def test_export_exports_actuals_not_forecast(session, monkeypatch):
 
     assert df.iloc[0]["hdan"] == 9.5
     assert df.iloc[0]["ppan"] == 8.25
+
+
+def test_export_has_actuals_and_forecast_sheets(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = [PriceRow(date="2026-01-01", hdan=9.5, ppan=8.25)]
+
+    data = state._export_bytes()
+    xl = pd.ExcelFile(io.BytesIO(data), engine="openpyxl")
+
+    assert xl.sheet_names == ["Actuals", "Forecast"]
+
+
+def test_forecast_sheet_matches_dashboard_table(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    table_rows = state.forecast_table_rows
+    data = state._export_bytes()
+    df = pd.read_excel(io.BytesIO(data), sheet_name="Forecast")
+
+    assert len(df) == 4
+    assert list(df["Month"]) == [1, 2, 3, 4]
+
+    for table_row, (_, sheet_row) in zip(table_rows, df.iterrows()):
+        for key, label in FORECAST_TABLE_COLUMNS:
+            raw = table_row[key]
+            if raw == "":
+                continue
+            expected = float(raw.replace(",", ""))
+            actual = sheet_row[label]
+            assert abs(actual - expected) < 0.005
+
+
+def test_forecast_sheet_honours_selected_horizon(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+
+    state.horizon_months = 2
+    data_2 = state._export_bytes()
+    df_2 = pd.read_excel(io.BytesIO(data_2), sheet_name="Forecast")
+
+    state.horizon_months = 9
+    data_9 = state._export_bytes()
+    df_9 = pd.read_excel(io.BytesIO(data_9), sheet_name="Forecast")
+
+    assert len(df_2) == 2
+    assert len(df_9) == 9
+
+
+def test_forecast_sheet_headers_match_table_columns(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 3
+
+    data = state._export_bytes()
+    df = pd.read_excel(io.BytesIO(data), sheet_name="Forecast")
+
+    expected_columns = ["Month"] + [label for _, label in FORECAST_TABLE_COLUMNS]
+    assert list(df.columns) == expected_columns
+
+
+def test_export_with_no_history_writes_header_only_forecast_sheet(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = []
+
+    data = state._export_bytes()
+    df = pd.read_excel(io.BytesIO(data), sheet_name="Forecast")
+
+    expected_columns = ["Month"] + [label for _, label in FORECAST_TABLE_COLUMNS]
+    assert len(df) == 0
+    assert list(df.columns) == expected_columns
+
+
+def test_export_does_not_add_forecast_all_call_site(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 3
+
+    call_count = {"n": 0}
+    real_forecast_all = state_module.forecast_all
+
+    def _counting_forecast_all(history, horizon, markup_pct):
+        call_count["n"] += 1
+        return real_forecast_all(history, horizon, markup_pct)
+
+    monkeypatch.setattr("app.state.forecast_all", _counting_forecast_all)
+
+    state._export_bytes()
+
+    assert call_count["n"] == 1
 
 
 # ---------------------------------------------------------------------------
