@@ -1,5 +1,6 @@
 """Tests for DashboardState.load_rows — the app's sole DB read path."""
 
+import asyncio
 import inspect
 import io
 
@@ -1736,3 +1737,234 @@ def test_summary_cards_yoy_ignores_visible_rows_window(session, monkeypatch):
     yoy_full = {c["series_key"]: c["yoy_text"] for c in state.summary_cards}
 
     assert yoy_windowed == yoy_full
+
+
+# ---------------------------------------------------------------------------
+# Phase 10 -- CSV bulk import (IMPORT-01, IMPORT-02)
+# ---------------------------------------------------------------------------
+
+
+class _FakeUpload:
+    """Minimal stand-in for rx.UploadFile: async read() + a name attribute."""
+
+    def __init__(self, data: bytes, name: str = "prices.csv"):
+        self._data = data
+        self.name = name
+
+    async def read(self):
+        return self._data
+
+
+def _import_csv(rows: list[dict], columns=None) -> bytes:
+    """Build CSV bytes for a list of row dicts, in the correct schema order.
+
+    Mirrors test_csv_import.py's `_csv` helper.
+    """
+    columns = columns or ["date", *SERIES_ATTRS]
+    frame = pd.DataFrame(rows, columns=columns)
+    return frame.to_csv(index=False).encode()
+
+
+def _full_import_row(date: str, value: float = 1.0) -> dict:
+    row = {"date": date}
+    for attr in SERIES_ATTRS:
+        row[attr] = value
+    return row
+
+
+def test_handle_csv_upload_import_stages_preview_without_writing(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+
+    csv_bytes = _import_csv(
+        [_full_import_row("2026-01-01"), _full_import_row("2026-02-01")]
+    )
+    asyncio.run(state.handle_csv_upload([_FakeUpload(csv_bytes)]))
+
+    assert state.import_stage == "preview"
+    assert state.import_added_count == 2
+    assert _db_row_count(session) == 0
+
+
+def test_handle_csv_upload_import_malformed_header_sets_error_stage_and_stages_nothing(
+    session, monkeypatch
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+
+    bad_columns = ["date", *SERIES_ATTRS[1:]]  # missing column -> header mismatch
+    csv_bytes = _import_csv([], columns=bad_columns)
+    asyncio.run(state.handle_csv_upload([_FakeUpload(csv_bytes)]))
+
+    assert state.import_stage == "error"
+    assert state.import_error != ""
+    assert state.import_added_count == 0
+    assert state._staged_import_rows == []
+
+
+def test_handle_csv_upload_import_does_not_touch_edit_error(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+    state.edit_error = "sentinel"
+
+    csv_bytes = _import_csv([_full_import_row("2026-01-01")])
+    asyncio.run(state.handle_csv_upload([_FakeUpload(csv_bytes)]))
+
+    assert state.edit_error == "sentinel"
+
+
+def test_confirm_import_batch_writes_valid_rows(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+
+    csv_bytes = _import_csv(
+        [_full_import_row("2026-01-01"), _full_import_row("2026-02-01")]
+    )
+    asyncio.run(state.handle_csv_upload([_FakeUpload(csv_bytes)]))
+    state.confirm_import()
+
+    assert _db_row_count(session) == 2
+    assert len(state.rows) == 2
+    assert state.import_stage == "done"
+    assert state.import_result_text == "Import complete: 2 rows added."
+
+
+def test_confirm_import_never_overwrites_existing_row(session, monkeypatch):
+    """IMPORT-02 non-overwrite proof: an existing row's stored values are
+    byte-identical before and after an import containing its month.
+    """
+    session.add(PriceRow(date="2026-01-01", hdan=100.0, ppan=200.0))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+
+    before_snapshot = {"date": "2026-01-01"}
+    existing = _get_db_row(session, "2026-01-01")
+    for attr in SERIES_ATTRS:
+        before_snapshot[attr] = getattr(existing, attr)
+
+    # Same month (duplicate date), different attempted values, plus one
+    # genuinely new row for a different month.
+    duplicate_row = {"date": "2026-01-15", "hdan": 999.0, "ppan": 888.0}
+    for attr in SERIES_ATTRS:
+        duplicate_row.setdefault(attr, None)
+    new_row = _full_import_row("2026-03-01")
+
+    csv_bytes = _import_csv([duplicate_row, new_row])
+    asyncio.run(state.handle_csv_upload([_FakeUpload(csv_bytes)]))
+
+    assert state.import_duplicate_count == 1
+    assert state.import_added_count == 1
+
+    state.confirm_import()
+
+    after = _get_db_row(session, "2026-01-01")
+    after_snapshot = {"date": after.date}
+    for attr in SERIES_ATTRS:
+        after_snapshot[attr] = getattr(after, attr)
+
+    assert after_snapshot == before_snapshot
+    assert _db_row_count(session) == 2
+
+
+def test_confirm_import_with_zero_staged_rows_writes_nothing(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+
+    csv_bytes = _import_csv([], columns=["date", *SERIES_ATTRS])
+    asyncio.run(state.handle_csv_upload([_FakeUpload(csv_bytes)]))
+    assert state.import_stage == "preview"
+    assert state.import_added_count == 0
+
+    before = _db_row_count(session)
+    state.confirm_import()
+
+    assert _db_row_count(session) == before
+    assert state.import_stage == "done"
+    assert state.import_result_text == "Import complete: 0 rows added."
+
+
+def test_confirm_import_calls_load_rows_so_rows_reflect_new_data(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+
+    csv_bytes = _import_csv([_full_import_row("2026-04-01")])
+    asyncio.run(state.handle_csv_upload([_FakeUpload(csv_bytes)]))
+    state.confirm_import()
+
+    assert "2026-04-01" in [r.date for r in state.rows]
+
+
+def test_confirm_import_result_count_derives_from_rows_not_parse_count(
+    session, monkeypatch
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+
+    csv_bytes = _import_csv(
+        [_full_import_row("2026-05-01"), _full_import_row("2026-06-01")]
+    )
+    asyncio.run(state.handle_csv_upload([_FakeUpload(csv_bytes)]))
+    before = len(state.rows)
+    state.confirm_import()
+
+    assert state.import_added_count == len(state.rows) - before
+
+
+def test_confirm_import_twice_does_not_double_write(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+
+    csv_bytes = _import_csv([_full_import_row("2026-07-01")])
+    asyncio.run(state.handle_csv_upload([_FakeUpload(csv_bytes)]))
+    state.confirm_import()
+    assert _db_row_count(session) == 1
+
+    # Calling confirm_import again without a new upload must not re-insert
+    # (staged rows were cleared after the first commit and stage is "done").
+    state.confirm_import()
+    assert _db_row_count(session) == 1
+
+
+def test_cancel_import_writes_nothing_and_resets(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+
+    csv_bytes = _import_csv([_full_import_row("2026-08-01")])
+    asyncio.run(state.handle_csv_upload([_FakeUpload(csv_bytes)]))
+    assert state.import_stage == "preview"
+
+    state.cancel_import()
+
+    assert _db_row_count(session) == 0
+    assert state.import_stage == "idle"
+    assert state.import_added_count == 0
+    assert state.import_duplicate_count == 0
+    assert state.import_invalid_count == 0
+
+
+def test_import_does_not_open_a_session_before_confirm(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+
+    handler = DashboardState.__dict__["handle_csv_upload"]
+    handler_fn = getattr(handler, "fn", handler)
+    assert "rx.session" not in inspect.getsource(handler_fn)
+
+    before = _db_row_count(session)
+    csv_bytes = _import_csv([_full_import_row("2026-09-01")])
+    asyncio.run(state.handle_csv_upload([_FakeUpload(csv_bytes)]))
+
+    assert _db_row_count(session) == before
