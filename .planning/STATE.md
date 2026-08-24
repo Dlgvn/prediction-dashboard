@@ -2,7 +2,7 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: data-entry-fix-forecast-enrichment
-status: completed
+status: in_progress
 stopped_at: Phase 10 UI-SPEC approved
 last_updated: "2026-08-24T02:07:21.631Z"
 last_activity: 2026-08-24
