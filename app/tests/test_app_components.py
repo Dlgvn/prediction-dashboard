@@ -351,3 +351,74 @@ def test_state_rows_still_assigned_once():
     non_comment_lines = [line for line in lines if not line.strip().startswith("#")]
     joined = "".join(non_comment_lines)
     assert joined.count("self.rows = ") == 1
+
+
+def test_summary_card_renders_hilo_and_yoy_keys():
+    source = inspect.getsource(app_module._summary_card)
+    for key in (
+        "hilo_label",
+        "hilo_text",
+        "yoy_label",
+        "yoy_text",
+        "yoy_arrow",
+        "yoy_direction",
+    ):
+        assert f'card["{key}"]' in source
+
+
+def test_summary_card_line_order_matches_ui_spec():
+    source = inspect.getsource(app_module._summary_card)
+    delta_idx = source.index('card["delta_text"]')
+    hilo_idx = source.index('card["hilo_label"]')
+    yoy_idx = source.index('card["yoy_label"]')
+    assert delta_idx < hilo_idx < yoy_idx
+
+
+def test_summary_card_yoy_reuses_direction_colors():
+    source = inspect.getsource(app_module._summary_card)
+    assert 'card["yoy_direction"] == "up"' in source
+    assert 'card["yoy_direction"] == "down"' in source
+    assert "UP" in source
+    assert "DOWN" in source
+    assert "MUTED_TEXT" in source
+    assert "ACCENT" not in source
+    assert "DESTRUCTIVE" not in source
+
+
+def test_summary_card_hilo_has_no_direction_color():
+    source = inspect.getsource(app_module._summary_card)
+    hilo_line = source[source.index('card["hilo_text"]') : source.index('card["hilo_text"]') + 60]
+    assert "UP" not in hilo_line
+    assert "DOWN" not in hilo_line
+
+
+def test_summary_card_no_hex_literals():
+    source = inspect.getsource(app_module._summary_card)
+    assert "#" not in source
+
+
+def test_summary_card_aria_label_includes_new_figures():
+    source = inspect.getsource(app_module._summary_card)
+    aria_label_expr = source[source.index("aria_label=") :]
+    assert 'card["hilo_text"]' in aria_label_expr
+    assert 'card["yoy_text"]' in aria_label_expr
+
+
+def test_summary_card_yoy_row_not_conditionally_hidden():
+    source = inspect.getsource(app_module._summary_card)
+    yoy_idx = source.index('card["yoy_label"]')
+    preceding = source[:yoy_idx]
+    # The last rx.cond before the YoY row's own hstack must be the shared
+    # has_data == "yes" branch, not a new cond keyed on yoy_text emptiness.
+    assert 'card["yoy_text"] == ""' not in source
+
+
+def test_card_copy_literals_match_ui_spec():
+    source = inspect.getsource(state)
+    assert "All-time high/low" in source
+    assert "YoY" in source
+    app_source = inspect.getsource(app_module)
+    assert "confidence interval" not in source.lower()
+    assert "confidence interval" not in app_source.lower()
+    assert "guaranteed" not in source.lower()
+    assert "guaranteed" not in app_source.lower()
