@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.0
-milestone_name: milestone
-status: verifying
-stopped_at: Completed 06-03-PLAN.md — Phase 6 complete, v1 milestone fully shipped
-last_updated: "2026-08-23T07:55:04.143Z"
+milestone: v1.2
+milestone_name: data-entry-fix-forecast-enrichment
+status: planning
+stopped_at: v1.2 milestone started — gathering research before requirements/roadmap
+last_updated: "2026-08-23T16:20:00.000Z"
 last_activity: 2026-08-23
 progress:
-  total_phases: 6
-  completed_phases: 6
-  total_plans: 25
-  completed_plans: 25
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -24,18 +24,17 @@ See: .planning/PROJECT.md (updated 2026-08-21)
 and see a chart with three price scenarios (bull/base/bear) for each of the four tracked
 series — without opening Excel.
 
-**Current focus:** v1 COMPLETE — all 5 phases shipped, human-verified end to end
+**Current focus:** v1.2 — fix Data Entry table usability at real data scale (167 rows/17 cols,
+~2,950 editable cells, unpaginated — found unusable during dogfooding), plus research-scoped
+improvements to export/import UX, forecast context, and performance at data scale.
 
 ## Current Position
 
-Phase: 05 (Forecast UI, Scenario Chart & Excel Export) — COMPLETE (final phase of v1)
-Plan: 4 of 4
-Status: Phase complete — ready for verification
-running app via the Phase 5 acceptance-gate checkpoint (horizon slider, freshness chips,
-shaded fan chart, all-series forecast table, Excel export, no Phase 1-4 regression).
+Milestone: v1.2 (just started)
+Status: Gathering research before requirements/roadmap
 Last activity: 2026-08-23
 
-Progress: [██████████] 100%
+Progress: [          ] 0%
 
 ## Performance Metrics
 
@@ -133,7 +132,10 @@ Recent decisions affecting current work:
 
 ### Pending Todos
 
-None yet.
+- [v1.2] Data Entry table renders all 167 rows × 17 columns (~2,950 editable cells) unpaginated —
+  confirmed via browser DOM inspection during dogfooding (2026-08-23). Root cause of the "doesn't
+  work" report: this scale of interactive DOM makes the table hang/unresponsive. Fix direction
+  chosen by user: default to recent months + a "show all history" toggle.
 
 ### Blockers/Concerns
 

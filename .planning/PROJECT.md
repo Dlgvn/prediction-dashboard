@@ -105,6 +105,14 @@ tracked series — without opening Excel.
 | v1 scenarios = base ± statistical spread; live news/sentiment integration deferred to v2 | Keeps v1 scope shippable; news-provider selection is still an open research question | — Pending |
 | No file-upload UI in v1 — manual in-app entry + Excel export instead | User explicitly requested this during brainstorming, reversing an earlier upload-first draft | — Pending |
 
+## Current Milestone: v1.2 Data Entry Fix & Forecast Enrichment
+
+**Goal:** Fix the Data Entry table's usability at real data scale, and research/scope improvements to export/import UX, forecast context, and performance as data grows.
+
+**Target features:**
+- Data Entry table defaults to recent months (not all 167 rows since 2013) with a "show all history" toggle, fixing the unusable/hanging table at full scale
+- Researched scope for: export/import UX (better Excel export, possible CSV bulk import), richer forecast context (drivers, historical high/low, % change stats), and general performance patterns for Reflex apps as data grows
+
 ## Evolution
 
 This document evolves at phase transitions and milestone boundaries.
@@ -123,4 +131,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-21 after initialization*
+*Last updated: 2026-08-23 at start of v1.2 milestone*
