@@ -143,13 +143,13 @@ def test_forecast_summary_cards_wires_direction_colors():
     # Arrow glyphs themselves come from DashboardState.summary_cards data
     # (Var-driven, not literal Python strings in app.py), so they never
     # appear in the compiled component tree's static render() output.
-    # The UP/DOWN hex constants ARE literal in the rx.cond color branch,
-    # so their presence proves both cond branches are wired.
-    # Amended in Task 06-03: UP darkened from #16A34A to #15803D to meet
-    # WCAG AA contrast against SURFACE.
+    # Phase 11: UP/DOWN/DESTRUCTIVE are no longer literal hex constants --
+    # they resolve from DashboardState's mode-aware computed vars, so this
+    # now proves both cond branches are wired to those state var names in
+    # the compiled render tree instead of asserting on hex literals.
     rendered = str(app_module.forecast_summary_cards().render())
-    assert "#15803D" in rendered
-    assert "#DC2626" in rendered
+    assert "up_color" in rendered
+    assert "down_color" in rendered
 
 
 def test_forecast_summary_cards_has_no_forbidden_copy():
@@ -343,7 +343,8 @@ def test_history_toggle_wiring():
 
 def test_history_toggle_uses_theme_tokens_not_literals():
     source = inspect.getsource(app_module.history_toggle)
-    assert "MUTED_TEXT" in source
+    # Phase 11: MUTED_TEXT is now DashboardState.muted_text (mode-resolved).
+    assert "DashboardState.muted_text" in source
     assert "RADIX_SIZE_LABEL" in source
     assert re.findall(r"#[0-9A-Fa-f]{6}", source) == []
 
@@ -384,11 +385,13 @@ def test_summary_card_yoy_reuses_direction_colors():
     source = inspect.getsource(app_module._summary_card)
     assert 'card["yoy_direction"] == "up"' in source
     assert 'card["yoy_direction"] == "down"' in source
-    assert "UP" in source
-    assert "DOWN" in source
-    assert "MUTED_TEXT" in source
+    # Phase 11: UP/DOWN/MUTED_TEXT are now DashboardState's mode-resolved
+    # computed vars (up_color/down_color/muted_text), not flat constants.
+    assert "DashboardState.up_color" in source
+    assert "DashboardState.down_color" in source
+    assert "DashboardState.muted_text" in source
     assert "ACCENT" not in source
-    assert "DESTRUCTIVE" not in source
+    assert "DashboardState.destructive_color" not in source
 
 
 def test_summary_card_hilo_has_no_direction_color():
@@ -549,3 +552,42 @@ def test_theme_toggle_does_not_use_color_mode_button_or_switch():
     assert "rx.color_mode.button" not in source
     assert "rx.color_mode.switch" not in source
     assert "allow_system" not in source
+
+
+def test_app_py_imports_no_flat_theme_color_names():
+    # AST-based guard (mirrors tests/test_theme.py's approach) so the check
+    # can't be fooled by these names appearing in comments/docstrings.
+    import ast
+
+    source_path = app_module.__file__
+    tree = ast.parse(open(source_path).read())
+    imported_names = {
+        alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom) and node.module == "app.theme"
+        for alias in node.names
+    }
+    forbidden = {
+        "PAGE_BG",
+        "SURFACE",
+        "CARD_BORDER",
+        "MUTED_TEXT",
+        "DESTRUCTIVE",
+        "UP",
+        "DOWN",
+    }
+    assert imported_names & forbidden == set()
+
+
+def test_app_py_uses_mode_resolved_vars_for_surfaces_and_borders():
+    source = inspect.getsource(app_module)
+    assert "background=SURFACE" not in source
+    assert "background=PAGE_BG" not in source
+    assert "border=CARD_BORDER" not in source
+    assert "color=MUTED_TEXT" not in source
+    assert "DashboardState.surface" in source
+    assert "DashboardState.card_border" in source
+    assert "DashboardState.muted_text" in source
+    assert "DashboardState.destructive_color" in source
+    assert "DashboardState.up_color" in source
+    assert "DashboardState.down_color" in source

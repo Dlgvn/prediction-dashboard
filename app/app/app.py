@@ -11,23 +11,16 @@ from app.state import (
     DashboardState,
 )
 from app.theme import (
-    CARD_BORDER,
     CARD_PADDING,
     CARD_RADIUS,
-    DESTRUCTIVE,
-    DOWN,
     FONT_SIZE_DISPLAY,
     FONT_WEIGHT_SEMIBOLD,
-    MUTED_TEXT,
-    PAGE_BG,
     RADIX_SIZE_BODY,
     RADIX_SIZE_HEADING,
     RADIX_SIZE_LABEL,
     SPACE_LG,
     SPACE_MD,
     SPACE_XXL,
-    SURFACE,
-    UP,
 )
 
 # Header labels in display order, paired with the PriceRow attribute they render.
@@ -145,7 +138,7 @@ def history_toggle() -> rx.Component:
         rx.text(
             DashboardState.history_window_caption,
             size=RADIX_SIZE_LABEL,
-            color=MUTED_TEXT,
+            color=DashboardState.muted_text,
         ),
         spacing="2",
         align="center",
@@ -189,8 +182,8 @@ def historical_chart() -> rx.Component:
             ),
             spacing="3",
         ),
-        background=SURFACE,
-        border=CARD_BORDER,
+        background=DashboardState.surface,
+        border=DashboardState.card_border,
         border_radius=CARD_RADIUS,
         padding="1.5rem",
         width="100%",
@@ -204,10 +197,10 @@ def empty_state() -> rx.Component:
         rx.text(
             "Add a row to start tracking monthly actuals.",
             size=RADIX_SIZE_BODY,
-            color=MUTED_TEXT,
+            color=DashboardState.muted_text,
         ),
-        background=SURFACE,
-        border=CARD_BORDER,
+        background=DashboardState.surface,
+        border=DashboardState.card_border,
         border_radius=CARD_RADIUS,
         padding=CARD_PADDING,
     )
@@ -264,11 +257,11 @@ def _freshness_chip(chip: rx.Var) -> rx.Component:
                     size=RADIX_SIZE_BODY,
                     font_weight=FONT_WEIGHT_SEMIBOLD,
                 ),
-                rx.text("no data yet", size=RADIX_SIZE_BODY, color=MUTED_TEXT),
+                rx.text("no data yet", size=RADIX_SIZE_BODY, color=DashboardState.muted_text),
             ),
             spacing="2",
         ),
-        border=CARD_BORDER,
+        border=DashboardState.card_border,
         border_style=rx.cond(chip["has_data"] == "yes", "solid", "dashed"),
         border_radius=CARD_RADIUS,
         padding="8px 12px",
@@ -299,7 +292,11 @@ def export_button() -> rx.Component:
             rx.text(
                 DashboardState.export_message,
                 size=RADIX_SIZE_LABEL,
-                color=rx.cond(DashboardState.export_failed, DESTRUCTIVE, MUTED_TEXT),
+                color=rx.cond(
+                    DashboardState.export_failed,
+                    DashboardState.destructive_color,
+                    DashboardState.muted_text,
+                ),
             ),
             rx.fragment(),
         ),
@@ -336,8 +333,8 @@ def forecast_chart() -> rx.Component:
             ),
             spacing="3",
         ),
-        background=SURFACE,
-        border=CARD_BORDER,
+        background=DashboardState.surface,
+        border=DashboardState.card_border,
         border_radius=CARD_RADIUS,
         padding="1.5rem",
         width="100%",
@@ -379,11 +376,11 @@ def forecast_table() -> rx.Component:
             rx.text(
                 DashboardState.forecast_error,
                 size=RADIX_SIZE_BODY,
-                color=MUTED_TEXT,
+                color=DashboardState.muted_text,
             ),
         ),
-        background=SURFACE,
-        border=CARD_BORDER,
+        background=DashboardState.surface,
+        border=DashboardState.card_border,
         border_radius=CARD_RADIUS,
         padding=CARD_PADDING,
         overflow_x="auto",
@@ -416,7 +413,7 @@ def _summary_card(card: rx.Var) -> rx.Component:
                         rx.text(
                             card["range_label"] + ":",
                             size=RADIX_SIZE_LABEL,
-                            color=MUTED_TEXT,
+                            color=DashboardState.muted_text,
                         ),
                         rx.text(card["range_text"], size=RADIX_SIZE_BODY),
                         spacing="2",
@@ -426,20 +423,20 @@ def _summary_card(card: rx.Var) -> rx.Component:
                             card["arrow"] + " " + card["delta_text"],
                             color=rx.cond(
                                 card["direction"] == "up",
-                                UP,
-                                rx.cond(card["direction"] == "down", DOWN, MUTED_TEXT),
-                            ),
+                                DashboardState.up_color,
+                                rx.cond(card["direction"] == "down", DashboardState.down_color, DashboardState.muted_text),
+                                ),
                             font_weight=FONT_WEIGHT_SEMIBOLD,
                             size=RADIX_SIZE_BODY,
                         ),
-                        rx.text(card["caption"], size=RADIX_SIZE_LABEL, color=MUTED_TEXT),
+                        rx.text(card["caption"], size=RADIX_SIZE_LABEL, color=DashboardState.muted_text),
                         spacing="2",
                     ),
                     rx.hstack(
                         rx.text(
                             card["hilo_label"] + ":",
                             size=RADIX_SIZE_LABEL,
-                            color=MUTED_TEXT,
+                            color=DashboardState.muted_text,
                         ),
                         rx.text(card["hilo_text"], size=RADIX_SIZE_BODY),
                         spacing="2",
@@ -448,28 +445,28 @@ def _summary_card(card: rx.Var) -> rx.Component:
                         rx.text(
                             card["yoy_label"] + ":",
                             size=RADIX_SIZE_LABEL,
-                            color=MUTED_TEXT,
+                            color=DashboardState.muted_text,
                         ),
                         rx.text(
                             card["yoy_arrow"] + " " + card["yoy_text"],
                             color=rx.cond(
                                 card["yoy_direction"] == "up",
-                                UP,
-                                rx.cond(card["yoy_direction"] == "down", DOWN, MUTED_TEXT),
-                            ),
+                                DashboardState.up_color,
+                                rx.cond(card["yoy_direction"] == "down", DashboardState.down_color, DashboardState.muted_text),
+                                ),
                             font_weight=FONT_WEIGHT_SEMIBOLD,
                             size=RADIX_SIZE_BODY,
                         ),
                         spacing="2",
                     ),
                 ),
-                rx.text(card["no_data_text"], size=RADIX_SIZE_BODY, color=MUTED_TEXT),
+                rx.text(card["no_data_text"], size=RADIX_SIZE_BODY, color=DashboardState.muted_text),
             ),
             spacing="2",
             align="start",
         ),
-        background=SURFACE,
-        border=CARD_BORDER,
+        background=DashboardState.surface,
+        border=DashboardState.card_border,
         border_radius=CARD_RADIUS,
         padding=CARD_PADDING,
         min_width="200px",
@@ -545,11 +542,11 @@ def csv_import_control() -> rx.Component:
     _freshness_chip in this file (Reflex has no match on string Vars here).
     """
     error_state = rx.hstack(
-        rx.icon("circle-alert", size=16, color=DESTRUCTIVE),
+        rx.icon("circle-alert", size=16, color=DashboardState.destructive_color),
         rx.text(
             DashboardState.import_error,
             size=RADIX_SIZE_BODY,
-            color=DESTRUCTIVE,
+            color=DashboardState.destructive_color,
         ),
         rx.button(
             "Try again",
@@ -572,12 +569,12 @@ def csv_import_control() -> rx.Component:
             rx.text(
                 DashboardState.import_duplicate_text,
                 size=RADIX_SIZE_BODY,
-                color=DESTRUCTIVE,
+                color=DashboardState.destructive_color,
             ),
             rx.text(
                 DashboardState.import_invalid_text,
                 size=RADIX_SIZE_BODY,
-                color=DESTRUCTIVE,
+                color=DashboardState.destructive_color,
             ),
             rx.hstack(
                 rx.button(
@@ -598,8 +595,8 @@ def csv_import_control() -> rx.Component:
             ),
             spacing="2",
         ),
-        background=SURFACE,
-        border=CARD_BORDER,
+        background=DashboardState.surface,
+        border=DashboardState.card_border,
         border_radius=CARD_RADIUS,
         padding=CARD_PADDING,
     )
@@ -615,19 +612,19 @@ def csv_import_control() -> rx.Component:
             ),
             spacing="2",
         ),
-        background=SURFACE,
-        border=CARD_BORDER,
+        background=DashboardState.surface,
+        border=DashboardState.card_border,
         border_radius=CARD_RADIUS,
         padding=CARD_PADDING,
     )
 
     idle_state = rx.upload(
         rx.vstack(
-            rx.icon("upload", size=20, color=MUTED_TEXT),
+            rx.icon("upload", size=20, color=DashboardState.muted_text),
             rx.text(
                 "Drag and drop a CSV file here, or click to browse.",
                 size=RADIX_SIZE_BODY,
-                color=MUTED_TEXT,
+                color=DashboardState.muted_text,
             ),
             spacing="1",
             align="center",
@@ -639,10 +636,10 @@ def csv_import_control() -> rx.Component:
         on_drop=DashboardState.handle_csv_upload(
             rx.upload_files(upload_id="csv_upload")
         ),
-        border=CARD_BORDER,
+        border=DashboardState.card_border,
         border_style="dashed",
         border_radius=CARD_RADIUS,
-        background=SURFACE,
+        background=DashboardState.surface,
         padding=SPACE_MD,
         width="100%",
     )
@@ -675,8 +672,8 @@ def data_entry_section() -> rx.Component:
             (DashboardState.rows.length() + DashboardState.draft_rows.length()) > 0,
             rx.box(
                 data_table(),
-                background=SURFACE,
-                border=CARD_BORDER,
+                background=DashboardState.surface,
+                border=DashboardState.card_border,
                 border_radius=CARD_RADIUS,
                 padding=CARD_PADDING,
                 overflow_x="auto",
