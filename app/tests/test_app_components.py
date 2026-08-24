@@ -5,6 +5,7 @@ booting a browser, catching invalid Var operations (bad .to_string(),
 bad ~ negation, bad dict indexing) at test time.
 """
 
+import inspect
 import re
 
 import app.app as app_module
@@ -297,3 +298,56 @@ def test_no_fixed_pixel_width_on_horizon_slider():
     with open(source_path) as f:
         source = f.read()
     assert 'width="240px"' not in source
+
+
+# --- Phase 7 Plan 02: table windowing + history toggle ------------------------
+
+
+def test_history_toggle_compiles_to_component():
+    component = app_module.history_toggle()
+    assert isinstance(component, rx.Component)
+
+
+def test_data_table_iterates_visible_rows_not_rows():
+    source = inspect.getsource(app_module.data_table)
+    assert "DashboardState.visible_rows" in source
+    assert "DashboardState.rows" not in source
+
+
+def test_draft_rows_foreach_unchanged():
+    source = inspect.getsource(app_module.data_table)
+    assert "DashboardState.draft_rows" in source
+
+
+def test_data_entry_section_empty_state_uses_full_rows():
+    source = inspect.getsource(app_module.data_entry_section)
+    assert "DashboardState.rows.length()" in source
+    assert "visible_rows" not in source
+
+
+def test_history_toggle_wiring():
+    source = inspect.getsource(app_module.history_toggle)
+    assert "rx.switch" in source
+    assert "checked=DashboardState.show_all_history" in source
+    assert "on_change=DashboardState.toggle_show_all_history" in source
+    assert "Show all history" in source
+    assert "rx.button" not in source
+    assert "rx.cond" not in source
+
+
+def test_history_toggle_uses_theme_tokens_not_literals():
+    source = inspect.getsource(app_module.history_toggle)
+    assert "MUTED_TEXT" in source
+    assert "RADIX_SIZE_LABEL" in source
+    assert re.findall(r"#[0-9A-Fa-f]{6}", source) == []
+
+
+def test_state_rows_still_assigned_once():
+    import app.state as state_module
+
+    source_path = state_module.__file__
+    with open(source_path) as f:
+        lines = f.readlines()
+    non_comment_lines = [line for line in lines if not line.strip().startswith("#")]
+    joined = "".join(non_comment_lines)
+    assert joined.count("self.rows = ") == 1
