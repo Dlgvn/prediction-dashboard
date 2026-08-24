@@ -136,7 +136,13 @@ Plans:
   2. The table renders and responds without hanging at the reported real-data scale (167 rows × 17 columns)
   3. User can toggle "show all history" to reveal the full table when they need to edit older rows
   4. Every other page feature that depends on full history (forecasts, charts, freshness chips, export) continues to reflect the complete dataset, not just the visible window
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 07-01-PLAN.md — `visible_rows` display-only window, `show_all_history` field, D-03 toggle handler + self.rows integrity tests (wave 1)
+- [ ] 07-02-PLAN.md — `rx.switch` toggle control, `data_table()` repointed to `visible_rows`, component tests + human verification (wave 2)
+
+**UI hint**: yes
 
 ### Phase 8: Forecast Context Enrichment
 **Goal**: Each forecast summary card gives the user more range context — historical high/low and year-over-year change — beyond just the forecast band and current-vs-latest-actual direction.
@@ -180,7 +186,7 @@ Plans:
 | 4. Data Entry UI & Historical View | 4/4 | Complete   | 2026-08-22 |
 | 5. Forecast UI, Scenario Chart & Excel Export | 4/4 | Complete   | 2026-08-23 |
 | 6. UX/UI Redesign — Financial Forecasting Terminal | 3/3 | Complete   | 2026-08-23 |
-| 7. Table Pagination / Windowing | 0/? | Not started | — |
+| 7. Table Pagination / Windowing | 0/2 | Not started | — |
 | 8. Forecast Context Enrichment | 0/? | Not started | — |
 | 9. Excel Export Polish | 0/? | Not started | — |
 | 10. CSV Bulk Import | 0/? | Not started | — |
