@@ -22,9 +22,9 @@
 
 - [x] **EXPORT-02**: Excel export includes a forecast sheet (base/bull/bear values at the
       selected horizon) in addition to the existing actuals-only sheet, not actuals-only
-- [ ] **IMPORT-01**: User can bulk-import historical price data via CSV upload, with a
+- [x] **IMPORT-01**: User can bulk-import historical price data via CSV upload, with a
       preview-and-confirm step before any row is written to storage
-- [ ] **IMPORT-02**: CSV rows whose date already exists in storage are skipped on import
+- [x] **IMPORT-02**: CSV rows whose date already exists in storage are skipped on import
       (existing data is never overwritten by a bulk import) — the import summary tells the
       user how many rows were added vs. skipped
 

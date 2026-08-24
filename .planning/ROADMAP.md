@@ -186,7 +186,7 @@ Plans:
 **Plans**: 3 plans
 
 Plans:
-- [ ] 10-01-PLAN.md — Reflex-free CSV parse + validator-reusing row validation core with schema fail-fast (wave 1)
+- [x] 10-01-PLAN.md — Reflex-free CSV parse + validator-reusing row validation core with schema fail-fast (wave 1)
 - [ ] 10-02-PLAN.md — DashboardState upload/preview/confirm/cancel handlers, insert-only batch write + load_rows refresh (wave 2)
 - [ ] 10-03-PLAN.md — rx.upload dropzone, summary preview panel, Confirm/Cancel UI + human verification (wave 3)
 
