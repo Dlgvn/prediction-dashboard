@@ -4,10 +4,10 @@
 
 ### Data Entry & Persistence
 
-- [ ] **DATA-07**: Data Entry table defaults to showing only the recent months (not all
+- [x] **DATA-07**: Data Entry table defaults to showing only the recent months (not all
       167+ rows since 2013), fixing the unusable/hanging table found at real data scale
       (167 rows × 17 columns = ~2,950 editable DOM cells)
-- [ ] **DATA-08**: User can toggle "show all history" to reveal the full table when they
+- [x] **DATA-08**: User can toggle "show all history" to reveal the full table when they
       need to edit older rows, without permanently degrading performance for the common case
 
 ### Forecast Context

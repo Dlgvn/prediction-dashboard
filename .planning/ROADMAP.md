@@ -139,7 +139,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — `visible_rows` display-only window, `show_all_history` field, D-03 toggle handler + self.rows integrity tests (wave 1)
+- [x] 07-01-PLAN.md — `visible_rows` display-only window, `show_all_history` field, D-03 toggle handler + self.rows integrity tests (wave 1)
 - [ ] 07-02-PLAN.md — `rx.switch` toggle control, `data_table()` repointed to `visible_rows`, component tests + human verification (wave 2)
 
 **UI hint**: yes
