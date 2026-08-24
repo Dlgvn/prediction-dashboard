@@ -183,10 +183,15 @@ def test_index_heading_order_matches_locked_layout():
     assert summary_idx < forecast_idx < historical_idx < data_entry_idx
 
 
-def test_index_has_no_theme_toggle():
+def test_index_has_theme_toggle():
+    # Phase 11: a header toggle now flips both color-mode mechanisms.
+    # Supersedes the old test_index_has_no_theme_toggle (Phase 6 predated
+    # the toggle). rx.color_mode.icon()/rx.toggle_color_mode compile to
+    # "resolvedColorMode"/"toggleColorMode" in the render tree, not the
+    # literal string "color_mode".
     rendered = str(app_module.index().render())
-    assert "color_mode" not in rendered
-    assert "dark_mode" not in rendered
+    assert "toggleColorMode" in rendered
+    assert "resolvedColorMode" in rendered
 
 
 def test_app_py_source_uses_only_theme_hex_literals():
@@ -499,3 +504,48 @@ def test_csv_import_control_introduces_no_new_hex_or_px_literals():
 
 def test_app_py_has_no_session_calls():
     assert "rx.session" not in inspect.getsource(app_module)
+
+
+# --- Phase 11 — background fix + theme toggle --------------------------------
+
+
+def test_index_compiles_in_both_theme_modes():
+    # index() itself does not branch on theme_mode (colors resolve via
+    # DashboardState computed vars at render time), so simply confirming
+    # it constructs without raising covers both modes here.
+    component = app_module.index()
+    assert isinstance(component, rx.Component)
+
+
+def test_index_renders_html_body_style_bound_to_page_bg():
+    # rx.App(style={"html, body": ...}) cannot carry a reactive backend Var
+    # (it compiles into a plain module-level JS object with no React
+    # context to read from -- verified via a failed `reflex export` build:
+    # "reflex___state____state...dashboard_state is not defined"). Instead
+    # a <style> element is rendered inside index()'s component tree, where
+    # the state-context hook gets injected normally.
+    rendered = str(app_module.index().render())
+    assert "html, body { background: " in rendered
+    assert "page_bg" in rendered
+
+
+def test_header_has_exactly_one_theme_toggle_button():
+    source = inspect.getsource(app_module.theme_toggle)
+    assert "rx.icon_button" in source
+    assert 'aria_label="Toggle dark mode"' in source
+    assert source.count("rx.icon_button") == 1
+
+
+def test_theme_toggle_on_click_is_two_event_chain():
+    source = inspect.getsource(app_module.theme_toggle)
+    assert (
+        "on_click=[DashboardState.toggle_theme_mode, rx.toggle_color_mode]"
+        in source
+    )
+
+
+def test_theme_toggle_does_not_use_color_mode_button_or_switch():
+    source = inspect.getsource(app_module.theme_toggle)
+    assert "rx.color_mode.button" not in source
+    assert "rx.color_mode.switch" not in source
+    assert "allow_system" not in source

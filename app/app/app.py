@@ -704,9 +704,38 @@ def data_entry_section() -> rx.Component:
     )
 
 
+def theme_toggle() -> rx.Component:
+    """Header toggle flipping both Radix chrome and app tokens (THEME-02)."""
+    return rx.icon_button(
+        rx.color_mode.icon(),
+        on_click=[DashboardState.toggle_theme_mode, rx.toggle_color_mode],
+        aria_label="Toggle dark mode",
+    )
+
+
 def index() -> rx.Component:
     return rx.container(
-        rx.heading("Prediction Dashboard", size="9", as_="h1"),
+        # THEME-01: html/body background must be mode-aware and Var-driven
+        # (11-RESEARCH.md Pitfall 4). rx.App(style={"html, body": {...}})
+        # cannot carry a reactive Var here — that style dict compiles into
+        # a plain top-level JS module (utils/theme.js) evaluated outside
+        # any React component, so the state-context hook the Var needs
+        # never gets injected (verified: build fails with
+        # "reflex___state____state...dashboard_state is not defined").
+        # A <style> element rendered inside the component tree instead
+        # gets the hook injected normally, and a <style> tag's CSS still
+        # cascades globally regardless of where it sits in the DOM.
+        rx.el.style(
+            "html, body { background: " + DashboardState.page_bg + "; }"
+        ),
+        rx.hstack(
+            rx.heading("Prediction Dashboard", size="9", as_="h1"),
+            theme_toggle(),
+            align="center",
+            justify="between",
+            width="100%",
+            spacing="2",
+        ),
         rx.text(
             "Forecasts and actuals for ammonium nitrate, diesel, and the FX rate.",
             size=RADIX_SIZE_BODY,
@@ -716,7 +745,7 @@ def index() -> rx.Component:
         rx.box(height=SPACE_XXL),
         historical_section(),
         data_entry_section(),
-        background=PAGE_BG,
+        background=DashboardState.page_bg,
         min_height="100vh",
         width="100%",
         spacing="6",
