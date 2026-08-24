@@ -1,5 +1,33 @@
 # Requirements — Prediction Dashboard (Reflex forecasting app)
 
+## v1.2 Requirements
+
+### Data Entry & Persistence
+
+- [ ] **DATA-07**: Data Entry table defaults to showing only the recent months (not all
+      167+ rows since 2013), fixing the unusable/hanging table found at real data scale
+      (167 rows × 17 columns = ~2,950 editable DOM cells)
+- [ ] **DATA-08**: User can toggle "show all history" to reveal the full table when they
+      need to edit older rows, without permanently degrading performance for the common case
+
+### Forecast Context
+
+- [ ] **FCST-08**: Each forecast summary card shows the series' historical high and low
+      (computed from stored actuals), giving the user range context beyond just the
+      forecast band
+- [ ] **FCST-09**: Each forecast summary card shows a year-over-year percentage change
+      alongside the existing vs.-latest-actual direction indicator
+
+### Data Portability
+
+- [ ] **EXPORT-02**: Excel export includes a forecast sheet (base/bull/bear values at the
+      selected horizon) in addition to the existing actuals-only sheet, not actuals-only
+- [ ] **IMPORT-01**: User can bulk-import historical price data via CSV upload, with a
+      preview-and-confirm step before any row is written to storage
+- [ ] **IMPORT-02**: CSV rows whose date already exists in storage are skipped on import
+      (existing data is never overwritten by a bulk import) — the import summary tells the
+      user how many rows were added vs. skipped
+
 ## v1 Requirements
 
 ### Data Entry & Persistence
@@ -62,8 +90,6 @@
   question, not decided. Ships as a fast-follow milestone after the core dashboard works.
 - Automatic API data-fetch from external price sources — only relevant if/when the
   "connect to a data API" idea is picked up as its own milestone.
-- File-upload / bulk CSV import UI — may return if the API-connection idea is picked up,
-  since ingestion design would change together at that point.
 
 ## Out of Scope
 
@@ -79,6 +105,15 @@
   tooltip is sufficient.
 - Porting the Excel workbook's exact model coefficients — this project does fresh model
   selection/research rather than reusing the workbook's specific VAR/AR coefficients.
+- CSV import column-mapping UI or fuzzy header matching — v1.2's CSV import uses a fixed
+  schema matching the app's own export format; column mapping is an enterprise SaaS pattern
+  disproportionate to this single-user app (v1.2 research finding).
+- CSV import overwrite-on-duplicate-date — v1.2 explicitly skips duplicate dates rather than
+  overwriting; overwrite semantics were considered and rejected in favor of the simpler,
+  safer "never silently overwrite existing data via bulk import" behavior.
+- "Drivers" / forecast-attribution explanation text — deferred; would require either a
+  static per-series caption (low value) or real model-coefficient attribution (a forecasting
+  research question, not a v1.2 stack/UI question) per v1.2 research findings.
 
 ## Traceability
 
@@ -101,6 +136,13 @@
 | VIS-02 | Phase 5 | Complete |
 | VIS-03 | Phase 5 | Complete (resolved per CONTEXT D-03 via the combination of the selector-driven forecast chart and the all-series forecast table, not by the chart alone) |
 | EXPORT-01 | Phase 5 | Complete |
+| DATA-07 | TBD | Not started |
+| DATA-08 | TBD | Not started |
+| FCST-08 | TBD | Not started |
+| FCST-09 | TBD | Not started |
+| EXPORT-02 | TBD | Not started |
+| IMPORT-01 | TBD | Not started |
+| IMPORT-02 | TBD | Not started |
 
 ---
 *Requirements defined: 2026-08-21*
