@@ -115,7 +115,7 @@ def data_table() -> rx.Component:
         ),
         rx.table.body(
             rx.foreach(
-                DashboardState.rows,
+                DashboardState.visible_rows,
                 lambda row: rx.table.row(
                     *[_editable_cell(row, attr) for _, attr in _COLUMNS],
                     _delete_cell(row),
@@ -129,6 +129,26 @@ def data_table() -> rx.Component:
                 ),
             ),
         ),
+    )
+
+
+def history_toggle() -> rx.Component:
+    """Show all history switch: reveals the full table beyond the 12-month window."""
+    return rx.hstack(
+        rx.switch(
+            checked=DashboardState.show_all_history,
+            on_change=DashboardState.toggle_show_all_history,
+            color_scheme="blue",
+            aria_label="Show all history",
+        ),
+        rx.text("Show all history", size=RADIX_SIZE_BODY),
+        rx.text(
+            DashboardState.history_window_caption,
+            size=RADIX_SIZE_LABEL,
+            color=MUTED_TEXT,
+        ),
+        spacing="2",
+        align="center",
     )
 
 
@@ -487,6 +507,7 @@ def data_entry_section() -> rx.Component:
     return rx.vstack(
         rx.heading("Data Entry", size=RADIX_SIZE_HEADING, as_="h2"),
         rx.text("Click any cell to edit a month's actuals.", size=RADIX_SIZE_BODY),
+        history_toggle(),
         rx.cond(
             (DashboardState.rows.length() + DashboardState.draft_rows.length()) > 0,
             rx.box(
