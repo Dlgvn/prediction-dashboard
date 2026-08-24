@@ -4,15 +4,15 @@ milestone: v1.3
 milestone_name: dashboard-polish-data-entry-rework
 current_plan: 3 of 3
 status: executing
-stopped_at: Completed 11-02-PLAN.md
-last_updated: "2026-08-24T07:36:44.427Z"
+stopped_at: Completed 11-03-PLAN.md
+last_updated: "2026-08-24T07:49:30.327Z"
 last_activity: 2026-08-24
 progress:
   total_phases: 15
-  completed_phases: 10
+  completed_phases: 11
   total_plans: 36
   completed_plans: 36
-  percent: 69
+  percent: 73
 ---
 
 # Project State
@@ -39,10 +39,10 @@ anywhere on the page).
 Milestone: v1.3
 Phase: 11 of 15 (Background Fix + Theme Toggle)
 Current Plan: 3 of 3
-Status: Executing Phase 11 — Plan 02 complete, Plan 03 next
+Status: Phase 11 complete — all 3 plans done, THEME-01..04 closed, ready for Phase 12
 Last activity: 2026-08-24
 
-Progress: [█████████░] 96%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -98,6 +98,7 @@ Progress: [█████████░] 96%
 | Phase 10-csv-bulk-import P03 | 45 min | 3 tasks | 2 files |
 | Phase 11-background-fix-theme-toggle P01 | 25min | 2 tasks | 3 files |
 | Phase 11-background-fix-theme-toggle P02 | 25min | 3 tasks | 3 files |
+| Phase 11-background-fix-theme-toggle P03 | 35min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -159,6 +160,9 @@ Recent decisions affecting current work:
 - [Phase 11-background-fix-theme-toggle]: 11-01: theme.LIGHT dict references existing flat constants (not re-typed literals) so there is exactly one source-of-truth value per light color; contrast-ratio helper lives in test_theme_tokens.py, not theme.py, to preserve theme.py's zero-import contract
 - [Phase 11-background-fix-theme-toggle]: 11-02: default_color_mode="light" (top-level rx.Config kwarg) is the real OS-inheritance guard, replacing the rx.theme(appearance="light") pin that 11-RESEARCH.md proved is stripped at render by Theme._render()
 - [Phase 11-background-fix-theme-toggle]: 11-02: DashboardState.theme_mode persists via its own "pd_theme_mode" localStorage key (not Reflex's built-in "theme" key); both Plotly figure builders now resolve every color through tokens(self.theme_mode)
+- [Phase 11-background-fix-theme-toggle]: 11-03: rx.App(style={"html, body": {...}}) cannot carry a reactive backend Var — it compiles into a plain top-level JS module (utils/theme.js) with no React component context, so the state hook a Var needs is never injected; fixed by rendering an in-tree rx.el.style element as index()'s first child instead, verified against a passing `reflex export --frontend-only --no-zip` build
+- [Phase 11-background-fix-theme-toggle]: 11-03: Assumption A2 (rx.icon_button firing a two-item on_click=[StateEvent, rx.toggle_color_mode] list in order) verified true in the compiled render tree — no single-handler fallback event needed
+- [Phase 11-background-fix-theme-toggle]: Phase 11 complete — THEME-01 through THEME-04 all human-verified in a live browser (light-default under OS dark preference, no black margins at 1440px in either mode, single-click dual-mechanism toggle, dark legibility, persistence with both localStorage keys in sync)
 
 ### Pending Todos
 
@@ -176,13 +180,6 @@ Recent decisions affecting current work:
   broken. Needs root-cause fix (why does the draft row's error text not render?) plus the
   user-requested deep-research pass into a better entry UX (e.g. a real date picker instead of a
   raw text field demanding exact ISO format with no format hint).
-
-- [v1.3] `html`/`body` computed background is `rgba(0, 0, 0, 0)` (fully transparent) — confirmed via
-  `getComputedStyle` on 2026-08-24. Only inner Radix wrapper divs carry the light `PAGE_BG`
-  background. On a wide viewport or a dark-mode browser/OS, any area outside those wrappers
-  renders through to whatever is behind the page (black in a dark-mode context) — matches the user
-  report "black spaces on the two sides." Fix: set an explicit light background directly on `html`
-  and `body`, not just inner content wrappers.
 
 ### Blockers/Concerns
 
@@ -202,6 +199,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-24T07:36:44.427Z
-Stopped at: Completed 11-02-PLAN.md
+Last session: 2026-08-24T07:49:30.317Z
+Stopped at: Completed 11-03-PLAN.md — Phase 11 complete
 Resume file: None

@@ -12,7 +12,7 @@
 - [x] **Phase 8: Forecast Context Enrichment** - Forecast summary cards show historical high/low and year-over-year % change (completed 2026-08-24)
 - [x] **Phase 9: Excel Export Polish** - Excel export includes a forecast sheet (base/bull/bear) alongside the existing actuals sheet (completed 2026-08-24)
 - [x] **Phase 10: CSV Bulk Import** - User can bulk-import historical prices via CSV with preview, confirm, and duplicate-date skipping (completed 2026-08-24)
-- [ ] **Phase 11: Background Fix + Theme Toggle** - Dashboard renders correctly at every viewport with a persisted dark/light mode toggle
+- [x] **Phase 11: Background Fix + Theme Toggle** - Dashboard renders correctly at every viewport with a persisted dark/light mode toggle
 - [ ] **Phase 12: Fan Chart Legend/Axis Fix** - Fan chart legend and axis labels no longer overlap at any viewport
 - [ ] **Phase 13: Model Provenance Display** - Each forecast shows which model produced it and its backtested accuracy
 - [ ] **Phase 14: Tab/Nav Bar** - User switches between Summary/Forecast/Data Entry via tabs without losing in-progress state
@@ -211,7 +211,7 @@ Plans:
 Plans:
 - [x] 11-01-PLAN.md — Dual-tokenize theme.py with a bespoke DARK palette, tokens(mode) lookup, and WCAG contrast tests (wave 1)
 - [x] 11-02-PLAN.md — Set rx.Config(default_color_mode="light"), add persisted DashboardState.theme_mode + mode-resolved color vars, make both Plotly figures mode-aware (wave 2)
-- [ ] 11-03-PLAN.md — Bind html/body background to state, add the header toggle, convert every app.py color prop, browser-verify both themes (wave 3)
+- [x] 11-03-PLAN.md — Bind html/body background to state, add the header toggle, convert every app.py color prop, browser-verify both themes (wave 3)
 
 **UI hint**: yes
 
@@ -273,7 +273,7 @@ Plans:
 | 8. Forecast Context Enrichment | 2/2 | Complete   | 2026-08-24 |
 | 9. Excel Export Polish | 1/1 | Complete   | 2026-08-24 |
 | 10. CSV Bulk Import | 3/3 | Complete   | 2026-08-24 |
-| 11. Background Fix + Theme Toggle | 0/? | Not started | - |
+| 11. Background Fix + Theme Toggle | 3/3 | Complete   | 2026-08-24 |
 | 12. Fan Chart Legend/Axis Fix | 0/? | Not started | - |
 | 13. Model Provenance Display | 0/? | Not started | - |
 | 14. Tab/Nav Bar | 0/? | Not started | - |
