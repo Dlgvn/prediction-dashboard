@@ -4,11 +4,11 @@
 
 ### Theming & Layout
 
-- [ ] **THEME-01**: The `html`/`body` background renders a mode-aware color at every
+- [x] **THEME-01**: The `html`/`body` background renders a mode-aware color at every
       viewport width — no transparent margins that show black (or any unstyled color)
       outside the page content on wide screens or in a dark-mode browser/OS
-- [ ] **THEME-02**: User can toggle between light and dark mode from the dashboard UI
-- [ ] **THEME-03**: The chosen theme mode persists across page reloads/visits
+- [x] **THEME-02**: User can toggle between light and dark mode from the dashboard UI
+- [x] **THEME-03**: The chosen theme mode persists across page reloads/visits
 - [x] **THEME-04**: Every existing color token (cards, charts, text, accent) has a
       correct dark-mode counterpart — no illegible text or un-styled element in dark mode
 
@@ -178,9 +178,9 @@
 | EXPORT-02 | Phase 9 | Complete |
 | IMPORT-01 | Phase 10 | Complete |
 | IMPORT-02 | Phase 10 | Complete |
-| THEME-01 | Phase 11 | Pending |
-| THEME-02 | Phase 11 | Pending |
-| THEME-03 | Phase 11 | Pending |
+| THEME-01 | Phase 11 | Complete |
+| THEME-02 | Phase 11 | Complete |
+| THEME-03 | Phase 11 | Complete |
 | THEME-04 | Phase 11 | Complete |
 | VIS-04 | Phase 12 | Pending |
 | VIS-05 | Phase 13 | Pending |

@@ -2,16 +2,17 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: dashboard-polish-data-entry-rework
+current_plan: 3 of 3
 status: executing
-stopped_at: Completed 11-01-PLAN.md
-last_updated: "2026-08-24T00:00:00.000Z"
+stopped_at: Completed 11-02-PLAN.md
+last_updated: "2026-08-24T07:36:44.427Z"
 last_activity: 2026-08-24
 progress:
   total_phases: 15
   completed_phases: 10
-  total_plans: 37
-  completed_plans: 35
-  percent: 95
+  total_plans: 36
+  completed_plans: 36
+  percent: 69
 ---
 
 # Project State
@@ -37,11 +38,11 @@ anywhere on the page).
 
 Milestone: v1.3
 Phase: 11 of 15 (Background Fix + Theme Toggle)
-Current Plan: 2 of 3
-Status: Executing Phase 11 — Plan 01 complete, Plan 02 next
+Current Plan: 3 of 3
+Status: Executing Phase 11 — Plan 02 complete, Plan 03 next
 Last activity: 2026-08-24
 
-Progress: [█████████░] 95%
+Progress: [█████████░] 96%
 
 ## Performance Metrics
 
@@ -96,6 +97,7 @@ Progress: [█████████░] 95%
 | Phase 10-csv-bulk-import P02 | 25 min | 2 tasks | 2 files |
 | Phase 10-csv-bulk-import P03 | 45 min | 3 tasks | 2 files |
 | Phase 11-background-fix-theme-toggle P01 | 25min | 2 tasks | 3 files |
+| Phase 11-background-fix-theme-toggle P02 | 25min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -155,6 +157,8 @@ Recent decisions affecting current work:
 - [Phase 10-csv-bulk-import]: 10-02: confirm_import is structurally insert-only (no session.merge/setattr/select-then-update) so duplicates already excluded by the parser can never overwrite an existing row (IMPORT-02); import_added_count recomputed from len(self.rows) growth post-load_rows(), not the parse-time count
 - [Phase 10-csv-bulk-import]: 10-03: Confirm import uses color_scheme="blue" not the red two-click delete-confirm pattern, since import only ever inserts and never overwrites; human verification directly queried SQLite (not just the UI) to prove IMPORT-02's non-overwrite guarantee
 - [Phase 11-background-fix-theme-toggle]: 11-01: theme.LIGHT dict references existing flat constants (not re-typed literals) so there is exactly one source-of-truth value per light color; contrast-ratio helper lives in test_theme_tokens.py, not theme.py, to preserve theme.py's zero-import contract
+- [Phase 11-background-fix-theme-toggle]: 11-02: default_color_mode="light" (top-level rx.Config kwarg) is the real OS-inheritance guard, replacing the rx.theme(appearance="light") pin that 11-RESEARCH.md proved is stripped at render by Theme._render()
+- [Phase 11-background-fix-theme-toggle]: 11-02: DashboardState.theme_mode persists via its own "pd_theme_mode" localStorage key (not Reflex's built-in "theme" key); both Plotly figure builders now resolve every color through tokens(self.theme_mode)
 
 ### Pending Todos
 
@@ -198,6 +202,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-24T07:31:31.184Z
-Stopped at: Phase 11 UI-SPEC approved
+Last session: 2026-08-24T07:36:44.427Z
+Stopped at: Completed 11-02-PLAN.md
 Resume file: None

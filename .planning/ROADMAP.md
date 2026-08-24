@@ -210,7 +210,7 @@ Plans:
 
 Plans:
 - [x] 11-01-PLAN.md — Dual-tokenize theme.py with a bespoke DARK palette, tokens(mode) lookup, and WCAG contrast tests (wave 1)
-- [ ] 11-02-PLAN.md — Set rx.Config(default_color_mode="light"), add persisted DashboardState.theme_mode + mode-resolved color vars, make both Plotly figures mode-aware (wave 2)
+- [x] 11-02-PLAN.md — Set rx.Config(default_color_mode="light"), add persisted DashboardState.theme_mode + mode-resolved color vars, make both Plotly figures mode-aware (wave 2)
 - [ ] 11-03-PLAN.md — Bind html/body background to state, add the header toggle, convert every app.py color prop, browser-verify both themes (wave 3)
 
 **UI hint**: yes
