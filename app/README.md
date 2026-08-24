@@ -1,14 +1,10 @@
-# Prediction Dashboard (Reflex app)
+# Prediction Dashboard
 
 A single-user Reflex web dashboard that forecasts ammonium nitrate (HDAN, PPAN),
-imported diesel purchasing price (MNT), and the USD/MNT exchange rate. It's a
-companion to (not a replacement for) the Excel workbook one level up
-(`../AN_HDAN_PPAN_Diesel_FX_Forecast_Model.xlsx`) — this app adds an adjustable
-forecast horizon, bull/base/bear scenario charting, in-app data entry, and Excel
-export, all in one Python process (UI + backend + SQLite).
-
-See `../PROJECT_VISION.md` and `../.planning/PROJECT.md` for the full product
-context; this file covers running and working on the app itself.
+imported diesel purchasing price (MNT), and the USD/MNT exchange rate. Adjustable
+forecast horizon, bull/base/bear scenario charting, in-app data entry with CSV
+bulk import, Excel export, and light/dark theming — all in one Python process
+(UI + backend + SQLite).
 
 ## Quick start
 
@@ -26,17 +22,18 @@ Opens the dashboard at `http://localhost:3000` (frontend) with the backend on
 
 | Path | What it is |
 |---|---|
-| `app/app.py` | Page composition — all `rx.Component` render functions (`forecast_summary_cards`, `forecast_chart`, `data_table`, etc.) and the `index()` page, wired into `app = rx.App()` |
-| `app/state.py` | `DashboardState` — all reactive state: row CRUD, horizon slider, forecast computed vars, chart figure builders |
-| `app/forecasting.py` | `forecast_all()` — the validated (Phase 2/3 backtested) base/bull/bear forecasting dispatcher; the only place models are called |
+| `app/app.py` | Page composition — all `rx.Component` render functions (`forecast_summary_cards`, `forecast_chart`, `data_table`, `csv_import_control`, etc.) and the `index()` page, wired into `app = rx.App()` |
+| `app/state.py` | `DashboardState` — all reactive state: row CRUD, horizon slider, forecast computed vars, chart figure builders, theme mode, CSV import handlers |
+| `app/forecasting.py` | `forecast_all()` — the validated (research-backtested) base/bull/bear forecasting dispatcher; the only place models are called |
+| `app/csv_import.py` | Pure, Reflex-free CSV parsing and validation for bulk data import — reuses the same validators as manual entry, never opens a DB session |
 | `app/models.py` | `PriceRow` / `AppSetting` — the `rx.Model` (SQLModel) SQLite schema |
 | `app/validators.py` | Input validation for manual data entry (numeric, unique-month date) |
-| `app/theme.py` | The locked design-token module (color/spacing/typography) — the single source of truth for the UI's visual design; see `.planning/phases/06-ux-ui-redesign/06-UI-SPEC.md` |
-| `app/seed.py` | One-time seed script loading historical rows from the root-level CSVs into SQLite |
-| `rxconfig.py` | Reflex app config — plugins, including the pinned light Radix theme |
-| `tests/` | Pytest suite — state, forecasting, models, seed, validators, theme, and component compile-smoke tests. Run with `pytest tests/ -q` |
+| `app/theme.py` | The design-token module (color/spacing/typography) — light and dark palettes, single source of truth for the UI's visual design |
+| `app/seed.py` | One-time seed script loading historical rows from CSV into SQLite |
+| `rxconfig.py` | Reflex app config — plugins, theme, default color mode |
+| `tests/` | Pytest suite — state, forecasting, models, seed, validators, theme, CSV import, and component tests. Run with `pytest tests/ -q` |
 | `alembic/` | Schema migrations (wraps Reflex's `reflex db migrate`) |
-| `reflex.db` | The SQLite database file (gitignored in spirit, but currently tracked — don't hand-edit; use the app or `reflex db migrate`) |
+| `reflex.db` | The SQLite database file — don't hand-edit; use the app or `reflex db migrate` |
 
 ## Running tests
 
@@ -48,28 +45,36 @@ pytest tests/ -q
 Tests instantiate `DashboardState` directly and don't require a running Reflex
 server or browser.
 
+## Features
+
+- **Forecast summary cards** — base forecast, expected range, direction vs. latest
+  actual, all-time high/low, and year-over-year change for each tracked series.
+- **Scenario chart** — a fan chart showing historical actuals and a base/bull/bear
+  forecast band across an adjustable 1-12 month horizon.
+- **Data entry** — an editable table for monthly actuals, with validation, a
+  windowed view (recent months by default, full history on toggle), and CSV bulk
+  import with a preview-and-confirm step that never overwrites existing rows.
+- **Excel export** — download the stored price table and current forecast to
+  `.xlsx`.
+- **Light/dark theming** — a toggle in the header, persisted across visits.
+
 ## Architecture notes
 
 - **Single process, single user.** No auth, no split frontend/backend service —
-  matches the "one person, roughly monthly use" usage pattern (see
-  `.planning/research/STACK.md` for why this stack was chosen over
-  Postgres/split-service alternatives).
+  matches an occasional, low-volume usage pattern.
 - **Forecasting is a hard boundary.** `state.py` calls `forecast_all()` exactly
   once per computed var (`forecast_results`) — every other forecast-derived value
   (summary cards, chart, table) reads that memoized result rather than re-fitting
   models on every horizon-slider drag. Don't add a second call site.
 - **Design tokens are centralized.** `app/theme.py` is the single source for every
   color/spacing/typography value used in `app.py` and the Plotly figure builders in
-  `state.py` — don't hardcode a hex or px value elsewhere.
-- **No file upload.** Historical data entry is manual, in-app, via the editable
-  table at the bottom of the page — this is a deliberate v1 scope decision (see
-  `.planning/PROJECT.md`), not a missing feature.
+  `state.py` — don't hardcode a hex or px value elsewhere. Colors are mode-aware
+  (light/dark) and resolved through `DashboardState`'s computed vars.
+- **CSV import reuses existing validation.** `csv_import.py` calls the same
+  `validate_numeric`/`validate_date` functions the manual-entry table uses — no
+  parallel validation logic.
 
 ## Where to look next
 
 - `.planning/ROADMAP.md` — phase-by-phase build history and what's currently in
   progress
-- `.planning/phases/06-ux-ui-redesign/06-UI-SPEC.md` — the as-built UI design
-  contract (layout order, color/spacing/typography rules, copy)
-- `../backend_research/REPORT.md` — the model backtests this app's forecasts are
-  built on
