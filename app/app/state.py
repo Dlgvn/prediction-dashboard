@@ -265,8 +265,8 @@ class DashboardState(rx.State):
         forecast_table_rows var (EXPORT-02, D-02). Deliberately reads
         self.forecast_table_rows rather than calling forecast_all or
         re-deriving from forecast_results — reusing the same values the
-        dashboard renders is what makes export/screen parity structurally
-        guaranteed rather than coincidental.
+        dashboard renders is what keeps export/screen parity structural
+        rather than coincidental.
         """
         records: list[dict] = []
         for row in self.forecast_table_rows:
