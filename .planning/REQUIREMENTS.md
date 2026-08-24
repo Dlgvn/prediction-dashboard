@@ -136,10 +136,10 @@
 | VIS-02 | Phase 5 | Complete |
 | VIS-03 | Phase 5 | Complete (resolved per CONTEXT D-03 via the combination of the selector-driven forecast chart and the all-series forecast table, not by the chart alone) |
 | EXPORT-01 | Phase 5 | Complete |
-| DATA-07 | Phase 7 | Not started |
-| DATA-08 | Phase 7 | Not started |
-| FCST-08 | Phase 8 | Not started |
-| FCST-09 | Phase 8 | Not started |
+| DATA-07 | Phase 7 | Complete |
+| DATA-08 | Phase 7 | Complete |
+| FCST-08 | Phase 8 | Complete |
+| FCST-09 | Phase 8 | Complete |
 | EXPORT-02 | Phase 9 | Complete |
 | IMPORT-01 | Phase 10 | In Progress (parsing core + DB write path done, UI + human verification pending) |
 | IMPORT-02 | Phase 10 | In Progress (parsing core + DB write path done, UI + human verification pending) |
