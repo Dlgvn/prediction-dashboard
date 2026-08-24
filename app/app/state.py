@@ -697,6 +697,24 @@ class DashboardState(rx.State):
         self.draft_value = ""
         self.edit_error = ""
 
+    def toggle_show_all_history(self, value: bool) -> None:
+        """rx.switch's on_change handler (D-02/D-03, Phase 7).
+
+        Assigns the boolean emitted by the switch directly — the switch is
+        the source of truth for the new value, not a negation of the prior
+        field, so this stays correct even if events ever coalesce.
+
+        Per D-03, also cancels any in-progress cell edit and any armed
+        two-click delete confirmation, since a row can leave the visible
+        window mid-edit/mid-delete-arm. draft_rows is intentionally left
+        untouched — the single-slot unsaved draft is unrelated to windowing
+        and must survive the toggle (PITFALLS.md). This is a pure in-memory
+        re-slice; it never calls load_rows() or opens a DB session.
+        """
+        self.show_all_history = value
+        self.cancel_edit()
+        self.cancel_pending_delete()
+
     def commit_edit(self) -> None:
         if self.editing_key == "":
             return
