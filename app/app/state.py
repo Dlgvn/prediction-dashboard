@@ -389,6 +389,18 @@ class DashboardState(rx.State):
             label = FORECAST_SERIES_LABELS[key]
             series = results.get(key, [])
 
+            # D-01/D-04: full-history high/low, computed before the
+            # no-data early return so both branches carry the same keys
+            # (Phase 6 flat all-string dict discipline). Reads self.rows
+            # via the shared helper — never visible_rows.
+            actual_values = [v for _, v in self._actual_series_for(key)]
+            hilo_label = "All-time high/low"
+            hilo_text = (
+                f"{max(actual_values):{NUMBER_FORMAT}} / {min(actual_values):{NUMBER_FORMAT}}"
+                if actual_values
+                else ""
+            )
+
             if not series:
                 cards.append(
                     {
@@ -402,6 +414,8 @@ class DashboardState(rx.State):
                         "direction": "flat",
                         "delta_text": "",
                         "caption": "vs. latest actual",
+                        "hilo_label": hilo_label,
+                        "hilo_text": hilo_text,
                         "no_data_text": "Add pricing data to see a forecast",
                     }
                 )
@@ -446,6 +460,8 @@ class DashboardState(rx.State):
                     "direction": direction,
                     "delta_text": delta_text,
                     "caption": "vs. latest actual",
+                    "hilo_label": hilo_label,
+                    "hilo_text": hilo_text,
                     "no_data_text": "Add pricing data to see a forecast",
                 }
             )

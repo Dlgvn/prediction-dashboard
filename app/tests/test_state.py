@@ -1405,3 +1405,75 @@ def test_latest_actual_for_diesel_mnt_regression_parity(session, monkeypatch):
     ]
 
     assert state._latest_actual_for("diesel_mnt") == 110.0 * 3.1 * 1.05
+
+
+# ---------------------------------------------------------------------------
+# All-time high/low on summary_cards (FCST-08, Phase 8 plan 08-01 Task 2)
+# ---------------------------------------------------------------------------
+
+
+def test_summary_cards_hilo_text_formats_high_then_low(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = [
+        PriceRow(date="2025-01-01", hdan=10.0),
+        PriceRow(date="2025-02-01", hdan=55.5),
+        PriceRow(date="2025-03-01", hdan=30.0),
+    ]
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    assert cards["hdan"]["hilo_text"] == "55.50 / 10.00"
+    assert cards["hdan"]["hilo_label"] == "All-time high/low"
+
+
+def test_summary_cards_hilo_single_value_high_equals_low(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = [PriceRow(date="2025-01-01", hdan=1234.56)]
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    assert cards["hdan"]["hilo_text"] == "1,234.56 / 1,234.56"
+
+
+def test_summary_cards_hilo_diesel_mnt_uses_markup_derivation(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.markup_pct = 10.0
+    state.rows = [
+        PriceRow(date="2025-01-01", diesel_usd_ton=100.0, fx_rate=3.0),
+        PriceRow(date="2025-02-01", diesel_usd_ton=200.0, fx_rate=3.0),
+    ]
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    # 100*3*1.1=330, 200*3*1.1=660
+    assert cards["diesel_mnt"]["hilo_text"] == "660.00 / 330.00"
+
+
+def test_summary_cards_hilo_empty_when_no_actuals(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = []
+
+    for card in state.summary_cards:
+        assert card["hilo_text"] == ""
+        assert card["hilo_label"] == "All-time high/low"
+
+
+def test_summary_cards_hilo_ignores_visible_rows_window(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    rows = _rows_ascending(20)
+    # Put the all-time extreme far outside the TABLE_WINDOW_ROWS window.
+    rows[0].hdan = 9999.0
+    state.rows = rows
+
+    state.show_all_history = False
+    hilo_windowed = {c["series_key"]: c["hilo_text"] for c in state.summary_cards}
+    state.show_all_history = True
+    hilo_full = {c["series_key"]: c["hilo_text"] for c in state.summary_cards}
+
+    assert "9,999.00" in hilo_windowed["hdan"]
+    assert hilo_windowed == hilo_full
