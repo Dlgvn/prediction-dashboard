@@ -1,5 +1,7 @@
 # Price Forecasting Workbook
 
+[![GitHub repo](https://img.shields.io/badge/GitHub-Dlgvn%2Fprediction--dashboard-181717?logo=github)](https://github.com/Dlgvn/prediction-dashboard)
+
 Live-formula Excel workbook forecasting **HDAN**, **PPAN**, **Diesel purchasing price
 (MNT)**, and the **USD/MNT FX rate** — for procurement/budgeting, one month ahead.
 Built for one person doing procurement or budgeting, opening this workbook once a
