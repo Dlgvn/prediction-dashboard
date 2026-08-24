@@ -178,15 +178,15 @@
 | EXPORT-02 | Phase 9 | Complete |
 | IMPORT-01 | Phase 10 | Complete |
 | IMPORT-02 | Phase 10 | Complete |
-| THEME-01 | TBD | Not started |
-| THEME-02 | TBD | Not started |
-| THEME-03 | TBD | Not started |
-| THEME-04 | TBD | Not started |
-| VIS-04 | TBD | Not started |
-| VIS-05 | TBD | Not started |
-| NAV-01 | TBD | Not started |
-| DATA-09 | TBD | Not started |
-| DATA-10 | TBD | Not started |
+| THEME-01 | Phase 11 | Pending |
+| THEME-02 | Phase 11 | Pending |
+| THEME-03 | Phase 11 | Pending |
+| THEME-04 | Phase 11 | Pending |
+| VIS-04 | Phase 12 | Pending |
+| VIS-05 | Phase 13 | Pending |
+| NAV-01 | Phase 14 | Pending |
+| DATA-09 | Phase 15 | Pending |
+| DATA-10 | Phase 15 | Pending |
 
 ---
 *Requirements defined: 2026-08-21*

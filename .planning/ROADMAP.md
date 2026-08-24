@@ -12,6 +12,11 @@
 - [x] **Phase 8: Forecast Context Enrichment** - Forecast summary cards show historical high/low and year-over-year % change (completed 2026-08-24)
 - [x] **Phase 9: Excel Export Polish** - Excel export includes a forecast sheet (base/bull/bear) alongside the existing actuals sheet (completed 2026-08-24)
 - [x] **Phase 10: CSV Bulk Import** - User can bulk-import historical prices via CSV with preview, confirm, and duplicate-date skipping (completed 2026-08-24)
+- [ ] **Phase 11: Background Fix + Theme Toggle** - Dashboard renders correctly at every viewport with a persisted dark/light mode toggle
+- [ ] **Phase 12: Fan Chart Legend/Axis Fix** - Fan chart legend and axis labels no longer overlap at any viewport
+- [ ] **Phase 13: Model Provenance Display** - Each forecast shows which model produced it and its backtested accuracy
+- [ ] **Phase 14: Tab/Nav Bar** - User switches between Summary/Forecast/Data Entry via tabs without losing in-progress state
+- [ ] **Phase 15: Data Entry Rework** - Date entry reliably accepts valid input with visible errors and no format memorization
 
 ## Phase Details
 
@@ -192,6 +197,62 @@ Plans:
 
 **UI hint**: yes
 
+### Phase 11: Background Fix + Theme Toggle
+**Goal**: The dashboard renders a correct, mode-aware background at every viewport width, and the user can toggle between light and dark mode with the choice persisting across visits.
+**Depends on**: Phase 6
+**Requirements**: THEME-01, THEME-02, THEME-03, THEME-04
+**Success Criteria** (what must be TRUE):
+  1. No transparent margins or unstyled black areas appear outside the page content at any viewport width, in either light or dark mode
+  2. User can toggle between light and dark mode from a visible control in the dashboard UI
+  3. The chosen theme mode is still active after reloading the page or returning in a new visit
+  4. Every existing color token (cards, charts, text, accent) has a correct, legible dark-mode counterpart — no illegible text or un-styled element in dark mode
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 12: Fan Chart Legend/Axis Fix
+**Goal**: The fan chart's legend and axis labels are readable and never overlap, at any supported viewport width.
+**Depends on**: Phase 11
+**Requirements**: VIS-04
+**Success Criteria** (what must be TRUE):
+  1. The fan chart's legend does not visually overlap its axis labels at any supported viewport width
+  2. The fix is applied consistently to both the historical chart and the forecast chart
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 13: Model Provenance Display
+**Goal**: Each series' forecast section shows which model produced it and its backtested accuracy, sourced from a single existing source of truth.
+**Depends on**: Phase 12
+**Requirements**: VIS-05
+**Success Criteria** (what must be TRUE):
+  1. Each series' forecast section displays the model name that produced it (e.g. "SARIMAX", "Direct-OLS VAR", "Naive")
+  2. Each series' forecast section displays its backtested accuracy (e.g. MAPE)
+  3. The displayed model name and accuracy are sourced from the existing model-selection constants, not a second hand-typed copy
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 14: Tab/Nav Bar
+**Goal**: The user navigates between Summary, Forecast, and Data Entry sections via a tab/nav bar instead of one long scroll, without losing in-progress work.
+**Depends on**: Phase 13
+**Requirements**: NAV-01
+**Success Criteria** (what must be TRUE):
+  1. User can switch between Summary, Forecast, and Data Entry sections via a visible tab/nav bar
+  2. Switching sections does not trigger a full page reload
+  3. In-progress edits (e.g. a draft row) are preserved when switching away from Data Entry and back
+  4. An in-progress CSV import preview is preserved when switching away from Data Entry and back
+**Plans**: TBD
+**UI hint**: yes
+
+### Phase 15: Data Entry Rework
+**Goal**: The user can reliably enter a new row's date, with immediate visible feedback on invalid input and no need to remember an exact date format.
+**Depends on**: Phase 14
+**Requirements**: DATA-09, DATA-10
+**Success Criteria** (what must be TRUE):
+  1. Entering a new row's date with invalid or incomplete input shows a visible, immediate error instead of silently failing
+  2. Valid date input is reliably accepted and the row is added
+  3. The date entry control does not require the user to type or recall an exact date format from memory
+  4. Existing shared state behavior (windowing toggle, CSV import) continues to work correctly after the date-entry rework
+**Plans**: TBD
+
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
@@ -206,8 +267,14 @@ Plans:
 | 8. Forecast Context Enrichment | 2/2 | Complete   | 2026-08-24 |
 | 9. Excel Export Polish | 1/1 | Complete   | 2026-08-24 |
 | 10. CSV Bulk Import | 3/3 | Complete   | 2026-08-24 |
+| 11. Background Fix + Theme Toggle | 0/? | Not started | - |
+| 12. Fan Chart Legend/Axis Fix | 0/? | Not started | - |
+| 13. Model Provenance Display | 0/? | Not started | - |
+| 14. Tab/Nav Bar | 0/? | Not started | - |
+| 15. Data Entry Rework | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-08-21*
 *v1.2 phases (7-10) added: 2026-08-24*
+*v1.3 phases (11-15) added: 2026-08-24*
 *Granularity: coarse*
