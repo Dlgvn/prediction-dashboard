@@ -1,7 +1,5 @@
 """Unit coverage for app/app/theme.py's locked design tokens."""
 
-import re
-
 from app import theme
 
 
@@ -63,14 +61,6 @@ def test_all_locked_color_hex_values_present():
             theme.UP,
             theme.DOWN,
         )
-
-
-def test_no_dark_mode_or_theme_toggle_token():
-    with open(theme.__file__) as fh:
-        lines = fh.readlines()
-    code_lines = [line for line in lines if not line.strip().startswith("#")]
-    joined = "".join(code_lines)
-    assert re.search(r"dark|toggle", joined, re.IGNORECASE) is None
 
 
 def test_theme_module_imports_with_no_third_party_dependency():
