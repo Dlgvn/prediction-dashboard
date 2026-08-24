@@ -435,6 +435,33 @@ def _summary_card(card: rx.Var) -> rx.Component:
                         rx.text(card["caption"], size=RADIX_SIZE_LABEL, color=MUTED_TEXT),
                         spacing="2",
                     ),
+                    rx.hstack(
+                        rx.text(
+                            card["hilo_label"] + ":",
+                            size=RADIX_SIZE_LABEL,
+                            color=MUTED_TEXT,
+                        ),
+                        rx.text(card["hilo_text"], size=RADIX_SIZE_BODY),
+                        spacing="2",
+                    ),
+                    rx.hstack(
+                        rx.text(
+                            card["yoy_label"] + ":",
+                            size=RADIX_SIZE_LABEL,
+                            color=MUTED_TEXT,
+                        ),
+                        rx.text(
+                            card["yoy_arrow"] + " " + card["yoy_text"],
+                            color=rx.cond(
+                                card["yoy_direction"] == "up",
+                                UP,
+                                rx.cond(card["yoy_direction"] == "down", DOWN, MUTED_TEXT),
+                            ),
+                            font_weight=FONT_WEIGHT_SEMIBOLD,
+                            size=RADIX_SIZE_BODY,
+                        ),
+                        spacing="2",
+                    ),
                 ),
                 rx.text(card["no_data_text"], size=RADIX_SIZE_BODY, color=MUTED_TEXT),
             ),
@@ -447,7 +474,15 @@ def _summary_card(card: rx.Var) -> rx.Component:
         padding=CARD_PADDING,
         min_width="200px",
         flex="1 1 200px",
-        aria_label=card["label"] + " " + card["base"] + " " + card["delta_text"],
+        aria_label=card["label"]
+        + " "
+        + card["base"]
+        + " "
+        + card["delta_text"]
+        + " "
+        + card["hilo_text"]
+        + " "
+        + card["yoy_text"],
     )
 
 
