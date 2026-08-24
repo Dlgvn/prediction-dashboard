@@ -1340,3 +1340,68 @@ def test_summary_cards_does_not_call_forecast_all_more_than_once(
     _ = state.summary_cards
 
     assert call_count["n"] == 1
+
+
+# ---------------------------------------------------------------------------
+# _actual_series_for (Phase 8 plan 08-01, Task 1 — single derivation helper)
+# ---------------------------------------------------------------------------
+
+
+def test_actual_series_for_skips_none_values(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = [
+        PriceRow(date="2025-01-01", hdan=10.0),
+        PriceRow(date="2025-02-01", hdan=None),
+        PriceRow(date="2025-03-01", hdan=30.0),
+    ]
+
+    assert state._actual_series_for("hdan") == [
+        ("2025-01-01", 10.0),
+        ("2025-03-01", 30.0),
+    ]
+
+
+def test_actual_series_for_diesel_mnt_applies_markup(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.markup_pct = 10.0
+    state.rows = [PriceRow(date="2025-01-01", diesel_usd_ton=100.0, fx_rate=3.0)]
+
+    series = state._actual_series_for("diesel_mnt")
+
+    assert series == [("2025-01-01", 330.0)]
+
+
+def test_actual_series_for_diesel_mnt_skips_partial_rows(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = [
+        PriceRow(date="2025-01-01", diesel_usd_ton=100.0, fx_rate=None),
+        PriceRow(date="2025-02-01", diesel_usd_ton=None, fx_rate=3.0),
+        PriceRow(date="2025-03-01", diesel_usd_ton=100.0, fx_rate=3.0),
+    ]
+
+    series = state._actual_series_for("diesel_mnt")
+
+    assert [d for d, _ in series] == ["2025-03-01"]
+
+
+def test_actual_series_for_empty_rows_returns_empty_list(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = []
+
+    assert state._actual_series_for("hdan") == []
+
+
+def test_latest_actual_for_diesel_mnt_regression_parity(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.markup_pct = 5.0
+    state.rows = [
+        PriceRow(date="2025-01-01", diesel_usd_ton=100.0, fx_rate=3.0),
+        PriceRow(date="2025-02-01", diesel_usd_ton=110.0, fx_rate=3.1),
+    ]
+
+    assert state._latest_actual_for("diesel_mnt") == 110.0 * 3.1 * 1.05

@@ -452,25 +452,33 @@ class DashboardState(rx.State):
 
         return cards
 
-    def _latest_actual_for(self, key: str) -> float | None:
-        """Last non-None actual value for a SUMMARY_CARD_SERIES key.
+    def _actual_series_for(self, key: str) -> list[tuple[str, float]]:
+        """Full-history (date, value) pairs for a series key, skipping None.
 
-        For diesel_mnt, derives from the last row where BOTH diesel_usd_ton
-        and fx_rate are non-None, matching forecast_chart_figure's exact
-        multiplier convention.
+        This is the SOLE derivation site for diesel_mnt (PITFALLS.md
+        Pitfall 6): diesel_usd_ton * fx_rate * (1 + markup_pct/100). Always
+        iterates self.rows (never visible_rows) in existing date-ascending
+        order, so every caller (_latest_actual_for, forecast_chart_figure,
+        summary_cards high/low and YoY) shares one formula and one
+        full-history read.
         """
-        if key == "diesel_mnt":
-            multiplier = 1 + self.markup_pct / 100.0
-            for row in reversed(self.rows):
-                if row.diesel_usd_ton is not None and row.fx_rate is not None:
-                    return row.diesel_usd_ton * row.fx_rate * multiplier
-            return None
+        pairs: list[tuple[str, float]] = []
+        for row in self.rows:
+            if key == "diesel_mnt":
+                if row.diesel_usd_ton is None or row.fx_rate is None:
+                    continue
+                value = row.diesel_usd_ton * row.fx_rate * (1 + self.markup_pct / 100.0)
+            else:
+                value = getattr(row, key)
+                if value is None:
+                    continue
+            pairs.append((row.date, value))
+        return pairs
 
-        for row in reversed(self.rows):
-            value = getattr(row, key)
-            if value is not None:
-                return value
-        return None
+    def _latest_actual_for(self, key: str) -> float | None:
+        """Last non-None actual value for a SUMMARY_CARD_SERIES key."""
+        series = self._actual_series_for(key)
+        return series[-1][1] if series else None
 
     @rx.var
     def forecast_chart_figure(self) -> go.Figure:
@@ -488,23 +496,9 @@ class DashboardState(rx.State):
         # Historical segment (D-05): last 12 non-null observations for the
         # selected series, diesel_mnt derived per diesel_mnt_forecast's
         # exact multiplier convention.
-        hist_dates: list = []
-        hist_values: list = []
-        for row in self.rows:
-            if attr == "diesel_mnt":
-                if row.diesel_usd_ton is None or row.fx_rate is None:
-                    continue
-                multiplier = 1 + self.markup_pct / 100.0
-                value = row.diesel_usd_ton * row.fx_rate * multiplier
-            else:
-                value = getattr(row, attr)
-                if value is None:
-                    continue
-            hist_dates.append(row.date)
-            hist_values.append(value)
-
-        hist_dates = hist_dates[-12:]
-        hist_values = hist_values[-12:]
+        hist_pairs = self._actual_series_for(attr)[-12:]
+        hist_dates: list = [d for d, _ in hist_pairs]
+        hist_values: list = [v for _, v in hist_pairs]
 
         if not series or not hist_dates:
             figure = go.Figure()
