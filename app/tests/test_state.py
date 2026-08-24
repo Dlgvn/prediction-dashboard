@@ -8,7 +8,13 @@ import pandas as pd
 from app import state as state_module
 from app import validators
 from app.models import PriceRow
-from app.state import SERIES_ATTRS, SERIES_LABELS, TABLE_WINDOW_ROWS, DashboardState
+from app.state import (
+    FORECAST_SERIES_LABELS,
+    SERIES_ATTRS,
+    SERIES_LABELS,
+    TABLE_WINDOW_ROWS,
+    DashboardState,
+)
 
 
 def _db_row_count(session):
@@ -1477,3 +1483,158 @@ def test_summary_cards_hilo_ignores_visible_rows_window(session, monkeypatch):
 
     assert "9,999.00" in hilo_windowed["hdan"]
     assert hilo_windowed == hilo_full
+
+
+# ---------------------------------------------------------------------------
+# Year-over-year on summary_cards (FCST-09, Phase 8 plan 08-01 Task 3)
+# ---------------------------------------------------------------------------
+
+
+def _stub_nonempty_forecast_results(monkeypatch):
+    """Force forecast_results to a non-empty shape for all summary-card
+    series, so summary_cards takes the populated branch regardless of
+    MIN_HISTORY_ROWS (forecasting.py) — YoY here is exercised purely via
+    self.rows/_actual_series_for, independent of real forecasting.
+    """
+    fake_results = {
+        key: [{"month": 1, "base": 1.0, "bull": 1.0, "bear": 1.0}]
+        for key in FORECAST_SERIES_LABELS
+    }
+    monkeypatch.setattr(
+        state_module.DashboardState,
+        "forecast_results",
+        property(lambda self: fake_results),
+    )
+
+
+def test_summary_cards_yoy_up_matches_calendar_month(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    _stub_nonempty_forecast_results(monkeypatch)
+    state = DashboardState()
+    state.rows = [
+        PriceRow(date="2025-07-01", hdan=100.0),
+        PriceRow(date="2026-07-01", hdan=104.2),
+    ]
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    assert cards["hdan"]["yoy_direction"] == "up"
+    assert cards["hdan"]["yoy_arrow"] == "↑"
+    assert cards["hdan"]["yoy_text"] == "4.2% vs. Jul 2025"
+
+
+def test_summary_cards_yoy_down(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    _stub_nonempty_forecast_results(monkeypatch)
+    state = DashboardState()
+    state.rows = [
+        PriceRow(date="2025-07-01", hdan=100.0),
+        PriceRow(date="2026-07-01", hdan=90.0),
+    ]
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    assert cards["hdan"]["yoy_direction"] == "down"
+    assert cards["hdan"]["yoy_arrow"] == "↓"
+    assert cards["hdan"]["yoy_text"] == "10.0% vs. Jul 2025"
+
+
+def test_summary_cards_yoy_flat_zero_pct(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    _stub_nonempty_forecast_results(monkeypatch)
+    state = DashboardState()
+    state.rows = [
+        PriceRow(date="2025-07-01", hdan=100.0),
+        PriceRow(date="2026-07-01", hdan=100.0),
+    ]
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    assert cards["hdan"]["yoy_direction"] == "flat"
+    assert cards["hdan"]["yoy_arrow"] == "→"
+    assert cards["hdan"]["yoy_text"] == "0.0% vs. Jul 2025"
+
+
+def test_summary_cards_yoy_empty_when_no_prior_year_actual(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    _stub_nonempty_forecast_results(monkeypatch)
+    state = DashboardState()
+    state.rows = [PriceRow(date="2026-07-01", hdan=104.2)]
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    assert cards["hdan"]["yoy_text"] == ""
+    assert cards["hdan"]["yoy_arrow"] == ""
+    assert cards["hdan"]["yoy_direction"] == "flat"
+
+
+def test_summary_cards_yoy_empty_when_prior_value_zero(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    _stub_nonempty_forecast_results(monkeypatch)
+    state = DashboardState()
+    state.rows = [
+        PriceRow(date="2025-07-01", hdan=0.0),
+        PriceRow(date="2026-07-01", hdan=104.2),
+    ]
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    assert cards["hdan"]["yoy_text"] == ""
+
+
+def test_summary_cards_yoy_matches_month_not_row_offset(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    _stub_nonempty_forecast_results(monkeypatch)
+    state = DashboardState()
+    # 13 rows back from the latest is NOT the same calendar month as the
+    # latest, because a month is missing in between (D-02 guard).
+    state.rows = [
+        PriceRow(date="2025-06-01", hdan=999.0),  # 13 rows back — wrong month
+        PriceRow(date="2025-07-01", hdan=100.0),  # correct calendar match
+        PriceRow(date="2025-08-01", hdan=50.0),
+        PriceRow(date="2025-09-01", hdan=50.0),
+        PriceRow(date="2025-10-01", hdan=50.0),
+        PriceRow(date="2025-11-01", hdan=50.0),
+        PriceRow(date="2025-12-01", hdan=50.0),
+        PriceRow(date="2026-01-01", hdan=50.0),
+        PriceRow(date="2026-02-01", hdan=50.0),
+        PriceRow(date="2026-03-01", hdan=50.0),
+        PriceRow(date="2026-04-01", hdan=50.0),
+        PriceRow(date="2026-05-01", hdan=50.0),
+        PriceRow(date="2026-06-01", hdan=50.0),
+        PriceRow(date="2026-07-01", hdan=104.2),
+    ]
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    assert cards["hdan"]["yoy_text"] == "4.2% vs. Jul 2025"
+
+
+def test_summary_cards_yoy_ignores_day_of_month(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    _stub_nonempty_forecast_results(monkeypatch)
+    state = DashboardState()
+    state.rows = [
+        PriceRow(date="2025-07-01", hdan=100.0),
+        PriceRow(date="2026-07-15", hdan=104.2),
+    ]
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    assert cards["hdan"]["yoy_text"] == "4.2% vs. Jul 2025"
+
+
+def test_summary_cards_yoy_ignores_visible_rows_window(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    _stub_nonempty_forecast_results(monkeypatch)
+    state = DashboardState()
+    rows = _rows_ascending(20)
+    rows[0].hdan = 500.0  # prior-year comparator outside TABLE_WINDOW_ROWS
+    state.rows = rows
+
+    state.show_all_history = False
+    yoy_windowed = {c["series_key"]: c["yoy_text"] for c in state.summary_cards}
+    state.show_all_history = True
+    yoy_full = {c["series_key"]: c["yoy_text"] for c in state.summary_cards}
+
+    assert yoy_windowed == yoy_full

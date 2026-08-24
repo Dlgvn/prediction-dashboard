@@ -95,6 +95,23 @@ FORECAST_LABEL_TO_ATTR: dict[str, str] = {
 # diesel_mnt is derived (diesel_usd * fx * markup) and has no own date.
 FRESHNESS_SERIES: tuple[str, ...] = ("hdan", "ppan", "diesel_usd_ton", "fx_rate")
 
+# FCST-09: month-abbreviation lookup for YoY captions, avoiding a datetime
+# import just to format "Jul 2025" (D-02 calendar-month comparator caption).
+MONTH_ABBR = (
+    "Jan",
+    "Feb",
+    "Mar",
+    "Apr",
+    "May",
+    "Jun",
+    "Jul",
+    "Aug",
+    "Sep",
+    "Oct",
+    "Nov",
+    "Dec",
+)
+
 # D-01: exactly four forecast-summary cards, in display order. Deliberately
 # excludes diesel_usd_ton from FORECAST_SERIES_LABELS' five keys because the
 # user tracks the MNT purchasing price (diesel_mnt), not the raw USD/ton
@@ -389,17 +406,50 @@ class DashboardState(rx.State):
             label = FORECAST_SERIES_LABELS[key]
             series = results.get(key, [])
 
-            # D-01/D-04: full-history high/low, computed before the
+            # D-01/D-04: full-history high/low + YoY, computed before the
             # no-data early return so both branches carry the same keys
-            # (Phase 6 flat all-string dict discipline). Reads self.rows
-            # via the shared helper — never visible_rows.
-            actual_values = [v for _, v in self._actual_series_for(key)]
+            # (Phase 6 flat all-string dict discipline). Reuses ONE
+            # self._actual_series_for(key) call (never re-scans self.rows,
+            # never reads visible_rows) for both high/low and YoY.
+            actual_pairs = self._actual_series_for(key)
+            actual_values = [v for _, v in actual_pairs]
             hilo_label = "All-time high/low"
             hilo_text = (
                 f"{max(actual_values):{NUMBER_FORMAT}} / {min(actual_values):{NUMBER_FORMAT}}"
                 if actual_values
                 else ""
             )
+
+            # FCST-09/D-02: calendar-month match (YYYY-MM prefix), never a
+            # 12-row offset — history gaps or non-day-01 dates must still
+            # compare the correct prior-year month.
+            yoy_label = "YoY"
+            yoy_text = ""
+            yoy_arrow = ""
+            yoy_direction = "flat"
+            if actual_pairs:
+                latest_date, latest_value = actual_pairs[-1]
+                year, month = int(latest_date[:4]), int(latest_date[5:7])
+                target_month = f"{year - 1:04d}-{month:02d}"
+                prior_value = None
+                for pair_date, pair_value in actual_pairs:
+                    if pair_date[:7] == target_month:
+                        prior_value = pair_value
+                        break
+                if prior_value is not None and prior_value != 0:
+                    pct = (latest_value - prior_value) / prior_value * 100
+                    # D-03: yoy_arrow stays "" (not ARROW_FLAT) whenever not
+                    # computable so app.py's "arrow + text" concatenation
+                    # never renders a stray glyph next to empty text; here
+                    # it IS computable, so mirror the existing delta
+                    # three-way branch exactly.
+                    if pct > 0:
+                        yoy_arrow, yoy_direction = ARROW_UP, "up"
+                    elif pct < 0:
+                        yoy_arrow, yoy_direction = ARROW_DOWN, "down"
+                    else:
+                        yoy_arrow, yoy_direction = ARROW_FLAT, "flat"
+                    yoy_text = f"{abs(pct):.1f}% vs. {MONTH_ABBR[month - 1]} {year - 1}"
 
             if not series:
                 cards.append(
@@ -416,6 +466,10 @@ class DashboardState(rx.State):
                         "caption": "vs. latest actual",
                         "hilo_label": hilo_label,
                         "hilo_text": hilo_text,
+                        "yoy_label": yoy_label,
+                        "yoy_text": "",
+                        "yoy_arrow": "",
+                        "yoy_direction": "flat",
                         "no_data_text": "Add pricing data to see a forecast",
                     }
                 )
@@ -462,6 +516,10 @@ class DashboardState(rx.State):
                     "caption": "vs. latest actual",
                     "hilo_label": hilo_label,
                     "hilo_text": hilo_text,
+                    "yoy_label": yoy_label,
+                    "yoy_text": yoy_text,
+                    "yoy_arrow": yoy_arrow,
+                    "yoy_direction": yoy_direction,
                     "no_data_text": "Add pricing data to see a forecast",
                 }
             )
