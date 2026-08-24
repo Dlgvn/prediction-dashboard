@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: data-entry-fix-forecast-enrichment
 status: executing
-stopped_at: Completed 10-01-PLAN.md
-last_updated: "2026-08-24T05:48:09.417Z"
+stopped_at: Completed 10-02-PLAN.md
+last_updated: "2026-08-24T06:15:00.000Z"
 last_activity: 2026-08-24
 progress:
   total_phases: 10
   completed_phases: 9
   total_plans: 33
-  completed_plans: 31
-  percent: 90
+  completed_plans: 32
+  percent: 97
 ---
 
 # Project State
@@ -31,10 +31,10 @@ improvements to export/import UX, forecast context, and performance at data scal
 ## Current Position
 
 Milestone: v1.2
-Status: Phase 10 in progress — 10-01 (CSV import parsing core) done; IMPORT-01/IMPORT-02 not yet closed (state/UI layers pending). 10-02 (DB write path) not yet started.
+Status: Phase 10 in progress — 10-01 (CSV import parsing core) and 10-02 (DB write path wired into DashboardState) done; IMPORT-01/IMPORT-02 still NOT closed (UI layer in 10-03 pending, no human browser verification yet). 10-03 (UI wiring + human checkpoint) not yet started.
 Last activity: 2026-08-24
 
-Progress: [█████████░] 94%
+Progress: [██████████] 97%
 
 ## Performance Metrics
 
@@ -86,6 +86,7 @@ Progress: [█████████░] 94%
 | Phase 08-forecast-context-enrichment P02 | 25min | 3 tasks | 2 files |
 | Phase 09-excel-export-polish P01 | 25min | 2 tasks | 2 files |
 | Phase 10-csv-bulk-import P01 | 20 min | 2 tasks | 2 files |
+| Phase 10-csv-bulk-import P02 | 25 min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -142,6 +143,7 @@ Recent decisions affecting current work:
 - [Phase 08-forecast-context-enrichment]: 08-02: YoY row is never wrapped in its own rx.cond — label always renders, only the value string is empty in the non-computable case, so card height never jumps; high/low value carries no directional color since it has no sign
 - [Phase 09-excel-export-polish]: 09-01: _forecast_export_records reads forecast_table_rows (never forecast_all/forecast_results) so export/screen parity is structural, not coincidental; empty forecast yields a header-only Forecast sheet via explicit columns=
 - [Phase 10-csv-bulk-import]: 10-01: parse_import_csv gates header/size/row-count before any row parsing (D-06); duplicate-date and invalid-value skips counted separately (D-04), both delegated entirely to validators.py
+- [Phase 10-csv-bulk-import]: 10-02: confirm_import is structurally insert-only (no session.merge/setattr/select-then-update) so duplicates already excluded by the parser can never overwrite an existing row (IMPORT-02); import_added_count recomputed from len(self.rows) growth post-load_rows(), not the parse-time count
 
 ### Pending Todos
 
@@ -168,6 +170,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-24T05:48:01.093Z
-Stopped at: Completed 10-01-PLAN.md
+Last session: 2026-08-24T06:15:00.000Z
+Stopped at: Completed 10-02-PLAN.md
 Resume file: None

@@ -141,8 +141,8 @@
 | FCST-08 | Phase 8 | Not started |
 | FCST-09 | Phase 8 | Not started |
 | EXPORT-02 | Phase 9 | Complete |
-| IMPORT-01 | Phase 10 | In Progress (parsing core done, state/UI pending) |
-| IMPORT-02 | Phase 10 | In Progress (parsing core done, state/UI pending) |
+| IMPORT-01 | Phase 10 | In Progress (parsing core + DB write path done, UI + human verification pending) |
+| IMPORT-02 | Phase 10 | In Progress (parsing core + DB write path done, UI + human verification pending) |
 
 ---
 *Requirements defined: 2026-08-21*

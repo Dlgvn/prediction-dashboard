@@ -187,7 +187,7 @@ Plans:
 
 Plans:
 - [x] 10-01-PLAN.md — Reflex-free CSV parse + validator-reusing row validation core with schema fail-fast (wave 1)
-- [ ] 10-02-PLAN.md — DashboardState upload/preview/confirm/cancel handlers, insert-only batch write + load_rows refresh (wave 2)
+- [x] 10-02-PLAN.md — DashboardState upload/preview/confirm/cancel handlers, insert-only batch write + load_rows refresh (wave 2)
 - [ ] 10-03-PLAN.md — rx.upload dropzone, summary preview panel, Confirm/Cancel UI + human verification (wave 3)
 
 **UI hint**: yes
@@ -205,7 +205,7 @@ Plans:
 | 7. Table Pagination / Windowing | 2/2 | Complete   | 2026-08-24 |
 | 8. Forecast Context Enrichment | 2/2 | Complete   | 2026-08-24 |
 | 9. Excel Export Polish | 1/1 | Complete   | 2026-08-24 |
-| 10. CSV Bulk Import | 1/3 | In Progress | — |
+| 10. CSV Bulk Import | 2/3 | In Progress | — |
 
 ---
 *Roadmap created: 2026-08-21*
