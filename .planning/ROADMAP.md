@@ -155,7 +155,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 08-01-PLAN.md — Shared `_actual_series_for` diesel_mnt helper, all-time high/low and calendar-month YoY keys on `summary_cards` (wave 1)
+- [x] 08-01-PLAN.md — Shared `_actual_series_for` diesel_mnt helper, all-time high/low and calendar-month YoY keys on `summary_cards` (wave 1)
 - [ ] 08-02-PLAN.md — Two new `_summary_card()` lines, extended `aria_label`, component tests + human verification (wave 2)
 
 **UI hint**: yes

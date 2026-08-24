@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.2
 milestone_name: data-entry-fix-forecast-enrichment
-status: Roadmap created — Phase 7 (Table Pagination / Windowing) up next
-stopped_at: Phase 08 UI-SPEC approved
-last_updated: "2026-08-24T01:24:46.634Z"
+status: Phase 8 in progress — 08-01 (state layer) complete, 08-02 (UI wiring) up next
+stopped_at: Completed 08-01-PLAN.md
+last_updated: "2026-08-24T00:00:00.000Z"
 last_activity: 2026-08-24
 progress:
   total_phases: 10
   completed_phases: 7
-  total_plans: 27
-  completed_plans: 27
+  total_plans: 29
+  completed_plans: 29
   percent: 70
 ---
 
@@ -31,7 +31,7 @@ improvements to export/import UX, forecast context, and performance at data scal
 ## Current Position
 
 Milestone: v1.2
-Status: Roadmap created — Phase 7 (Table Pagination / Windowing) up next
+Status: Phase 8 in progress — 08-01 (state layer) complete, 08-02 (UI wiring) up next
 Last activity: 2026-08-24
 
 Progress: [██████████] 100%
@@ -82,6 +82,7 @@ Progress: [██████████] 100%
 | Phase 06-ux-ui-redesign P03 | 55min | 3 tasks | 7 files |
 | Phase 07-table-pagination-windowing P01 | 15min | 3 tasks | 2 files |
 | Phase 07-table-pagination-windowing P02 | 15min | 3 tasks | 2 files |
+| Phase 08-forecast-context-enrichment P01 | 35min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -133,6 +134,8 @@ Recent decisions affecting current work:
 - [Phase ?]: Pinned Radix theme to appearance=light in rxconfig.py plugins — App silently inherited OS dark-mode preference, breaking text legibility while custom light backgrounds stayed hardcoded; found during Task 3 human verification
 - [Phase 07-table-pagination-windowing]: 07-01: visible_rows/history_window_caption are separate small @rx.var properties, not embedded in an existing var, so Reflex only recomputes what changed — Follows PITFALLS.md Pitfall 8 guidance
 - [Phase 07-table-pagination-windowing]: 07-02: data_table() render layer repointed to visible_rows; empty-state predicate deliberately kept on full rows/draft_rows counts so windowing never triggers a false empty state — Prevents windowing (a display concern) from leaking into the DB-emptiness check, per ARCHITECTURE.md integration note
+- [Phase 08-forecast-context-enrichment]: 08-01: _actual_series_for(key) is now the sole diesel_mnt derivation site, replacing duplicated multiplier loops in _latest_actual_for and forecast_chart_figure; summary_cards high/low and YoY both reuse it, always reading self.rows (never visible_rows)
+- [Phase 08-forecast-context-enrichment]: 08-01: YoY matches by calendar-month (YYYY-MM date prefix), not a 12-row offset, so history gaps and non-day-01 dates still compare the correct prior-year month; empty (not "N/A") when not computable per D-03
 
 ### Pending Todos
 
@@ -159,6 +162,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-24T01:24:46.627Z
-Stopped at: Phase 08 UI-SPEC approved
-Resume file: .planning/phases/08-forecast-context-enrichment/08-UI-SPEC.md
+Last session: 2026-08-24T00:00:00.000Z
+Stopped at: Completed 08-01-PLAN.md
+Resume file: .planning/phases/08-forecast-context-enrichment/08-02-PLAN.md
