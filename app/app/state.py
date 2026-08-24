@@ -18,14 +18,9 @@ from app.csv_import import parse_import_csv
 from app.forecasting import MAX_HORIZON, InsufficientHistoryError, forecast_all
 from app.models import AppSetting, PriceRow
 from app.theme import (
-    ACCENT,
-    ACCENT_FILL,
     ARROW_DOWN,
     ARROW_FLAT,
     ARROW_UP,
-    BORDER,
-    MUTED_TEXT,
-    NEUTRAL_LINE,
     NUMBER_FORMAT,
     PLOTLY_HOVER_NUMBER,
     tokens,
@@ -273,6 +268,7 @@ class DashboardState(rx.State):
         Built entirely from self.rows/self.selected_series (in-memory) so
         switching series never touches the database — RESEARCH Pattern 4.
         """
+        t = tokens(self.theme_mode)
         attr = self.selected_series
         dates = []
         values = []
@@ -292,7 +288,7 @@ class DashboardState(rx.State):
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
                 yaxis=dict(tickformat=NUMBER_FORMAT),
-                font=dict(size=14, color=MUTED_TEXT),
+                font=dict(size=14, color=t["MUTED_TEXT"]),
                 annotations=[
                     dict(
                         text="No data for this series yet.",
@@ -315,10 +311,10 @@ class DashboardState(rx.State):
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             yaxis=dict(tickformat=NUMBER_FORMAT),
-            font=dict(size=14, color=MUTED_TEXT),
+            font=dict(size=14, color=t["MUTED_TEXT"]),
         )
         figure.update_traces(
-            line_color=NEUTRAL_LINE,
+            line_color=t["NEUTRAL_LINE"],
             hovertemplate=f"%{{x}}<br>{PLOTLY_HOVER_NUMBER}<extra></extra>",
         )
         return figure
@@ -660,6 +656,7 @@ class DashboardState(rx.State):
         historical months feeding into a shaded bull/bear band with a solid
         base line drawn on top.
         """
+        t = tokens(self.theme_mode)
         attr = self.forecast_series
         results = self.forecast_results
         series = results.get(attr, [])
@@ -681,7 +678,7 @@ class DashboardState(rx.State):
                 plot_bgcolor="rgba(0,0,0,0)",
                 paper_bgcolor="rgba(0,0,0,0)",
                 yaxis=dict(tickformat=NUMBER_FORMAT),
-                font=dict(size=14, color=MUTED_TEXT),
+                font=dict(size=14, color=t["MUTED_TEXT"]),
                 annotations=[
                     dict(
                         text="No forecast available for this series yet.",
@@ -719,7 +716,7 @@ class DashboardState(rx.State):
                 x=hist_dates_dt,
                 y=hist_values,
                 mode="lines",
-                line=dict(color=NEUTRAL_LINE, dash="solid"),
+                line=dict(color=t["NEUTRAL_LINE"], dash="solid"),
                 name="Historical",
                 hovertemplate=f"%{{x}}<br>{PLOTLY_HOVER_NUMBER}<extra>Historical</extra>",
             )
@@ -742,7 +739,7 @@ class DashboardState(rx.State):
                 mode="lines",
                 line=dict(width=0),
                 fill="tonexty",
-                fillcolor=ACCENT_FILL,
+                fillcolor=t["ACCENT_FILL"],
                 name="Expected range",
                 hovertemplate=f"%{{x}}<br>{PLOTLY_HOVER_NUMBER}<extra>Expected range</extra>",
             )
@@ -752,14 +749,14 @@ class DashboardState(rx.State):
                 x=bridge_dates,
                 y=base_y,
                 mode="lines",
-                line=dict(color=ACCENT, width=2, dash="dash"),
+                line=dict(color=t["ACCENT"], width=2, dash="dash"),
                 name="Base forecast",
                 hovertemplate=f"%{{x}}<br>{PLOTLY_HOVER_NUMBER}<extra>Base forecast</extra>",
             )
         )
         figure.add_vline(
             x=last_hist_date,
-            line=dict(color=BORDER, dash="dash"),
+            line=dict(color=t["BORDER"], dash="dash"),
             annotation_text="Forecast start",
             annotation_position="top left",
         )
@@ -771,7 +768,7 @@ class DashboardState(rx.State):
             plot_bgcolor="rgba(0,0,0,0)",
             paper_bgcolor="rgba(0,0,0,0)",
             yaxis=dict(tickformat=NUMBER_FORMAT),
-            font=dict(size=14, color=MUTED_TEXT),
+            font=dict(size=14, color=t["MUTED_TEXT"]),
             hovermode="x unified",
         )
         return figure
