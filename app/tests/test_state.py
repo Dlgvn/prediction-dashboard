@@ -8,7 +8,7 @@ import pandas as pd
 from app import state as state_module
 from app import validators
 from app.models import PriceRow
-from app.state import SERIES_ATTRS, SERIES_LABELS, DashboardState
+from app.state import SERIES_ATTRS, SERIES_LABELS, TABLE_WINDOW_ROWS, DashboardState
 
 
 def _db_row_count(session):
@@ -1228,6 +1228,96 @@ def test_summary_cards_zero_latest_actual_is_flat_no_crash(session, monkeypatch)
 
     assert cards["hdan"]["direction"] == "flat"
     assert cards["hdan"]["delta_text"] == ""
+
+
+def _rows_ascending(n, start="2023-01-01"):
+    dates = pd.date_range(start, periods=n, freq="MS")
+    return [PriceRow(date=d.strftime("%Y-%m-%d"), hdan=float(i)) for i, d in enumerate(dates)]
+
+
+def test_visible_rows_windows_to_twelve_most_recent(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    rows = _rows_ascending(20)
+    state.rows = rows
+
+    visible = state.visible_rows
+
+    assert len(visible) == TABLE_WINDOW_ROWS
+    assert visible[-1].date == rows[-1].date
+    assert visible[0].date == rows[8].date
+
+
+def test_visible_rows_returns_all_when_show_all_history(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    rows = _rows_ascending(20)
+    state.rows = rows
+    state.show_all_history = True
+
+    assert len(state.visible_rows) == 20
+
+
+def test_visible_rows_shorter_than_window_returns_all(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    rows = _rows_ascending(3)
+    state.rows = rows
+
+    assert len(state.visible_rows) == 3
+
+
+def test_toggle_show_all_history_cancels_edit_and_pending_delete(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_ascending(20)
+    state.editing_key = "2024-01-01:hdan"
+    state.draft_value = "9"
+    state.edit_error = "x"
+    state.pending_delete = "2024-01-01"
+    state.draft_rows = [PriceRow(date="")]
+
+    state.toggle_show_all_history(True)
+
+    assert state.editing_key == ""
+    assert state.draft_value == ""
+    assert state.edit_error == ""
+    assert state.pending_delete == ""
+    assert len(state.draft_rows) == 1
+
+
+def test_toggle_show_all_history_never_mutates_rows(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    rows = _rows_ascending(20)
+    state.rows = rows
+    snapshot = [r.date for r in state.rows]
+
+    state.toggle_show_all_history(True)
+    assert [r.date for r in state.rows] == snapshot
+    assert len(state.rows) == 20
+
+    state.toggle_show_all_history(False)
+    assert [r.date for r in state.rows] == snapshot
+    assert len(state.rows) == 20
+
+
+def test_state_module_assigns_self_rows_exactly_once():
+    source = inspect.getsource(state_module)
+    lines = [line for line in source.splitlines() if not line.strip().startswith("#")]
+    stripped_source = "\n".join(lines)
+    assert stripped_source.count("self.rows = ") == 1
+
+
+def test_history_window_caption_copy(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_ascending(20)
+
+    assert state.history_window_caption == "Showing the most recent 12 months."
+
+    state.show_all_history = True
+    assert state.history_window_caption == "Showing full history (20 rows)."
 
 
 def test_summary_cards_does_not_call_forecast_all_more_than_once(
