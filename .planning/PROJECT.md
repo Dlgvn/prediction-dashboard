@@ -105,13 +105,22 @@ tracked series — without opening Excel.
 | v1 scenarios = base ± statistical spread; live news/sentiment integration deferred to v2 | Keeps v1 scope shippable; news-provider selection is still an open research question | — Pending |
 | No file-upload UI in v1 — manual in-app entry + Excel export instead | User explicitly requested this during brainstorming, reversing an earlier upload-first draft | — Pending |
 
-## Current Milestone: v1.2 Data Entry Fix & Forecast Enrichment
+## Milestone History
 
-**Goal:** Fix the Data Entry table's usability at real data scale, and research/scope improvements to export/import UX, forecast context, and performance as data grows.
+### v1.2 Data Entry Fix & Forecast Enrichment (complete)
+Fixed the Data Entry table's usability at real data scale (12-month default window + "show all history" toggle), added historical high/low + YoY context to summary cards, added a Forecast sheet to Excel export, and added CSV bulk import with preview/confirm and duplicate-date skipping.
+
+## Current Milestone: v1.3 Dashboard Polish & Data-Entry Rework
+
+**Goal:** Fix real user-reported UX defects (full-width layout bug, chart label overlap) and add requested navigation/theming/transparency features, informed by a deep-research pass into a better data-entry method.
 
 **Target features:**
-- Data Entry table defaults to recent months (not all 167 rows since 2013) with a "show all history" toggle, fixing the unusable/hanging table at full scale
-- Researched scope for: export/import UX (better Excel export, possible CSV bulk import), richer forecast context (drivers, historical high/low, % change stats), and general performance patterns for Reflex apps as data grows
+- Fix the transparent `html`/`body` background bug causing black margins outside the content area on wide viewports / dark-mode browsers
+- Persisted dark/light mode toggle
+- Tab/nav bar to switch between page sections (Summary / Forecast / Data Entry) instead of one long scroll
+- Per-series model name + backtest accuracy shown near the forecast (e.g. "SARIMAX — 13.3% MAPE")
+- Fix the fan chart's overlapping axis label and legend
+- Deep-research and rework the Data Entry method — root cause already diagnosed: the new-row date field silently rejects invalid input with zero user-facing error feedback, which is very likely why users report being unable to add new data at all
 
 ## Evolution
 
@@ -131,4 +140,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-23 at start of v1.2 milestone*
+*Last updated: 2026-08-24 at start of v1.3 milestone*

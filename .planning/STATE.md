@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.2
-milestone_name: data-entry-fix-forecast-enrichment
-status: complete
-stopped_at: Completed 10-03-PLAN.md
-last_updated: "2026-08-24T06:03:13.287Z"
+milestone: v1.3
+milestone_name: dashboard-polish-data-entry-rework
+status: planning
+stopped_at: v1.3 milestone started — gathering research before requirements/roadmap
+last_updated: "2026-08-24T14:30:00.000Z"
 last_activity: 2026-08-24
 progress:
-  total_phases: 10
-  completed_phases: 10
-  total_plans: 33
-  completed_plans: 33
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -24,17 +24,22 @@ See: .planning/PROJECT.md (updated 2026-08-21)
 and see a chart with three price scenarios (bull/base/bear) for each of the four tracked
 series — without opening Excel.
 
-**Current focus:** v1.2 — fix Data Entry table usability at real data scale (167 rows/17 cols,
-~2,950 editable cells, unpaginated — found unusable during dogfooding), plus research-scoped
-improvements to export/import UX, forecast context, and performance at data scale.
+**Current focus:** v1.3 — real user feedback: fix the transparent html/body background bug
+(black margins on wide/dark-mode viewports), add a persisted dark/light toggle, add a tab/nav
+bar between page sections, show per-series model name + backtest accuracy near the forecast,
+fix the fan chart's overlapping axis label/legend, and deep-research a rework of Data Entry
+(diagnosed root cause: the new-row date field silently rejects invalid input with zero
+user-facing error, confirmed via live browser reproduction on 2026-08-24 — typed "08/25/2027"
+into a draft row's date cell, editor stayed open with the bad value, zero error text rendered
+anywhere on the page).
 
 ## Current Position
 
-Milestone: v1.2
-Status: Complete. Phase 10 (csv-bulk-import) finished — 10-03 built csv_import_control() UI and passed full human browser verification, including the IMPORT-02 non-overwrite proof via direct SQLite check. IMPORT-01/IMPORT-02 marked Complete in REQUIREMENTS.md. All 10 phases / 33 plans of v1.2 done.
+Milestone: v1.3
+Status: Just started — gathering research before requirements/roadmap.
 Last activity: 2026-08-24
 
-Progress: [██████████] 100%
+Progress: [          ] 0%
 
 ## Performance Metrics
 
@@ -152,7 +157,24 @@ Recent decisions affecting current work:
 - [v1.2] Data Entry table renders all 167 rows × 17 columns (~2,950 editable cells) unpaginated —
   confirmed via browser DOM inspection during dogfooding (2026-08-23). Root cause of the "doesn't
   work" report: this scale of interactive DOM makes the table hang/unresponsive. Fix direction
-  chosen by user: default to recent months + a "show all history" toggle.
+  chosen by user: default to recent months + a "show all history" toggle. RESOLVED in v1.2 Phase 7.
+
+- [v1.3] Data Entry silent-validation bug — confirmed via live browser reproduction (2026-08-24):
+  typing an invalid date format (e.g. "08/25/2027" instead of ISO "YYYY-MM-DD") into a new draft
+  row's date cell leaves the editor open with the bad value and renders NO error text anywhere,
+  even though `_commit_draft_cell` in `app/app/state.py` does set `self.edit_error` on validation
+  failure. Very likely the actual cause behind the user report "current [entry] method is not able
+  to enter any new additional data" — the feature silently fails rather than being fundamentally
+  broken. Needs root-cause fix (why does the draft row's error text not render?) plus the
+  user-requested deep-research pass into a better entry UX (e.g. a real date picker instead of a
+  raw text field demanding exact ISO format with no format hint).
+
+- [v1.3] `html`/`body` computed background is `rgba(0, 0, 0, 0)` (fully transparent) — confirmed via
+  `getComputedStyle` on 2026-08-24. Only inner Radix wrapper divs carry the light `PAGE_BG`
+  background. On a wide viewport or a dark-mode browser/OS, any area outside those wrappers
+  renders through to whatever is behind the page (black in a dark-mode context) — matches the user
+  report "black spaces on the two sides." Fix: set an explicit light background directly on `html`
+  and `body`, not just inner content wrappers.
 
 ### Blockers/Concerns
 
