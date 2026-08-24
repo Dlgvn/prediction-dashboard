@@ -260,11 +260,34 @@ class DashboardState(rx.State):
         )
         return figure
 
+    def _forecast_export_records(self) -> list[dict]:
+        """Build Forecast-sheet row dicts from the already-computed
+        forecast_table_rows var (EXPORT-02, D-02). Deliberately reads
+        self.forecast_table_rows rather than calling forecast_all or
+        re-deriving from forecast_results — reusing the same values the
+        dashboard renders is what makes export/screen parity structurally
+        guaranteed rather than coincidental.
+        """
+        records: list[dict] = []
+        for row in self.forecast_table_rows:
+            record: dict = {"Month": int(row["month"])}
+            for key, label in FORECAST_TABLE_COLUMNS:
+                raw = row[key]
+                record[label] = float(raw.replace(",", "")) if raw else None
+            records.append(record)
+        return records
+
     def _export_bytes(self) -> bytes:
-        """Build the .xlsx bytes for the stored actuals table (D-08 — the
-        actuals table only, never forecast output). Plain method (not an
-        event handler) so it's unit-testable without Reflex's event
-        machinery. Never writes to disk — BytesIO buffer only.
+        """Build the .xlsx bytes for the two-sheet export workbook.
+
+        EXPORT-02 (Phase 9, D-01/D-02/D-03) deliberately supersedes the
+        prior D-08 actuals-only behavior: the workbook now carries a second
+        "Forecast" sheet capturing base/bull/bear values for the horizon
+        selected at the moment Export was clicked, built by reusing
+        forecast_table_rows rather than adding a second forecast_all call
+        site. Plain method (not an event handler) so it's unit-testable
+        without Reflex's event machinery. Never writes to disk — BytesIO
+        buffer only.
         """
         records = []
         for row in self.rows:
@@ -277,9 +300,20 @@ class DashboardState(rx.State):
                 record[attr] = getattr(row, attr)
             records.append(record)
 
-        df = pd.DataFrame(records, columns=["date", *SERIES_ATTRS])
+        actuals_df = pd.DataFrame(records, columns=["date", *SERIES_ATTRS])
+
+        try:
+            forecast_records = self._forecast_export_records()
+        except Exception:
+            forecast_records = []
+
+        forecast_columns = ["Month", *[label for _, label in FORECAST_TABLE_COLUMNS]]
+        forecast_df = pd.DataFrame(forecast_records, columns=forecast_columns)
+
         buffer = io.BytesIO()
-        df.to_excel(buffer, engine="openpyxl", index=False)
+        with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
+            actuals_df.to_excel(writer, sheet_name="Actuals", index=False)
+            forecast_df.to_excel(writer, sheet_name="Forecast", index=False)
         buffer.seek(0)
         return buffer.getvalue()
 
