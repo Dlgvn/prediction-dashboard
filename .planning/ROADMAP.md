@@ -168,7 +168,10 @@ Plans:
   1. The exported `.xlsx` file includes a forecast sheet with base/bull/bear values at the selected horizon, in addition to the existing actuals sheet
   2. The existing actuals-only sheet remains present and unchanged in the export
   3. Forecast values in the exported sheet match what the dashboard displays for the same horizon at export time
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+- [ ] 09-01-PLAN.md — Two-sheet `_export_bytes` (Actuals + Forecast) reusing `forecast_table_rows`, with parity and single-call-site tests (wave 1)
 
 ### Phase 10: CSV Bulk Import
 **Goal**: The user can bulk-import historical price data via CSV instead of entering it row by row, with a safe preview-and-confirm step that never silently overwrites existing data.
@@ -194,7 +197,7 @@ Plans:
 | 6. UX/UI Redesign — Financial Forecasting Terminal | 3/3 | Complete   | 2026-08-23 |
 | 7. Table Pagination / Windowing | 0/2 | Not started | — |
 | 8. Forecast Context Enrichment | 2/2 | Complete   | 2026-08-24 |
-| 9. Excel Export Polish | 0/? | Not started | — |
+| 9. Excel Export Polish | 0/1 | Not started | — |
 | 10. CSV Bulk Import | 0/? | Not started | — |
 
 ---
