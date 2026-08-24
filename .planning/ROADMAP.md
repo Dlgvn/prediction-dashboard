@@ -11,7 +11,7 @@
 - [x] **Phase 7: Table Pagination / Windowing** - Data Entry table defaults to recent months, with a toggle to show full history, without hanging the browser (completed 2026-08-24)
 - [x] **Phase 8: Forecast Context Enrichment** - Forecast summary cards show historical high/low and year-over-year % change (completed 2026-08-24)
 - [x] **Phase 9: Excel Export Polish** - Excel export includes a forecast sheet (base/bull/bear) alongside the existing actuals sheet (completed 2026-08-24)
-- [ ] **Phase 10: CSV Bulk Import** - User can bulk-import historical prices via CSV with preview, confirm, and duplicate-date skipping
+- [x] **Phase 10: CSV Bulk Import** - User can bulk-import historical prices via CSV with preview, confirm, and duplicate-date skipping (completed 2026-08-24)
 
 ## Phase Details
 
@@ -188,7 +188,7 @@ Plans:
 Plans:
 - [x] 10-01-PLAN.md — Reflex-free CSV parse + validator-reusing row validation core with schema fail-fast (wave 1)
 - [x] 10-02-PLAN.md — DashboardState upload/preview/confirm/cancel handlers, insert-only batch write + load_rows refresh (wave 2)
-- [ ] 10-03-PLAN.md — rx.upload dropzone, summary preview panel, Confirm/Cancel UI + human verification (wave 3)
+- [x] 10-03-PLAN.md — rx.upload dropzone, summary preview panel, Confirm/Cancel UI + human verification (wave 3)
 
 **UI hint**: yes
 
@@ -205,7 +205,7 @@ Plans:
 | 7. Table Pagination / Windowing | 2/2 | Complete   | 2026-08-24 |
 | 8. Forecast Context Enrichment | 2/2 | Complete   | 2026-08-24 |
 | 9. Excel Export Polish | 1/1 | Complete   | 2026-08-24 |
-| 10. CSV Bulk Import | 2/3 | In Progress | — |
+| 10. CSV Bulk Import | 3/3 | Complete   | 2026-08-24 |
 
 ---
 *Roadmap created: 2026-08-21*
