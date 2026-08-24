@@ -1,167 +1,151 @@
 # Project Research Summary
 
-**Project:** Prediction Dashboard (Reflex forecasting dashboard)
-**Domain:** Single-user commodity/FX price forecasting dashboard (procurement/budgeting tool) — Reflex full-stack Python + SQLite + statsmodels
-**Researched:** 2026-08-21
+**Project:** Prediction Dashboard — v1.2 (Data Entry Fix & Forecast Enrichment)
+**Domain:** Single-user Reflex (Python) commodity/FX forecasting dashboard — retrofit milestone
+**Researched:** 2026-08-24
 **Confidence:** HIGH
 
 ## Executive Summary
 
-This project replaces an existing Excel workbook with a single-process, single-user Reflex web application that lets a procurement/budgeting user manually enter monthly price data (HDAN, PPAN, Diesel, FX), forecast an adjustable 1-12 month horizon, and view bull/base/bear scenario ranges instead of the workbook's fixed next-month point forecast. The stack is fully settled: Reflex 0.9.8 as the single deployable process (UI + FastAPI backend + state), SQLite via `rx.Model`/SQLModel for persistence, statsmodels 0.14.6 for ARIMA/SARIMAX/VAR forecasting, pandas/openpyxl for Excel export, and Plotly for scenario charting. No external services, auth, or multi-user concerns are in scope.
+This milestone retrofits four capabilities onto an already-shipped, well-structured Reflex dashboard: table pagination/windowing (fixing a real bug — 2,950+ DOM nodes hanging the browser at 167 rows), CSV bulk import, richer forecast context (historical high/low, YoY % change, "drivers" text), and general performance hygiene. No new third-party dependencies are needed — `rx.upload`, `@rx.var(cache=True)`, and the already-pinned pandas/openpyxl/plotly cover every new capability. The existing architecture (`DashboardState` as sole DB-access boundary, flat list-of-dict computed vars, `forecast_all()` single-call-site rule) is sound and should be extended, not replaced.
 
-The recommended approach is a strict architectural separation between a framework-free forecasting core (`forecasting.py`, plain Python types in/out, no `reflex` imports), a data layer (`models.py`/`seed.py` via `rx.Model`), and a single `rx.State` class that is the sole integration point bridging DB, model, and UI. Model selection itself is a separate offline research/backtest activity (`research/`) that must complete — with genuine holdout backtesting — before any model is wired into the shipped app; this "no un-backtested model ships" discipline is a hard project constraint, not a nice-to-have.
+The dominant risk is not technology selection but retrofit correctness: `self.rows` is currently overloaded as both "what the table displays" and "the full-history source every derived computation (forecasts, charts, freshness chips, export) depends on." Naively slicing `self.rows` for pagination — the fastest-looking implementation — would silently corrupt forecasts, charts, and freshness data across the entire app. Every research stream (architecture and pitfalls) converges on the same fix: add a new, purely additive `visible_rows` computed var for display, and never touch `self.rows` itself. CSV import carries the second-largest risk: it must reuse the exact same `validate_numeric`/`validate_date` functions as manual entry (not a forked path) and must not open a second `rx.session()` outside `state.py`, or it will violate the app's single-DB-path architecture rule and let imported data silently bypass the correctness rules manual entry enforces.
 
-The key risks are all about false precision: fitting VAR/ARIMA on too little history (HDAN/PPAN has only ~48 monthly points) and getting confident-looking but overfit results; shipping bull/bear bands that don't scale with horizon or differ per series' actual backtested error; and prematurely shipping "weekly mode" using interpolated or unvalidated proxy data. All three are mitigated by keeping model research/backtesting as an explicit, gated phase with real holdout validation, computing scenario spread per-series and per-horizon (not a flat global percentage), and refusing to expose weekly mode in the UI until its data-gap problem is separately researched and backtested. A secondary but concrete risk is Reflex-specific: forecast results or table edits must write through to SQLite immediately (State reflects DB, not the reverse), and model fitting should happen once per data change rather than synchronously on every horizon-change click, or the UI will feel broken/slow.
+The recommended approach is to build pagination first (self-contained, fixes the reported bug, zero dependency on other features), then low-risk additive forecast-context stats (reusing existing `_latest_actual_for`/`diesel_mnt` derivation to avoid drift), then export polish (independent, low risk), and CSV import last as its own phase — it is the only feature requiring a genuinely new component type, a new validation-at-scale path, and an unresolved product decision (upsert semantics for duplicate months).
 
 ## Key Findings
 
 ### Recommended Stack
 
-The stack is fully specified and version-pinned via live PyPI lookups (HIGH confidence): Python 3.11/3.12, Reflex 0.9.8.post1, SQLite via SQLModel 0.0.39 (`rx.Model`), statsmodels 0.14.6 (pin explicitly — statsmodels' hosted docs default to unreleased 0.15.0 "devel" content), pandas 3.0.5, openpyxl 3.1.5, and Plotly 6.9.0 for charting (`rx.plotly`, chosen over `rx.recharts` for multi-series interactive scenario lines). scikit-learn 1.9.0 is a research-phase-only dependency for the mandated ML baseline comparison against statsmodels candidates — it should not become a shipped runtime dependency unless it wins the backtest. `pmdarima` (auto_arima) is similarly research-only, never a production dependency (re-searches on every call).
+No new packages required. The existing stack (Reflex 0.9.8.post1, SQLite via `rx.Model`, statsmodels 0.14.6, pandas 3.0.5, openpyxl 3.1.5, `rx.plotly` 6.9.0) already covers all four new capabilities via built-in Reflex components and library features not yet used.
 
-**Core technologies:**
-- Reflex 0.9.8 — single-process Python full-stack framework — matches the explicit "Python-only, single-process" project constraint and gives reactive DB<->UI binding via `rx.Model`
-- SQLite via `rx.Model`/SQLModel — persistence — zero-config, matches single-user/monthly-cadence scale; no reason to introduce Postgres
-- statsmodels 0.14.6 — ARIMA/SARIMAX/VAR forecasting — explicit project requirement, continuation of existing `backend_research/` prototyping
-- pandas 3.0.5 + openpyxl 3.1.5 — data wrangling and Excel export — standard, no native-dependency-free Excel round-trip
-- plotly (`rx.plotly`) — scenario chart rendering — best fit for multi-series time-series lines with hover/zoom/export
+**Core technologies (all already installed):**
+- `rx.upload` + `rx.upload_files`: CSV bulk-import UI — built-in Reflex component, backend handler reads bytes via `await file.read()`
+- `@rx.var(cache=True)` (computed vars, default in Reflex): the correct mechanism for windowed table pagination and new stats — only recomputes when its actual dependencies change
+- pandas `.min()/.max()/.pct_change()/.rolling()`: historical high/low and % change stats, no new stats library needed
+- openpyxl multi-sheet/formatting API: richer Excel export UX (column widths, number formats, native Excel charts via `openpyxl.chart.LineChart`) without adding `xlsxwriter`
 
 ### Expected Features
 
-**Must have (table stakes):**
-- View current/latest values per series; historical actuals chart
-- Manual add/edit/delete of data rows (direct replacement for Excel's Input tab), with input validation to protect model integrity
-- Data persists across sessions (SQLite)
-- Excel export of stored data
-- Forecast horizon selector (1-12 months) and per-horizon base/bull/bear values shown as both chart and table (procurement users need copyable numbers, not just a chart)
-- Loading/empty states
+This is a single-user, monthly-cadence app — most "enterprise CSV import" and "BI dashboard" patterns from generic research are explicitly downgraded to anti-features here (fuzzy column-mapping, streaming validation for large files, infinite scroll, real-time refresh, AI anomaly detection all solve problems this app doesn't have).
 
-**Should have (competitive differentiators):**
-- Adjustable multi-month horizon with live recompute (the single named differentiator vs. the Excel workbook, which only forecasts one month ahead)
-- Bull/base/bear scenario chart, ideally as a shaded confidence band (v1.x upgrade from 3 discrete lines)
-- Inline in-row table editing (v1.x, upgrade from modal edit)
-- Derived Diesel-MNT series computed automatically from Diesel-USD x FX x markup
-- Multi-series single-page dashboard (all 4 series visible together, vs. Excel's tab-switching)
-- "As of" / last-updated freshness indicator per series
+**Must have (table stakes, v1.2):**
+- Excel export gains a second sheet with base/bull/bear forecast data, reusing existing forecast output
+- Number formatting (units, decimals, thousands separators) on all exported columns
+- Historical high/low and % change vs. same-period-last-year on forecast summary cards (where ≥12 months of history exists)
+- Simple CSV bulk import: fixed expected column order, in-page preview + row-level validation errors, explicit confirm-to-commit step — no wizard, no fuzzy mapping
 
-**Defer (v2+, explicitly out of scope for v1):**
-- Weekly forecast mode — blocked on resolving the AN-family vs. Diesel/FX weekly data-cadence gap; needs its own research pass
-- Live news/sentiment-driven bull/bear adjustment — provider selection is an open research question
-- Automatic API data-fetch from external price sources; bulk CSV upload UI
-- Multi-user accounts/auth; configurable model-selection dropdown in the UI
+**Should have (differentiators, v1.x follow-up):**
+- Native Excel line-chart embedded in the export's forecast sheet
+- Templated "drivers" explanation text per series (static caption, not ML/LLM-generated — model families are fixed/known per PROJECT.md)
+
+**Defer (v2+):**
+- Column-mapping UI for CSV import (only if a second real import source with different layout materializes)
+- Any anomaly detection or AI-generated forecast commentary (depends on explicitly-deferred LLM/news provider research)
+- Weekly-cadence YoY/context stats (blocked on weekly data-cadence gap, PROJECT.md §6)
 
 ### Architecture Approach
 
-A four-layer single-process architecture: UI layer (`app.py`, declarative components only) -> State layer (`state.py`, the sole `rx.State` subclass and the only code allowed to touch `rx.session()` or call the forecasting module) -> parallel Data layer (`models.py`/`seed.py`, `rx.Model`/SQLModel CRUD) and Model layer (`forecasting.py`, pure Python functions with zero Reflex imports, unit-testable in isolation) -> SQLite storage. A separate top-level `research/` directory (never imported by the shipped app) holds exploratory ARIMA/SARIMAX/VAR/GBM candidate fitting and backtesting; only the winning model's minimal inference logic is hand-transcribed into `forecasting.py` once `research/REPORT.md` names a winner.
+`DashboardState(rx.State)` is the sole DB-access boundary; `app.py` holds pure render functions; `self.rows: list[PriceRow]` is fully reloaded (not incrementally patched) after every write and is the authoritative source for every derived var (charts, `forecast_results`, freshness chips, export). The actual reported bug is a rendering-scale problem (unwindowed `rx.foreach` generating O(rows × 17 cols) DOM nodes), not a DB or state-size problem — SQLite reads at this scale are sub-millisecond.
 
 **Major components:**
-1. Data layer (`models.py`, `seed.py`) — schema definition, one-time CSV seed import, raw CRUD via `rx.Model`
-2. Model/forecasting layer (`forecasting.py`, `research/`) — pure prediction logic (fit/forecast, scenario spread, derived series), framework-independent and unit-testable
-3. State layer (`state.py`) — bridges UI events to data and model layers, owns all mutable UI-visible state, sole integration point
-4. UI layer (`app.py`) — declarative rendering only, no business logic or direct DB/model calls
+1. `DashboardState` (state.py) — all DB access, computed vars (`rows`, `forecast_results`, `summary_cards`, `freshness_chips`), the single call site for `forecast_all()`
+2. `app.py` — pure render/component functions, reads state vars via `rx.foreach`/`rx.cond`, never touches DB
+3. `models.py` — `PriceRow` (17 cols) and `AppSetting` flat `rx.Model` tables
+4. `forecasting.py` — `forecast_all()` dispatcher (VAR for HDAN/PPAN, AR-lag-2-on-Brent for Diesel, AR(1) for FX), called only from `forecast_results`
+5. `validators.py` — dependency-free `validate_date`/`validate_numeric`, the single source of truth for cell validation, must be reused (not forked) by CSV import
 
-Suggested build order (dependency-driven, confirmed by existing project design docs): app skeleton -> data layer schema -> seed script -> model research (can run in parallel with further app-layer work) -> forecasting module (scaffolded with placeholder, swapped once research lands) -> derived-series logic -> state layer -> UI layer last.
+**Build order (from architecture research):** (1) pagination/windowing — self-contained, ships first; (2) historical high/low & % change stats — independent, low risk; (3) export polish — independent, low risk; (4) "drivers" context — needs scope decision (static caption vs. real attribution) before estimation; (5) CSV bulk import — build last as its own phase, highest complexity and risk.
 
 ### Critical Pitfalls
 
-1. **Overfit VAR/ARIMA/SARIMAX on too little history** (HDAN/PPAN ~48 monthly points) — avoid by capping model complexity to sample size, always backtesting on genuine holdout (not in-sample fit), and treating "the model ran" as no validation at all.
-2. **Weekly-mode data gap silently produces misleading forecasts** — no weekly data exists for HDAN/PPAN/Diesel/FX except a different-commodity-family proxy (Baltic AN); never interpolate monthly data to fake weekly points or ship weekly mode until the proxy relationship is backtested and validated.
-3. **Bull/bear bands presented as falsely precise** — must be computed per-series (each series has its own backtested MAPE, ranging 0.25%-10%) and widen with horizon (forecast uncertainty compounds); never a single flat global percentage applied uniformly.
-4. **Reflex State/DB desync losing user edits** — State must be a thin reflection of SQLite, not the source of truth; write through to `rx.Model` immediately on submit, reload State from DB on session start.
-5. **Synchronous model refit blocking the UI on every horizon change** — fit once when actuals change, cache the fitted model, and re-project cheaply per horizon change rather than re-fitting on every click.
+1. **Pagination breaks full-history computed vars if `self.rows` itself is sliced** — `forecast_results`, `historical_chart_figure`, `freshness_chips`, `summary_cards`, and export all assume `self.rows` is complete history. Fix: add a new `visible_rows` computed var for display only; never mutate/slice `self.rows`.
+2. **Stale edit/delete state across pagination boundary** — `editing_key`/`pending_delete` have no awareness of pagination; must be explicitly reset (`cancel_edit()`/`cancel_pending_delete()`) on every page-change/toggle event.
+3. **CSV import validation drift from manual entry** — must reuse `validate_numeric`/`validate_date` exactly, not a forked/weaker path; must also catch batch-internal duplicate months (two rows in the same CSV for the same month), which the current single-row validator doesn't need to handle today.
+4. **CSV import violating the single-DB-path architecture rule** — bulk import logic should be a pure, DB-free function (parse/validate), with only `DashboardState` opening the actual `rx.session()` bulk write.
+5. **New forecast stats drifting from `summary_cards`** — `diesel_mnt` is a derived value (usd × fx × markup) computed in three places already; any new high/low/%-change stat must call a shared helper, not reimplement the loop, or numbers will silently disagree on-page.
 
 ## Implications for Roadmap
 
-Based on research, suggested phase structure:
+### Phase 1: Table Pagination / Windowing (also serves as the Performance phase)
+**Rationale:** Fixes the actual reported bug (browser hang at 167 rows), is fully self-contained, and has zero dependency on the other three features — ship first.
+**Delivers:** `show_all_history` bool + `visible_rows` computed var + repointed `rx.foreach`, with explicit edit/delete-state reset on page/toggle events.
+**Addresses:** "Table shows recent history by default with a way to see everything" (FEATURES.md table stakes).
+**Avoids:** Pitfall 1 (full-history computed vars silently broken), Pitfall 2 (stale edit/delete state), Pitfall 3 (`rx.foreach` key stability under list swaps).
 
-### Phase 1: App Skeleton & Data Layer
-**Rationale:** No dependencies; unblocks everything else. Data layer must exist before seed data, model research, or state layer can proceed.
-**Delivers:** Reflex app scaffold, `models.py` (`PriceRow` schema via `rx.Model`), `reflex db init`/migrations wired up from the start, `seed.py` CSV import script, seeded SQLite database.
-**Addresses:** Data persistence, manual entry foundation (table stakes)
-**Avoids:** Pitfall 4 (Reflex State/DB desync) — establish "State reflects DB" pattern before any UI is built on top of it; avoid hand-editing `.db` files by using Reflex migrations from day one
+### Phase 2: Forecast Context Enrichment (high/low, YoY % change)
+**Rationale:** Independent of pagination; low risk; follows the exact same list-of-dict `@rx.var` pattern already established by `summary_cards`/`freshness_chips`.
+**Delivers:** New computed vars for historical high/low and % change vs. same-period-last-year, rendered as additional summary-card-style components.
+**Uses:** Hand-rolled Python loops (consistent with existing codebase style, not pandas-inside-computed-vars) over `self.rows`.
+**Implements:** Reuse of a shared `_diesel_mnt_series`/`_latest_actual_for` helper to avoid drift (Pitfall 6); no second call site to `forecast_all()` (Pitfall 7).
 
-### Phase 2: Model Research & Backtesting
-**Rationale:** Can run in parallel with further app-layer work since it doesn't need a running Reflex app; its output (winning models per product, per-series MAPE) blocks real implementation of the forecasting module. Must happen before scenario/band math is built.
-**Delivers:** `research/` directory with candidate fitting (ARIMA/SARIMAX/VAR/GBM), holdout backtest harness, weekly-gap proxy analysis, `REPORT.md` naming winning models and per-series backtested error.
-**Addresses:** Backend for forecast horizon selector and bull/base/bear scenarios (differentiators)
-**Avoids:** Pitfall 1 (overfitting on small samples) via genuine holdout backtesting; Pitfall 2 (weekly-mode data gap) by explicitly gating weekly mode behind its own validated research, separate from monthly models
+### Phase 3: Excel Export Polish
+**Rationale:** Independent of Phases 1-2; touches only `_export_bytes`/`export_to_excel`; low risk, can slot in anytime.
+**Delivers:** Multi-sheet export (Data + Forecast base/bull/bear), number formatting, optionally an embedded native Excel line chart.
+**Addresses:** "Excel export with a real multi-sheet workbook mirroring the existing forecast model structure" (FEATURES.md differentiator).
+**Avoids:** Silently violating the documented D-08 "actuals table only" UI-spec constraint without an explicit scope decision to change it.
 
-### Phase 3: Forecasting Module & Derived Series
-**Rationale:** Gated on Phase 2's findings but can be scaffolded earlier with a placeholder model (TDD'd against a shape-only contract) and swapped once the research report lands.
-**Delivers:** `forecasting.py` (framework-free, `list[float] -> list[dict]` functions), per-series N-step-ahead forecasting, per-series/per-horizon scenario spread (bull/base/bear), derived Diesel-MNT computation.
-**Uses:** statsmodels 0.14.6, plain-Python function boundary from STACK.md/ARCHITECTURE.md
-**Implements:** Model layer component, Pattern 1 (framework-independent forecasting core)
-**Avoids:** Pitfall 3 (flat, non-horizon-scaled bands) — compute spread per-series using actual backtested error and widen with horizon from the start, not as a retrofit
-
-### Phase 4: State Layer & Manual Data Entry UI
-**Rationale:** Depends on Phase 1 (data layer) and Phase 3 (forecasting interface being stable); should not start before both are stable or it requires rework.
-**Delivers:** `state.py` (`DashboardState`), add/edit/delete row event handlers with write-through persistence and input validation, historical actuals chart, loading/empty states.
-**Addresses:** Manual add/edit/delete, input validation, historical chart, persistence (table stakes)
-**Avoids:** Pitfall 4 (state/DB desync) enforced in practice; basic validation prevents corrupt rows from poisoning future model fits
-
-### Phase 5: Forecast UI, Scenario Chart & Excel Export
-**Rationale:** Last phase — lowest research risk, standard Reflex CRUD/rendering and well-documented `to_excel()`/openpyxl patterns. UI churn is cheap; should follow stable state/model layers.
-**Delivers:** Forecast horizon selector, bull/base/bear scenario chart (3-line minimum, shaded-band upgrade optional), forecast values table, "as of" freshness indicators, Excel export including base/bull/bear columns (not just point forecast).
-**Addresses:** Forecast horizon selector, scenario chart, forecast table, Excel export, freshness indicator (table stakes + differentiators)
-**Avoids:** Pitfall 5 (synchronous refit blocking UI) — fit once per actuals change, re-project cheaply on horizon change; Excel export mismatch pitfall — export exactly what's displayed/cached, not a fresh recompute
+### Phase 4: CSV Bulk Import
+**Rationale:** Highest complexity — new component type (`rx.upload`), new validation-at-scale path, and an unresolved product decision (upsert semantics for duplicate months). Sequence last so scope/risk is well understood.
+**Delivers:** Fixed-schema CSV upload → preview/validate → explicit confirm → single batch commit + single `load_rows()` reload.
+**Uses:** `rx.upload` (stack), reuses `validators.py` (architecture), pandas `read_csv` over `io.BytesIO`.
+**Avoids:** Pitfall 4 (validation drift/forked path), Pitfall 5 (second `rx.session()` outside `state.py`), Pitfall 9 (re-render storms from row-by-row state updates during parse).
 
 ### Phase Ordering Rationale
 
-- Data layer must precede everything since seed data feeds both model research and the running app.
-- Model research is deliberately decoupled from and can run parallel to early app-layer work, but forecasting-module *implementation* is hard-gated on its output — no un-backtested model ships, per explicit project constraint.
-- State layer is intentionally sequenced after both data and model layers stabilize, since it's the integration point that would need rework if either shifts underneath it.
-- UI is last because it's the cheapest to iterate on and has the most standard, well-documented Reflex patterns — the inverse of model/data layers where getting the interface wrong is costly to unwind.
-- This ordering directly avoids the two most severe pitfalls (overfitting, weekly-mode data gap) by forcing genuine backtest validation before any forecast reaches the UI, and avoids the Reflex-specific pitfalls (state desync, blocking UI) by establishing write-through persistence and fit-once caching as foundational patterns rather than retrofits.
+- Pagination first because it fixes the actual reported bug and every other phase's UI sits on top of a working, non-hanging table.
+- Forecast-context and export polish are ordered by risk/independence, not hard dependency — either could be swapped, but both are lower-risk than CSV import and should not be blocked waiting on it.
+- CSV import is last because it is architecturally the riskiest (new session-boundary risk, new validation-at-scale risk, unresolved product decision) and benefits from the codebase patterns (windowing, shared helpers) established in earlier phases.
+- "Drivers" explanation text is deliberately not its own phase — build the static-caption version inside Phase 2 only after the model family per series is confirmed; a real attribution/decomposition version would need its own backtest-style research phase per PROJECT.md's model-provenance constraint.
 
 ### Research Flags
 
-Needs research during planning:
-- **Phase 2 (Model Research & Backtesting):** Model family selection (ARIMA vs SARIMAX vs VAR vs ML baseline), sample-size-appropriate complexity, weekly-mode proxy validation — sparse/domain-specific, needs its own deep dive per series
-- **Phase 3 (Forecasting Module, scenario spread math):** Horizon-dependent, per-series confidence band computation is a design decision with real correctness risk, not a standard pattern
+Phases likely needing deeper research during planning:
+- **CSV Import phase:** upsert semantics for duplicate-month rows (overwrite vs. reject) is an unresolved product decision, not yet scoped; also verify `rx.foreach` explicit-key behavior via Context7/official docs before combining with pagination.
+- **"Drivers" context (if pursued beyond static caption):** any real contribution/attribution computation is a forecasting.py research topic requiring its own backtest-style validation, not assumed in scope.
 
-Standard patterns (skip research-phase):
-- **Phase 1 (App Skeleton & Data Layer):** Well-documented official Reflex `rx.Model`/SQLModel/migration patterns
-- **Phase 4 (State Layer & Manual Entry UI):** Standard Reflex CRUD/state conventions, confirmed by official docs
-- **Phase 5 (Forecast UI & Excel Export):** Standard Reflex charting (`rx.plotly`) and pandas/openpyxl export patterns, well documented
+Phases with standard patterns (skip research-phase):
+- **Pagination/windowing phase:** well-documented Reflex computed-var pattern, already matches existing codebase conventions (`freshness_chips`, `summary_cards`).
+- **Forecast-context stats phase:** standard derived-stat computation over existing SQLite data, no new library or pattern.
+- **Export polish phase:** openpyxl API is well-documented and already in use.
 
 ## Confidence Assessment
 
 | Area | Confidence | Notes |
 |------|------------|-------|
-| Stack | HIGH | Verified via live PyPI version lookups and official Reflex/statsmodels docs; only MEDIUM sub-point is exact statsmodels 0.14.x API surface since hosted docs default to unreleased 0.15.0 |
-| Features | MEDIUM | Grounded in project docs plus adjacent-category UX literature (no direct competitor combines manual entry + multi-horizon forecasting + scenario bands in one small tool) |
-| Architecture | HIGH | Project's own design/implementation docs already encode this correctly; confirmed against official Reflex docs and community structure conventions |
-| Pitfalls | MEDIUM | Reflex-specific findings are officially documented but sparsely covered for gotchas; statsmodels small-sample findings corroborated across multiple sources; scenario-band honesty findings are domain reasoning from the existing Excel workbook's own backtest approach |
+| Stack | MEDIUM-HIGH | No new dependencies needed; recommendations verified against official Reflex/pandas docs (2026-08-24), some patterns (pagination-specific tutorials) are general-docs-inferred rather than literally copy-pasted |
+| Features | MEDIUM | WebSearch-verified against multiple sources; no authoritative library docs apply (this is a UX/domain question), filtered hard against PROJECT.md's single-user constraint |
+| Architecture | HIGH | Based on direct reading of the actual `state.py`, `app.py`, `models.py`, `forecasting.py` source files, not inference |
+| Pitfalls | HIGH | Grounded directly in the same source files; two specific items (Reflex `rx.foreach` key-stability behavior, whole-state-per-event model) are flagged MEDIUM/LOW as inferred rather than doc-verified |
 
 **Overall confidence:** HIGH
 
 ### Gaps to Address
 
-- **Weekly-mode data gap resolution:** No weekly HDAN/PPAN/Diesel/FX data exists; the Baltic AN proxy relationship is unvalidated. Must be resolved via its own dedicated research/backtest phase before weekly mode is even scoped, let alone built — do not let it slip into v1 scope.
-- **Model family selection is genuinely open:** PROJECT.md and STACK.md leave the winning model (ARIMA/SARIMAX/VAR vs. an ML baseline) undecided pending backtest results — the roadmap should treat Phase 2's output as a real unknown that could affect Phase 3's implementation complexity, not a formality.
-- **Confidence-band methodology:** No single source fully specifies how per-series, per-horizon spread should be computed (backtest MAPE vs. model-native forecast standard errors) — this needs a concrete design decision during Phase 3 planning, not just "make it dynamic."
+- **CSV import upsert semantics** (overwrite vs. reject duplicate-month rows on import): not yet decided — must be resolved as an explicit product decision during Phase 4 planning, not assumed.
+- **`rx.foreach` explicit-key requirement under pagination**: flagged as needing direct Context7/official-doc verification before the pagination phase ships (Pitfall 3) — do not assume positional keying is safe.
+- **"Drivers" feature scope**: ambiguous between a cheap static caption (in scope, low risk) and a real magnitude-of-contribution computation (out of scope without further research) — must be explicitly scoped before estimation.
+- **CSV import file size/row-count sanity cap**: no specific limit chosen yet; recommend a basic defense-in-depth cap even for single-user trusted context.
 
 ## Sources
 
 ### Primary (HIGH confidence)
-- PyPI JSON API — live version lookups for reflex, statsmodels, pandas, openpyxl, sqlmodel, plotly, pmdarima, scikit-learn, xgboost (2026-08-21)
-- https://reflex.dev/docs/database/overview/ — `rx.Model`/SQLAlchemy/SQLModel architecture, State/session model, Alembic migration workflow
-- https://reflex.dev/docs/library/graphing/other-charts/plotly/, https://reflex.dev/docs/library/graphing/charts/linechart/ — `rx.plotly`/`rx.recharts` confirmation
-- https://reflex.dev/docs/advanced-onboarding/code-structure/, https://reflex.dev/docs/getting-started/project-structure/, https://reflex.dev/docs/getting-started/basics/ — project structure and state conventions
-- https://www.statsmodels.org/devel/generated/statsmodels.tsa.arima.model.ARIMAResults.forecast.html — forecast/confidence interval API behavior
-- Project files: `.planning/PROJECT.md`, `docs/plans/2026-08-21-reflex-dashboard-design.md`, `docs/plans/2026-08-21-reflex-dashboard-implementation.md`
+- Direct reads: `app/app/state.py`, `app/app/app.py`, `app/app/models.py`, `app/app/forecasting.py`, `app/app/validators.py` — actual system being modified
+- `.planning/PROJECT.md` — authoritative scope/constraints document
+- https://reflex.dev/docs/library/forms/upload/ — `rx.upload` API, fetched 2026-08-24
+- https://reflex.dev/docs/vars/computed-vars/ — cached computed var behavior, fetched 2026-08-24
+- PyPI JSON API — live version lookups for reflex, statsmodels, pandas, openpyxl, sqlmodel, plotly
 
 ### Secondary (MEDIUM confidence)
-- https://www.pencilandpaper.io/articles/ux-pattern-analysis-enterprise-data-tables — enterprise data-table UX patterns
-- https://uxdworld.com/inline-editing-in-tables-design/ — inline editing rationale
-- https://reflex.dev/templates/data-table-editor/ — editable grid feasibility confirmation
-- https://machinelearningmastery.com/make-sample-forecasts-arima-python/ — practitioner guidance on out-of-sample ARIMA forecasting
-- WebSearch synthesis on small-sample time-series overfitting risk (sample-size-to-parameter ratio)
-- Citigroup Commodities Market Outlook 4Q'25, CRU Group scenario/forecast framing — bull/base/bear as an institutional convention
+- https://reflex.dev/docs/library/dynamic-rendering/foreach/ — general `rx.foreach` pattern, not pagination-specific
+- CSV/bulk-import UX sources (CSVBox blog, Smart Interface Design Patterns, Dromo blog) — corroborated across multiple sources for preview/validate/confirm pattern; Dromo used as a negative reference (different scale problem)
+- YoY calculation and financial-dashboard-structure sources (xelplus, oneadvanced, Excel Dashboard School) — standard, uncontroversial patterns
+- Data-table UX sources (LogRocket, Setproduct) — corroborate pagination over infinite scroll for analytical/reference tables
 
-### Tertiary (LOW confidence)
-- Streamlit community discussions on editable data tables — adjacent-framework analogue only, used to confirm general expectation pattern
+### Tertiary (LOW confidence, flagged for validation)
+- Reflex `rx.foreach` key-stability behavior under list reordering — inferred from general React/Reflex diffing conventions, not independently re-verified against current Reflex 0.9.8 docs; flagged explicitly in PITFALLS.md as needing Context7 verification before the pagination phase ships
+- Reflex whole-state-per-event re-render model — consistent with documented architecture and existing in-code comments, but not independently re-verified via Context7 in this pass
 
 ---
-*Research completed: 2026-08-21*
+*Research completed: 2026-08-24*
 *Ready for roadmap: yes*

@@ -1,104 +1,111 @@
 # Stack Research
 
-**Domain:** Python-only web dashboard (Reflex) — SQLite CRUD + statsmodels forecasting + interactive charts + Excel export
-**Researched:** 2026-08-21
-**Confidence:** HIGH (core stack verified via PyPI live version lookups + Reflex/statsmodels official docs); MEDIUM on ML-baseline library choice (design doc leaves model selection open)
+**Domain:** Reflex (Python) dashboard — v1.2 feature additions (table pagination, CSV import, forecast stats, performance)
+**Researched:** 2026-08-24
+**Confidence:** MEDIUM-HIGH
+
+This is an incremental research pass on top of an already-validated stack (Reflex 0.9.8.post1, SQLite via `rx.Model`, statsmodels, pandas 3.0.5, openpyxl, `rx.plotly`). No replacement of validated pieces is recommended. All four new capabilities are achievable with libraries already in the stack plus Reflex's own built-in components — **no new third-party packages are required.**
 
 ## Recommended Stack
 
-### Core Technologies
+### Core Technologies (all already installed — no version changes)
 
 | Technology | Version | Purpose | Why Recommended |
 |------------|---------|---------|-----------------|
-| Python | 3.11 or 3.12 | Runtime | Reflex 0.9.x and statsmodels 0.14.x both fully support 3.11/3.12; avoid 3.13 until you confirm all pinned deps (esp. numpy/scipy wheels) publish 3.13 wheels — as of this research 3.11/3.12 is the safest target for a dependency set this heavy on compiled scientific packages. |
-| Reflex | 0.9.8 (post1) | Full-stack Python web framework — UI + backend + state in one process | Matches PROJECT.md's explicit constraint ("Reflex (Python-only web framework)"). Confirmed current stable on PyPI as of 2026-08-21. Ships built-in SQLAlchemy/SQLModel integration (`rx.Model`) so persistence and the app process are genuinely one deployable unit — correct fit for the single-user, single-process architecture called out in the design doc (§2). |
-| SQLite (via `rx.Model` / SQLModel / SQLAlchemy) | stdlib `sqlite3` (bundled with Python); SQLModel 0.0.39 | Persistent storage for the price-entry table | Reflex's model layer wraps SQLAlchemy via SQLModel; SQLite needs no separate server process, matching "single user, occasional (roughly monthly) use" from PROJECT.md. No reason to introduce Postgres at this scale — confirmed by Reflex's own docs describing SQLite as a first-class, zero-config backend for `rx.Model`. |
-| statsmodels | 0.14.6 (installed from PyPI; do not use the `0.15.0.dev` docs branch — that's the *unreleased* dev docs version, not installable) | ARIMA / SARIMAX / VAR forecasting | This is the explicit constraint in PROJECT.md ("statsmodels for forecasting") and the direct continuation of the `backend_research/` prototyping already done for the Excel workbook. 0.14.6 is the current stable PyPI release; note that statsmodels' own hosted docs default to showing "0.15.0 (devel)" which is pre-release documentation, not the shipped API — pin to 0.14.6 in requirements and cross-check any 0.15-only API syntax found in docs before using it. |
-| pandas | 3.0.5 | Data wrangling — CSV seed import, wide/long transforms, feeding statsmodels/Excel | pandas 3.x is current stable; note pandas 3.0 changed some defaults (e.g. copy-on-write is now permanent/default behavior, `Index` dtype inference tweaks) versus the pandas 1.x/2.x era much tutorial content assumes — worth a quick changelog skim before writing the seed-import script so date parsing/dtype behavior isn't silently different from what older statsmodels examples expect. |
-| openpyxl | 3.1.5 | Reading source `.xlsx`-adjacent exports and writing the Excel export feature | Standard, actively maintained pure-Python engine for `.xlsx` read/write; pandas uses it automatically as the `.to_excel()` engine for `.xlsx`. No native dependencies, which matters for a single-user desktop-style deploy. |
+| Reflex `rx.upload` | bundled with reflex==0.9.8.post1 | CSV bulk-import UI (new capability #2) | Built-in component, no extra dependency. Confirmed current API (2026-08-24, reflex.dev/docs/library/forms/upload/): bind `rx.upload_files(upload_id=...)` to trigger, backend handler is `async def handle_upload(files: list[UploadFile])`, read bytes with `await file.read()`. Supports `max_files`, `max_size`, `min_size`, `multiple` props for basic validation before parsing. |
+| Reflex `@rx.var(cache=True)` (computed vars) | bundled with reflex==0.9.8.post1 | Windowed/paginated table data, high/low/%-change stats (new capabilities #1, #3, #4) | This is the idiomatic Reflex mechanism for avoiding full-list re-renders: a cached computed var only recomputes when the specific state vars it reads (e.g. `page_offset`, `show_all`) change — not on every unrelated state update. Confirmed current in reflex.dev/docs/vars/computed-vars/ (cache=True is the default since it was introduced; explicit annotation still recommended for clarity). |
+| pandas | 3.0.5 (already pinned) | Parsing uploaded CSV bytes (`pd.read_csv(io.BytesIO(contents))`), computing rolling/window stats (min/max/pct_change) for capability #3 | Already the project's data-wrangling library; `df["col"].pct_change()`, `.rolling(window).min()/.max()` cover the "historical high/low, % change" requirement with no new dependency. |
+| Python stdlib `io` | 3.11/3.12 stdlib | Wrapping uploaded bytes as a file-like object for pandas | No install needed. |
 
-### Supporting Libraries
+### Supporting Libraries (no additions needed — confirms existing stack suffices)
 
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
-| SQLModel | 0.0.39 | ORM layer Reflex's `rx.Model` is built on | Automatically pulled in by Reflex; you'll subclass `rx.Model` (which itself subclasses `SQLModel`) for the price-entry table rather than importing SQLModel directly in most cases. |
-| plotly | 6.9.0 | Interactive charting (bull/base/bear scenario lines) inside Reflex via `rx.plotly` | Recommended over `rx.recharts` for this specific use case: multi-series time-series line charts with hover tooltips, zoom, and export-to-PNG are Plotly's strength, and `rx.plotly` renders full Plotly/Plotly Express figures natively in Reflex. Recharts (`rx.recharts`) is the lighter-weight, more "dashboard-native-feeling" alternative — see Alternatives below. |
-| scikit-learn | 1.9.0 | ML baseline forecaster (gradient boosting / random forest regression on lagged features), per PROJECT.md's "research-first" requirement to test at least one ML baseline against statsmodels candidates | Only needed during the model-research phase (§4 of the design doc), not for the shipped app if a statsmodels model wins the backtest. Keep as a research-phase dependency; don't hard-wire it into the production forecast module unless it wins. |
-| pytest | latest 8.x | Unit-testing the forecasting module, which the design doc explicitly calls out as needing to be "independent of the UI... so it can be unit-tested" (§2) | Test the forecasting module and Excel export logic in isolation from Reflex state/UI — Reflex apps are awkward to unit-test directly, so keeping forecasting/export as plain Python functions callable from tests (not buried in `rx.State` methods) is the pattern to follow. |
-| ruff | latest | Linting/formatting | Standard modern choice for a Python project this size; fast, single tool replaces flake8+black+isort. |
+| plotly (via `rx.plotly`) | 6.9.0 (already pinned) | Rendering high/low bands or annotations on the existing scenario chart for capability #3 | Plotly already supports `add_hline`/`add_annotation`/shaded `fill='tonexty'` bands natively — use these for "historical high/low" markers rather than adding a separate stats-charting library. |
+| openpyxl | 3.1.5 (already pinned) | Improved Excel export UX (e.g. multi-sheet export, formatted headers, autosizing columns) for capability #2 | openpyxl's `Worksheet` API already supports column width, cell formatting, freeze panes, and multiple sheets — sufficient for "better Excel export UX" without adding `xlsxwriter` or similar. |
 
 ### Development Tools
 
-| Tool | Purpose | Notes |
-|------|---------|-------|
-| `reflex run` | Local dev server with hot reload | Reflex's built-in dev workflow; no separate frontend dev server needed since Reflex compiles to a React frontend + FastAPI backend under the hood but you never touch either directly. |
-| `reflex db init` / `reflex db migrate` | Schema management for `rx.Model` tables | Wraps Alembic under the hood. Use this rather than hand-editing the SQLite file or writing raw `CREATE TABLE` — keeps schema changes (e.g. adding a column for weekly mode later) reproducible. |
-| uv or pip-tools | Dependency pinning | Given the heavy, version-sensitive scientific stack (numpy/scipy/pandas/statsmodels), pin exact versions in a lockfile rather than loose ranges — these packages have historically had real breaking changes between minor versions (e.g. pandas 2→3 copy-on-write, statsmodels API churn between 0.13→0.14). |
+No new dev tools needed. Continue using `reflex run`, `reflex db migrate`, `pytest`, `ruff` as already established.
+
+## Implementation Notes by Capability
+
+### 1. Table pagination/windowing in `rx.foreach`
+- Do NOT try to slice a Python list inside the render function directly on a raw `list[dict]` state var per-render — that re-renders the full diff each time the underlying list state var changes.
+- Pattern: keep the full dataset in one `rx.Model`-backed state var (or query directly per-page from SQLite), and expose a **cached computed var** (e.g. `visible_rows`) that returns only the current window (e.g. last 12 months by default) computed from `page_offset`/`show_all` and the underlying data. `rx.foreach` should iterate this computed var, never the raw full list, in the always-rendered case.
+- For "show all history" toggle: keep it as a plain boolean state var; the computed var branches (`if self.show_all: return self.all_rows else: return self.all_rows[-N:]`) — with `cache=True` this only recomputes when `show_all` or the underlying rows change, not on unrelated UI state changes (e.g. sidebar toggles, chart hover state).
+- If page-level DB queries are preferred over in-memory slicing (167 rows × 17 cols is small enough that in-memory slicing of a cached computed var is likely sufficient and simpler — no need for `query.offset()/.limit()` SQL pagination at this scale, but that pattern exists in Reflex's own docs if data grows into the thousands of rows).
+- Source: reflex.dev/docs/vars/computed-vars/, reflex.dev/docs/library/dynamic-rendering/foreach/ (MEDIUM confidence — verified via official docs, general pattern not literally copy-pasted from a first-party pagination tutorial for this exact editable-table shape).
+
+### 2. CSV upload/import
+- Use `rx.upload(id="csv_upload", accept={"text/csv": [".csv"]}, max_files=1)` + a trigger button bound to `rx.upload_files(upload_id="csv_upload")`.
+- Backend handler: `async def handle_csv_upload(self, files: list[UploadFile])`, read with `contents = await file.read()`, parse with `pd.read_csv(io.BytesIO(contents))`.
+- Validate/preview before committing to SQLite — given "single user, occasional use," a simple preview-then-confirm step (show parsed rows in a table, user clicks "Import") is safer than silent auto-commit, and avoids needing a third-party CSV-mapping tool.
+- Do not add CSVBox or similar hosted CSV-import SaaS (surfaced in search results) — it's a paid third-party service aimed at multi-tenant SaaS onboarding flows; unnecessary complexity/cost for a single local user when `rx.upload` + pandas already covers validation and parsing.
+- Source: reflex.dev/docs/library/forms/upload/ (HIGH confidence, official docs, current as of 2026-08-24).
+
+### 3. Historical high/low, % change, forecast context
+- No new charting/stats library needed. Compute via pandas (`.min()`, `.max()`, `.pct_change()`, `.rolling()`) on the existing SQLite-backed price history, expose as cached computed vars, and either display as plain `rx.text`/`rx.stat`-style components or overlay on the existing `rx.plotly` chart using Plotly's native `add_hline`, `add_annotation`, or a shaded min/max band trace.
+- If "drivers/context for the forecast" means showing which input series (e.g. Brent crude for Diesel) most influenced a forecast, that's a statsmodels-level question (e.g. VAR coefficient inspection or SARIMAX exog contribution) — flag this as needing phase-specific research when that feature is scoped in detail; it is a modeling question, not a new library dependency.
+
+### 4. General Reflex performance for growing data
+- Prefer cached computed vars (`@rx.var(cache=True)`, the default) over methods called directly in render, and over `@rx.var(cache=False)` for anything reading list/dict state.
+- Keep `rx.foreach` bound to computed/derived vars (already-windowed), not raw full-history lists, everywhere a table or chart iterates state.
+- At current and near-future scale (hundreds of rows), in-memory pandas/list operations inside cached computed vars are sufficient — do not prematurely introduce SQL-level pagination (`query.offset()/.limit()`), a caching layer (Redis), or a background task queue. Revisit only if row counts grow into the thousands or the app becomes multi-user.
 
 ## Installation
 
+No new packages required.
+
 ```bash
-# Core
-pip install reflex==0.9.8.post1 statsmodels==0.14.6 pandas==3.0.5 openpyxl==3.1.5
-
-# Charting
-pip install plotly==6.9.0
-
-# Model research phase only (not necessarily shipped)
-pip install scikit-learn==1.9.0
-
-# Dev dependencies
-pip install pytest ruff
+# Nothing new to install — rx.upload, @rx.var(cache=True), and pandas stats
+# functions are already available in the currently pinned reflex==0.9.8.post1
+# and pandas==3.0.5.
 ```
 
 ## Alternatives Considered
 
 | Recommended | Alternative | When to Use Alternative |
 |-------------|-------------|--------------------------|
-| `rx.plotly` (Plotly) for scenario charts | `rx.recharts` (Recharts) | If you want charts that visually match Reflex's default dashboard-template aesthetic out of the box and don't need Plotly-specific features (range sliders, native PNG export, log-scale toggles) — Recharts is lighter and more "React-native-feeling" inside Reflex, but has less built-in interactivity for multi-scenario line comparison. |
-| SQLite via `rx.Model` | Postgres | Only if this ever becomes multi-user, cloud-hosted, or needs concurrent writers — explicitly out of scope per PROJECT.md ("single local user"). Don't pre-adopt Postgres; it adds an external service dependency for zero benefit at this scale. |
-| Single Reflex process (UI + backend + DB) | Split FastAPI backend + separate frontend | Only if the project later needs a mobile client, a public API, or multi-tenant auth — none of which are in scope. The design doc (§2) already made this call; this research confirms it's still the right default for Reflex's intended use case at this scale. |
-| statsmodels ARIMA/SARIMAX/VAR | `pmdarima` (auto_arima) for automated order selection | Useful as a *research-phase convenience* to auto-search (p,d,q) orders faster than manual grid search in `backend_research/`-style backtesting, but not a production dependency — once winning orders are found via backtest, hard-code them in the statsmodels call rather than keeping auto_arima as a runtime dependency (it re-searches on every fit, which is unnecessary cost for a single-user monthly-cadence app). Confirmed current PyPI version: 2.1.1, compatible with statsmodels 0.14.x. |
-| scikit-learn gradient boosting as ML baseline | `xgboost` (3.4.1, confirmed current) | If the research phase shows scikit-learn's `GradientBoostingRegressor`/`HistGradientBoostingRegressor` underperforms on these particular series (small, few-hundred-row datasets), xgboost is a reasonable next thing to try, but for datasets this small (monthly data since 2020, weekly since 2022 — low hundreds of rows) scikit-learn's built-in boosting is very likely sufficient and keeps one fewer heavy native dependency in the stack. |
+| `rx.upload` + pandas `read_csv` for CSV import | CSVBox (hosted CSV-import widget) | Only if this ever becomes a multi-tenant/customer-facing product needing non-technical end-user column-mapping UX with support for malformed files at scale — not warranted for a single local user with a known, fixed CSV schema. |
+| Cached computed var (`@rx.var(cache=True)`) windowing for table pagination | SQL-level `OFFSET`/`LIMIT` pagination against SQLite | Use if/when the price-entry table grows well beyond current scale (thousands of rows) such that loading the full table into a Python list per session becomes a real memory/latency concern — not the case at 167 rows × 17 cols. |
+| Plotly native annotations/bands for high/low display | A dedicated stats/sparkline library (e.g. `plotly.express` subplots, or a JS sparkline component) | Only if the "richer forecast context" feature grows into a dedicated analytics sub-page with many small multiples — for a few summary stat lines on the existing dashboard, Plotly's existing primitives are sufficient. |
 
 ## What NOT to Use
 
 | Avoid | Why | Use Instead |
 |-------|-----|--------------|
-| Flask/Django + a separate JS frontend framework | PROJECT.md explicitly constrains this project to Reflex, Python-only, single-process — this rules out any split frontend/backend approach and any JS build tooling. | Reflex, as already decided. |
-| Postgres, MySQL, or any hosted DB service | Massive overkill for single-user, monthly-cadence data entry; adds an external service, connection-string secrets, and ops burden with zero benefit at this scale. | SQLite via `rx.Model`, as already decided in PROJECT.md constraints. |
-| `pmdarima`'s `auto_arima` as a runtime/production dependency | It's meant for exploratory order search, not repeated production inference; re-running a search on every forecast call is wasted compute and non-deterministic across statsmodels/numpy versions in subtle ways. | Use it only during the research/backtest phase; hard-code the winning (p,d,q)/(P,D,Q,s) orders in the shipped forecasting module. |
-| Hand-rolled `sqlite3` + raw SQL for the price table | Reflex's `rx.Model`/SQLModel layer already gives you schema definition, migrations (`reflex db migrate`), and typed query building for free — bypassing it means losing Reflex's reactive state binding between the DB and the UI table component, which is the main reason to use Reflex at all. | `rx.Model` subclasses + `reflex db init`/`migrate`. |
-| pandas `.to_excel()` with the `xlsxwriter` engine | xlsxwriter is write-only (can't help with any future read-back need) and is a second dependency doing largely the same job openpyxl already does (which Reflex/pandas will pull in anyway for reading `.xlsx` seed-adjacent files). Keep one Excel library, not two. | openpyxl for both read and write paths. |
-| statsmodels' hosted "devel"/0.15.0 docs as an API reference without checking | The default statsmodels.org docs frequently show the *unreleased* dev branch (0.15.0 at time of this research) rather than the installed 0.14.6 API — following dev-branch examples verbatim can reference methods/params not yet in the pinned release. | Cross-check any statsmodels example against the 0.14.x-tagged docs or the installed package's own docstrings (`help(SARIMAX)`) before relying on a signature. |
+| A separate pagination/data-grid library (e.g. `rx.data_table` from older Reflex versions, or a third-party AG-Grid wrapper) | Adds a new dependency and a different state-binding model than the rest of the app's `rx.foreach`-based editable table; current editable-cell UX already works, the problem is row count, not grid features. | Cached computed var windowing over the existing `rx.foreach` table, as above. |
+| `xlsxwriter` for Excel export UX improvements | Would duplicate openpyxl, which is already pinned and already the pandas `.to_excel()` engine; the project's own STACK.md already flags this as a "what not to use." | openpyxl's existing formatting/multi-sheet/freeze-pane API. |
+| Loading the entire uploaded CSV into a Reflex state var as a raw Python list before validation | Uploaded files can be arbitrary size/shape; dumping directly into reactive state risks the same "full re-render on large list" problem this milestone is fixing for the existing table. | Parse with pandas in the backend event handler first, validate/summarize, and only write to SQLite (and expose to state via the same windowed computed-var pattern) after user confirms. |
+| Background task queue / Celery / Redis for CSV import processing | Massive overkill for single-user, occasional, small (hundreds-of-rows) CSV files — adds infra the single-process constraint explicitly rules out. | Reflex's built-in `async def` event handler is sufficient; use `@rx.event(background=True)` only if a specific import turns out to be slow enough to block the UI in testing, not preemptively. |
 
 ## Stack Patterns by Variant
 
-**If weekly-mode forecasting ships (per design doc §6):**
-- Keep the same statsmodels/pandas stack — no new tech needed, just additional model variants (e.g. proxy regression Baltic AN → HDAN/PPAN) fit on a different resampling of the same tables.
-- Because the data-cadence gap is a modeling/data problem, not a stack problem — resolving it doesn't require different libraries, just different backtest configurations.
+**If the price-entry table grows past ~1,000-2,000 rows in a future milestone:**
+- Move from in-memory computed-var slicing to actual SQL `OFFSET`/`LIMIT` queries per page via `rx.Model`/SQLAlchemy.
+- Because in-memory Python list operations on every state read start becoming the bottleneck rather than the UI render itself.
 
-**If v2 news/sentiment scenario adjustment ships (per design doc §5):**
-- This will need an HTTP client (`httpx`) and likely an LLM API SDK — deliberately not researched here since PROJECT.md marks this "explicitly deferred to v2" and provider selection as "an open research question, not decided yet." Re-research at that milestone rather than pre-selecting now.
-- Because locking in a news/LLM provider now would be premature — the design doc is explicit that this needs its own research pass later.
+**If CSV import needs to support multiple source schemas (not just one fixed layout):**
+- Add a lightweight column-mapping step (dropdowns to map uploaded columns to `HDAN`/`PPAN`/`Diesel`/`FX` fields) before commit.
+- Because the "Out of Scope" note in PROJECT.md that ruled out upload in v1 was about *not having* an upload UI at all, not about schema flexibility — keep the mapping step minimal rather than building a generic import-mapping engine.
 
 ## Version Compatibility
 
 | Package A | Compatible With | Notes |
 |-----------|------------------|-------|
-| reflex==0.9.8.post1 | sqlmodel==0.0.39 (auto-pulled) | Installed automatically as a Reflex dependency; don't pin a different SQLModel version manually unless you've verified compatibility with your Reflex version. |
-| pandas==3.0.5 | statsmodels==0.14.6 | Confirmed working combination as of 2026-08-21 (both current stable on PyPI simultaneously); if either is upgraded independently later, re-verify — statsmodels has historically lagged pandas major-version support by a few months. |
-| pandas==3.0.5 | openpyxl==3.1.5 | pandas auto-selects openpyxl as the `.xlsx` engine when installed; no explicit `engine=` argument needed for `.to_excel()`/`.read_excel()` in most cases, but pass `engine="openpyxl"` explicitly for clarity/future-proofing. |
-| statsmodels==0.14.6 | numpy/scipy (whatever pip resolves) | Let pip resolve numpy/scipy versions from statsmodels' own constraints rather than pinning them yourself — these are the packages most likely to have platform-specific wheel gaps on newer Python versions. |
+| reflex==0.9.8.post1 | `rx.upload`, `@rx.var(cache=True)` | Both are stable, non-experimental APIs in this Reflex version as of 2026-08-24 — no upgrade needed to use either for this milestone. |
+| pandas==3.0.5 | `io.BytesIO` + `pd.read_csv` | Standard combination; no compatibility concerns beyond what's already noted in the project's existing STACK.md re: pandas 3.x copy-on-write defaults. |
 
 ## Sources
 
-- PyPI JSON API (`pypi.org/pypi/<package>/json`) — live version lookups for reflex, statsmodels, pandas, openpyxl, sqlmodel, plotly, pmdarima, scikit-learn, xgboost — HIGH confidence (authoritative, current as of 2026-08-21)
-- https://reflex.dev/docs/database/overview/ — confirmed `rx.Model`/SQLAlchemy/SQLModel architecture — HIGH confidence
-- https://reflex.dev/docs/library/graphing/other-charts/plotly/ and https://reflex.dev/docs/library/graphing/charts/linechart/ — confirmed `rx.plotly` and `rx.recharts` both current, actively supported charting paths — HIGH confidence
-- https://www.statsmodels.org (devel docs) — flagged as showing pre-release "0.15.0" docs, cross-checked against installed 0.14.6 via PyPI — MEDIUM confidence on exact API surface, HIGH confidence that 0.14.6 is the correct pin
-- Project files: `.planning/PROJECT.md`, `docs/plans/2026-08-21-reflex-dashboard-design.md` — source of hard constraints (Reflex, SQLite, statsmodels, single-process) that this research confirms and versions rather than second-guesses
+- https://reflex.dev/docs/library/forms/upload/ — confirmed `rx.upload` API, event handler signature, chunked-upload option for large files — HIGH confidence, fetched 2026-08-24
+- https://reflex.dev/docs/vars/computed-vars/ — confirmed cached computed var behavior and default `cache=True` — HIGH confidence, fetched 2026-08-24
+- https://reflex.dev/docs/library/dynamic-rendering/foreach/ — confirmed `rx.foreach` usage pattern for state-driven lists — MEDIUM confidence (general docs, not a pagination-specific tutorial)
+- WebSearch: "Reflex rx.upload component CSV file upload example" — surfaced CSVBox as a third-party alternative (rejected, see What NOT to Use) — LOW confidence source, not used for core recommendation
+- WebSearch: "Reflex large table performance rx.foreach pagination best practices computed var cache" — surfaced GitHub discussion/issue threads confirming cached-var + pagination as the community-recommended pattern — MEDIUM confidence, cross-checked against official computed-vars docs
+- Existing project file: `.planning/research/STACK.md` (v1 research, read via project context) — baseline stack this document extends, not re-researched
 
 ---
-*Stack research for: Reflex forecasting dashboard (Prediction Dashboard project)*
-*Researched: 2026-08-21*
+*Stack research for: Reflex dashboard v1.2 (pagination, CSV import, forecast stats, performance)*
+*Researched: 2026-08-24*

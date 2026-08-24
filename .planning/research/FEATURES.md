@@ -1,179 +1,141 @@
 # Feature Research
 
-**Domain:** Single-user commodity/FX price forecasting dashboard (procurement/budgeting tool)
-**Researched:** 2026-08-21
-**Confidence:** MEDIUM (grounded in project docs + general dashboard/data-table UX literature; no direct competitor product had this exact combination of scenario forecasting + manual entry + single-user scope, so feature landscape is synthesized from adjacent categories: commodity forecast platforms, budgeting tools, procurement dashboards, and data-grid UX patterns)
+**Domain:** Single-user financial/commodity forecasting dashboard — export/import UX, forecast context enrichment, large-table UX
+**Researched:** 2026-08-24
+**Confidence:** MEDIUM (WebSearch-verified against multiple sources; no Context7-eligible library for these UX patterns — this is a domain/UX question, not an API question)
+
+## Framing
+
+This app has **one user**, monthly-cadence data entry, ~167 rows today growing by ~1 row/series/month (~12-48 rows/year across 4 series depending on table shape). This is *not* a multi-tenant SaaS import pipeline or a BI tool serving many analysts. Recommendations below are filtered hard against that reality — most "enterprise CSV import" and "BI dashboard" patterns found in research are explicitly downgraded to anti-features here because they solve problems this app doesn't have (many users, adversarial/dirty data sources, huge row counts).
+
+---
 
 ## Feature Landscape
 
 ### Table Stakes (Users Expect These)
 
-Features users assume exist in any small-scale forecasting/tracking dashboard. Missing these makes the tool feel broken or less useful than the Excel workbook it's replacing.
-
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| View current/latest values at a glance | Any tracker's first job — "what's the price now" | LOW | Summary cards/header row above the chart, one per series (HDAN, PPAN, Diesel-MNT, FX) |
-| Historical price chart (actuals only, no forecast) | Users expect to see the trend that produced the forecast, not just the forecast | LOW | Reuses same chart component as forecast view; table stakes for trusting the model |
-| Add a new data row (manual entry) | Direct replacement for "add a row to Input tab in Excel" — this is the core workflow being ported | MEDIUM | Form or inline-add row; must validate types (dates, numeric prices) before insert |
-| Edit an existing row | Corrections happen (data entry mistakes, revised actuals) — a tracker that can't fix a typo without DB surgery is unusable | MEDIUM | Inline edit is expected UX (see Differentiators) but even a modal edit-form satisfies table stakes |
-| Delete/void a row | Bad entries need removal, not just correction | LOW | Soft-delete not required for v1; hard delete with a confirm step is sufficient |
-| Data persists across sessions | Table stakes for literally any tool beyond a demo | LOW | Already scoped: SQLite via `rx.Model` |
-| Export data to Excel | Explicit requirement — user's workflow depends on Excel elsewhere (sharing, workbook cross-check) | LOW-MEDIUM | openpyxl; straightforward given tabular SQLite data |
-| Forecast horizon selector | The one differentiator vs. the Excel workbook (which only did next-month) is *worthless* without a way to control it — this is the mechanism, not the feature | LOW | Slider or dropdown 1–12 (months); simple UI, but forecast recompute logic behind it is the real cost |
-| Per-product forecast values in a table (numbers, not just chart) | Procurement/budgeting users need to copy a number into a purchase order or budget line — a chart alone doesn't answer "what do I write down" | LOW | Table below/beside chart showing base/bull/bear values per horizon month |
-| Basic input validation on entry | Prevents a single bad row from corrupting a VAR/AR model silently | MEDIUM | Type checks, plausible-range checks (e.g., FX rate isn't negative); doesn't need to be sophisticated |
-| Loading/empty states | Any real dashboard needs to not look broken with zero data or during forecast compute | LOW | Especially relevant on first run before seed data is loaded |
+| Excel export retains one clean, formula-free data sheet (current raw price table) | Baseline already shipped; "garbage in, garbage out" — export must be trustworthy as a record, not just a dump | LOW (already exists) | Keep as Tab 1 (`Data_Raw`) in any multi-sheet redesign — no formulas, no merged cells, plain tabular data so it can be re-opened, re-sorted, or fed into the existing Excel workbook if needed. |
+| Export includes column headers + units (MNT, USD, etc.) and consistent number formatting | Finance/procurement users copy these numbers into other documents; ambiguous units or raw floats erode trust | LOW | Cheap win: set `number_format` per column in openpyxl (e.g. `#,##0.00`) instead of leaving default General format. |
+| CSV/bulk import validates before committing, and *shows* what will change | Standard expectation across all import UX research: users need a preview before data is written, not a silent success/fail | MEDIUM | Even a single-user app benefits from "show me the diff before you touch my 167-row history." A one-shot silent import risks corrupting the only copy of the data. |
+| Import gives row-level error messages, not just "import failed" | Universal finding across CSV import UX sources — vague failures force users to guess-and-recheck the whole file | MEDIUM | For this app's scale (a handful of rows per import), a simple in-page table listing "Row 3: PPAN value is not numeric" is sufficient — no need for a downloadable error-report file at this volume. |
+| Table shows recent history by default with a way to see everything | Already decided/in-scope in this milestone (recent-months default + "show all" toggle) — listed here only because it's the precondition every other table-scale feature below assumes | LOW (already scoped separately) | Not part of this research's export/import/context/scale scope, but forecast-context features (below) should reuse whatever date-range state this introduces rather than inventing a second filter. |
+| Historical high/low and % change vs. last period on the forecast summary cards | Nearly universal on financial/commodity dashboards — "where does today sit relative to history" is the single most common piece of context added beyond a raw forecast number | LOW-MEDIUM | Cheap to compute from existing SQLite data (`MAX`/`MIN`/`first row - last row` over the loaded history) — no new data source needed. Natural extension of the four existing summary cards. |
 
 ### Differentiators (Competitive Advantage)
 
-Not required for the tool to be usable, but this is where the project earns its "better than the Excel workbook" claim. Should map to the Core Value in PROJECT.md: adjustable horizon + bull/base/bear scenarios + in-app entry, all without opening Excel.
-
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Adjustable multi-month horizon (1–12) with live recompute | The single named differentiator over the Excel workbook, which only forecasts one month ahead | MEDIUM | Already scoped. Cost is mostly in the forecasting backend (must support N-step-ahead forecasting, not just 1-step), not the UI control itself |
-| Bull/base/bear scenario visualization as 3 lines/bands on one chart | Turns a single point forecast into a decision-support view — user sees range of "what I might pay," not false precision | MEDIUM | v1 = base ± statistical spread (backtest error/volatility), computed dynamically. Rendering as a shaded band (not 3 flat lines) is a further UX upgrade — see below |
-| Confidence band styling (shaded area) vs. 3 discrete lines | Industry-standard forecast dashboards (commodity outlook platforms, e.g. Citigroup/CRU-style) use shaded probability bands rather than 3 crisp lines, because it visually communicates "this is a range, not 3 discrete predicted paths" | LOW-MEDIUM | Recharts/similar in Reflex supports area+line composition; this is a rendering choice on top of the same base±spread data, low incremental cost once scenario math exists |
-| Inline (in-row) editing of the data table, not modal-per-field | Reduces friction vs. Excel's own inline-cell editing, which is the workflow being replaced — if editing requires a multi-click modal, it's a downgrade from Excel, not an upgrade | MEDIUM | Reflex has a Data Table Editor template pattern (searchable/editable grid) that fits this directly |
-| Derived series shown automatically (Diesel-MNT from Diesel-USD × FX × markup) | User doesn't have to compute the derived value themselves — a small but real time-save vs. Excel formulas | LOW | Already a validated requirement; purely a display/compute feature once the two source forecasts exist |
-| Multi-series dashboard in one view (HDAN, PPAN, Diesel-MNT, FX side by side) | Excel workbook is tab-based (Input/PctChange/Regression/Forecast/Dashboard) — a single-page view of all 4 series' forecasts is a genuine UX improvement over tab-switching | MEDIUM | Grid of 4 small charts, or a per-series toggle on one chart; layout decision, not a data decision |
-| "As of" / last-updated indicator per series | Useful for a monthly-cadence, occasional-use tool — user needs to know if data is stale before trusting a forecast | LOW | Simple metadata display; cheap to add, meaningfully increases trust |
+| Excel export with a real multi-sheet workbook (Data / Summary-or-Pivot / Forecast) mirroring the existing `AN_HDAN_PPAN_Diesel_FX_Forecast_Model.xlsx` structure | User already has mental model of a 5-tab workbook (Input/PctChange/Regression/Forecast/Dashboard); an export that echoes that structure (Data, Forecast-with-scenarios, maybe a light Dashboard-style summary sheet) is *more* useful to them than a flat table, and directly serves the "companion, not replacement" positioning in PROJECT.md | MEDIUM | openpyxl supports multiple sheets and native Excel charts (`openpyxl.chart.LineChart`) in one file — no extra library needed. Embedding a real Excel-native line chart (not just a pasted image) lets the user keep exploring the forecast fan chart offline in Excel itself, which is a genuine differentiator over "export = CSV dump." |
+| YoY / period-over-period % change context alongside MoM | Standard on finance forecasting dashboards per research (YoY trend context improves forecast interpretability); for a procurement user asking "what will I pay N months from now," "vs. this time last year" is often more decision-relevant than vs. last month, since commodity/FX prices are seasonal | LOW-MEDIUM | Same computation pattern as high/low — subtract row from ~12 months back in the same series. Works cleanly with monthly-cadence data already in SQLite; do not attempt for weekly mode until that data-cadence question (already flagged in PROJECT.md as blocked) is resolved. |
+| "Drivers" explanation text (e.g. "Diesel-MNT forecast driven primarily by FX and Brent-linked Diesel-USD trend") | Plain-language explanation of *why* a forecast moved, using the model's own known structure (VAR for HDAN/PPAN, AR-lag-2-on-Brent for Diesel, AR(1) for FX) rather than a generic BI "anomaly detection" feature | MEDIUM | This can be templated, not ML-generated: since the model families are fixed and known (per PROJECT.md), a short static/templated sentence per series ("Diesel-MNT = Diesel-USD forecast × FX forecast × markup") is honest, cheap, and matches how the Excel workbook already documents its logic. Avoid dynamic LLM-generated driver text — no LLM dependency exists yet in this app (explicitly deferred to v2 per PROJECT.md), and templated text is more auditable for a finance use case anyway. |
+| CSV import with column-mapping UI (map arbitrary header names to the app's canonical columns) | Reduces friction if the source file's headers don't exactly match the DB schema (e.g. re-exports from the Excel workbook, or copy-pasted data with slightly different column names) | MEDIUM-HIGH | Worth doing only if import sources are genuinely variable. Given this app's only plausible import source is the user's own Excel workbook (fixed, known column layout) or a re-export of this app's own Excel export (round-trip), a *fixed* expected-column-order import with clear validation errors is likely sufficient — see Anti-Features below. Only add full fuzzy column-mapping if the user confirms multiple differently-shaped source files in practice. |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
-Features that sound good for a forecasting dashboard but would add disproportionate complexity or actively work against this project's single-user, occasional-use, "companion not replacement" positioning. These are already explicitly out of scope in PROJECT.md; documented here with the *why*, not just the *what*.
-
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|------------------|-------------|
-| File upload / bulk CSV import UI | Feels efficient for "catching up" months of missed data at once | Adds file-parsing, schema-validation, and error-recovery UX for a workflow that happens rarely (single monthly entry) — high build cost for a low-frequency action; also masks bad data behind a black-box import rather than a reviewable row-by-row entry | Manual in-app entry (already scoped); revisit only if data-API integration becomes real, at which point the ingestion path is different anyway (API, not CSV) |
-| Live news/sentiment-driven scenario adjustment | Sounds like it would make bull/bear "smarter" and more current | Requires picking and maintaining a news/LLM provider, handling Mongolia/MNT-specific coverage gaps, and risks producing scenario swings that aren't backed by the same backtested rigor as the statistical model — undermines trust in the tool for a single procurement user who needs a stable, explainable number | v1 ships with base ± statistical spread only (backtest error/volatility); treat sentiment as a v2 research question, not a v1 feature |
-| Multi-user accounts / auth / roles | Standard SaaS-dashboard assumption, easy to over-apply by default | Single local user matches the Excel workbook's actual usage pattern — auth adds real complexity (sessions, access control) with zero value for one person on one machine | None needed; if sharing is required later, Excel export already covers that use case |
-| Automatic API data-fetch from external price sources | Removes manual entry step, feels "modern" | Requires selecting/paying for/maintaining a market-data provider, handling API downtime, and building trust that fetched data matches the user's actual purchasing reality (which is negotiated, not always market-rate) — real scope and cost for a monthly-cadence, single-user tool | Manual entry stays authoritative; flagged as a distinct future milestone if it's ever pursued, not bolted onto v1 |
-| Fully general chart with pan/zoom/tooltips/drill-down toolbox | "Nice, polished dashboards have rich interactive charts" | Over-engineering for 4 series and 12 data points at most (12-month horizon) — a full charting toolbox (zoom, brush, export-as-image, per-point tooltips with drill-down) is disproportionate effort for a chart a single user glances at monthly | Simple line/area chart with basic hover tooltip; skip zoom/brush/drill-down unless a real need surfaces |
-| Real-time/streaming price updates | "Dashboard" often implies live-updating data | This is a monthly-cadence, manually-entered dataset — there is no live feed to stream from, and building any polling/websocket infrastructure for data that changes once a month is pure waste | Static page, refreshed on user action (data entry, horizon change) — no push/streaming needed |
-| Configurable/pluggable model selection in the UI (user picks ARIMA vs VAR vs ML from a dropdown) | Feels powerful and "researcher-friendly" | Model selection is explicitly a backend research/backtest decision (per PROJECT.md), not a per-session user toggle — exposing it in the UI implies the user should evaluate model quality, which isn't the target user's job or expertise | Model selection happens once, offline, during the research phase; UI only exposes the horizon and scenario outputs, not model internals |
+| Fuzzy/AI-powered column auto-mapping for CSV import (as seen in tools like Dromo/CSVBox) | Looks impressive, commonly cited as "modern" import UX | Built for multi-tenant SaaS ingesting files from many different unknown external users/systems. This app has exactly one user importing from at most 1-2 known, fixed-shape sources (their own Excel workbook or this app's own export). Fuzzy mapping adds a new dependency/complexity for a mapping problem that barely exists here. | A fixed expected-column-order template (documented, maybe downloadable as a starter CSV) with clear "column X missing/misnamed" validation errors. |
+| Streaming/chunked validation for large file uploads (100MB+ CSV handling patterns) | Common CSV-import-best-practices advice | This app's entire historical dataset is ~167 rows across 4 series — a full import is a few KB, not tens of MB. Streaming validation infrastructure solves a scale problem that will not occur here for years, if ever, given monthly-cadence data entry. | Validate the whole (small) file synchronously in memory; show all row errors in one pass. |
+| Infinite scroll for the price-entry table | Feels "modern," common on consumer feeds | Research is consistent: infinite scroll is for discovery/feed content, not analytical/reference tables — it breaks scannability, loses position on refresh, and is harder to reconcile against "which row am I editing" in a data-entry context. Also conflicts with the already-decided recent-months-default approach for this milestone. | Recent-months default + explicit "show all history" toggle (already decided) ± a simple date-range filter if "show all" ever becomes sluggish again; add pagination only if row count grows into the thousands, which is not expected for a monthly-cadence single-series dataset for years. |
+| Automated anomaly detection / "predictive dashboarding" style AI insights on forecast variance | Appears in generic BI/forecasting-dashboard best-practice lists | Requires either an ML component beyond the backtested statsmodels models already scoped, or an LLM dependency — both explicitly out of scope/deferred per PROJECT.md ("Live news/sentiment-driven bull/bear scenario adjustment... explicitly deferred to v2"). Building ad hoc anomaly detection here duplicates that already-deferred, not-yet-researched work. | Use the templated "drivers" explanation (above) instead — cheap, honest, and grounded in the already-known/backtested model structure rather than a new inference layer. |
+| Real-time/auto-refreshing dashboard updates | Standard BI-dashboard checklist item | User enters data ~monthly and views the dashboard occasionally — there is no live external data feed to refresh against yet (API auto-fetch is explicitly out of scope for v1 per PROJECT.md). A refresh mechanism with nothing changing underneath it is complexity with zero payoff. | Static page reflecting current SQLite state; re-render on data entry/import as already happens. |
+| Resumable/multi-step wizard-style bulk import flow with saved partial progress | Common in enterprise import UX guides (Dromo, CSVBox) for large multi-minute imports | A single-user monthly import is a handful of rows and takes seconds to review — a multi-step wizard with resumable state adds UI surface area and session-state complexity disproportionate to the task size. | Single-page: upload → preview/validate table → confirm → commit. No wizard, no resume-later state. |
+
+---
 
 ## Feature Dependencies
 
 ```
-Manual data entry (add/edit row)
-    └──requires──> Input validation
-                       └──enhances──> Model reliability (bad rows corrupt VAR/AR fits)
+Excel export "Data_Raw" sheet (already shipped)
+    └──extended-by──> Multi-sheet Excel export (Data + Forecast-with-chart)
+                           └──requires──> existing forecast module output (base/bull/bear per series, already built)
 
-Forecast horizon selector (1-12 months)
-    └──requires──> N-step-ahead forecasting backend (not just 1-step, unlike Excel workbook)
-                       └──requires──> Model research/backtest phase (per PROJECT.md, no un-backtested model ships)
+Recent-months-default table (already decided, separate scope)
+    └──enables──> Date-range-aware high/low & YoY context
+                      (context stats should read from full history in DB,
+                       not just the currently-displayed recent-months slice)
 
-Bull/base/bear scenario display
-    └──requires──> Forecast horizon selector (scenarios are computed per horizon step)
-    └──requires──> Base forecast + statistical spread (backtest error/volatility)
+CSV bulk import (validate → preview → commit)
+    └──requires──> existing rx.Model schema (already defined for price-entry table)
+    └──conflicts-with──> fuzzy column auto-mapping (unneeded complexity, see Anti-Features)
 
-Confidence-band chart rendering ──enhances──> Bull/base/bear scenario display
-    (same underlying data, different visual treatment — can ship after 3-line version if time-constrained)
+"Drivers" explanation text
+    └──requires──> known, fixed model family per series (VAR / AR-lag-2-on-Brent / AR(1))
+                    (already decided in PROJECT.md — do NOT build if model selection
+                     research is still in flux for a given series)
 
-Excel export
-    └──requires──> Data persistence (SQLite table must exist and be populated)
-    (independent of forecasting — can ship before or after forecast features)
-
-Derived Diesel-MNT series
-    └──requires──> Diesel-USD forecast AND FX forecast
-                       (both must exist before the derived series can be computed/displayed)
-
-Inline in-row table editing ──enhances──> Manual data entry
-    (not a separate feature — an implementation-quality upgrade to "edit an existing row")
-
-Multi-series single-page dashboard ──enhances──> Per-product forecast display
-    (layout decision on top of already-computed forecasts, not a new data dependency)
+YoY % change
+    └──requires──> ≥ 1 full year of monthly history already in SQLite (available: data since 2013/2020)
+    └──blocked-for──> weekly-mode series until the weekly data-cadence gap (PROJECT.md §6) is resolved
 ```
 
 ### Dependency Notes
 
-- **Forecast horizon selector requires N-step-ahead forecasting backend:** the Excel workbook only ever forecasts one month ahead; supporting a 1–12 month slider means the backend models (VAR/AR/whatever wins backtesting) must be able to produce a full path of predictions, not a single next-step number. This is a backend research/design cost, not a UI cost — flag for the research/planning phase, not treated as "just add a slider."
-- **Bull/base/bear requires horizon selector:** scenarios are meaningless without a horizon to spread across — these two features must land in the same phase or scenario data has nothing to render against.
-- **Derived Diesel-MNT requires both Diesel-USD and FX forecasts:** if these two source forecasts are built in different phases, Diesel-MNT display must wait for whichever lands second — sequence FX and Diesel-USD model work before exposing the derived series in the UI.
-- **Excel export conflicts with nothing and depends only on persistence:** it can be built early (even against seed data) and is a good low-risk phase-1 candidate to validate the SQLite schema before forecasting logic is built on top of it.
-- **Confidence-band rendering enhances but doesn't block bull/base/bear:** ship the simpler 3-line version first if needed; band styling is a low-cost visual upgrade that can land in a later phase without touching the underlying scenario math.
+- **Multi-sheet Excel export requires the forecast module's existing base/bull/bear output** — no new forecasting logic needed, purely a presentation/export-layer change reusing data the app already computes for the on-screen forecast table.
+- **High/low and YoY context should query full history from SQLite, not the currently-rendered "recent months" table slice** — keep the context-stat computation independent of whatever windowing the data-entry table UI applies, so the two features (table UX fix vs. forecast context) don't get coupled by accident.
+- **"Drivers" text depends on model family being fixed and known** — since PROJECT.md states models must go through backtesting before shipping, drivers text should be written per confirmed model, not written speculatively ahead of the research/backtest step.
+- **YoY is blocked for weekly-cadence series** — same open gap PROJECT.md already flags for weekly forecasting (§6); don't build YoY logic assuming weekly data exists.
+- **CSV import explicitly conflicts with fuzzy auto-mapping** — pick the fixed-schema approach; revisit only if real usage proves multiple import source shapes exist.
 
-## MVP Definition
+---
 
-### Launch With (v1)
+## MVP Definition (for this milestone, v1.2)
 
-Minimum viable product — validates "can I see a real forecast with a range, for a horizon I choose, without opening Excel."
+### Launch With (v1.2)
 
-- [ ] Manual add/edit/delete of data rows, persisted in SQLite — replaces the Excel Input tab workflow
-- [ ] Basic input validation on entry (types, plausible ranges) — protects model integrity from day one
-- [ ] Historical price chart per series (actuals) — establishes trust before forecasts are shown
-- [ ] Forecast horizon selector (1–12 months) — the core differentiator, must exist for scenarios to mean anything
-- [ ] Base/bull/bear forecast values (base ± statistical spread) for HDAN, PPAN, Diesel-USD, FX, and derived Diesel-MNT — the stated Core Value
-- [ ] Scenario chart (3 lines minimum; shaded band is a nice-to-have, not required for v1) across the chosen horizon
-- [ ] Forecast values also shown as a table (not chart-only) — procurement/budgeting users need copyable numbers
-- [ ] Excel export of the stored data table
-- [ ] Loading/empty states so the app doesn't look broken pre-seed or mid-compute
+- [ ] Excel export gains a second sheet with the base/bull/bear forecast table (reusing existing forecast output) — low effort, directly extends an already-shipped feature
+- [ ] Number formatting (units, decimals, thousands separators) applied to all exported columns — cheap correctness fix
+- [ ] Forecast summary cards gain historical high/low and % change vs. same-period-last-year (where ≥12 months of history exists) — reuses existing SQLite data, no new inputs
+- [ ] Simple CSV bulk import: fixed expected column order, in-page preview + row-level validation errors, explicit confirm-to-commit step — no wizard, no fuzzy mapping
 
 ### Add After Validation (v1.x)
 
-Features to add once the core loop (enter data → pick horizon → see scenario forecast) is working and trusted.
-
-- [ ] Confidence-band (shaded area) chart styling — upgrade from 3 discrete lines once the base scenario math is proven correct
-- [ ] Inline in-row table editing (vs. modal/form edit) — once the data-entry workflow is validated, tighten the UX to match/beat Excel's inline editing
-- [ ] Multi-series single-page dashboard layout (all 4 series visible together) — once individual series views are working, consolidate for at-a-glance use
-- [ ] "As of" / last-updated freshness indicator per series — small trust-building addition once real monthly usage begins
+- [ ] Native Excel line-chart embedded in the export's forecast sheet (vs. a plain data table) — do after confirming users actually open exports in Excel and want to interact with the chart there, not just view the numbers
+- [ ] Templated "drivers" explanation text per series — do once model family per series is fully confirmed post-backtest, so text doesn't need rewriting if model selection changes
 
 ### Future Consideration (v2+)
 
-Explicitly deferred per PROJECT.md — do not pull forward without a new decision.
+- [ ] Column-mapping UI for CSV import — only if a second real import source with a different column layout actually materializes
+- [ ] Any anomaly-detection or AI-generated forecast commentary — depends on the explicitly-deferred news/LLM provider research (PROJECT.md, out of scope)
+- [ ] Weekly-cadence YoY/context stats — blocked on the weekly data-cadence gap research (PROJECT.md §6)
 
-- [ ] Weekly forecast mode — blocked on resolving the AN-family vs. Diesel/FX weekly data-cadence gap (design doc §6); needs its own research pass before scoping
-- [ ] Live news/sentiment-driven bull/bear adjustment — provider selection (news API + LLM scoring vs. dedicated market-data provider) is an open research question, not decided
-- [ ] Automatic API data-fetch from external price sources — only relevant if/when the "connect to a data API" idea is picked up as its own milestone
-- [ ] File-upload/bulk CSV import — may return if the API-connection idea is picked up, since ingestion design would change together
+---
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
-|---------|------------|----------------------|----------|
-| Manual data entry (add/edit/delete row) | HIGH | MEDIUM | P1 |
-| Forecast horizon selector (1-12mo) | HIGH | MEDIUM (backend-heavy) | P1 |
-| Bull/base/bear scenario values + chart | HIGH | MEDIUM | P1 |
-| Forecast values table (numbers) | HIGH | LOW | P1 |
-| Excel export | HIGH | LOW-MEDIUM | P1 |
-| Historical actuals chart | MEDIUM | LOW | P1 |
-| Input validation | MEDIUM (protects model quality) | MEDIUM | P1 |
-| Derived Diesel-MNT display | HIGH | LOW (once inputs exist) | P1 |
-| Confidence-band (shaded) chart styling | MEDIUM | LOW-MEDIUM | P2 |
-| Inline in-row editing | MEDIUM | MEDIUM | P2 |
-| Multi-series single-page layout | MEDIUM | MEDIUM | P2 |
-| "As of" freshness indicator | LOW-MEDIUM | LOW | P2 |
-| Weekly forecast mode | MEDIUM (user-requested, gated) | HIGH (data gap unresolved) | P3 |
-| Live news/sentiment scenarios | MEDIUM | HIGH | P3 |
-| Automatic API data-fetch | LOW (for single occasional user) | HIGH | P3 |
-| Bulk CSV upload | LOW (rare-frequency action) | MEDIUM | P3 |
+|---------|------------|---------------------|----------|
+| Historical high/low + YoY % change on summary cards | HIGH | LOW | P1 |
+| Multi-sheet Excel export (Data + Forecast) | HIGH | MEDIUM | P1 |
+| Number formatting in export | MEDIUM | LOW | P1 |
+| CSV bulk import (fixed schema, validated preview) | MEDIUM-HIGH | MEDIUM | P1 |
+| Embedded native Excel chart in export | MEDIUM | MEDIUM | P2 |
+| Templated drivers explanation | MEDIUM | MEDIUM | P2 |
+| Column-mapping UI for import | LOW (for this user) | HIGH | P3 |
+| Anomaly detection / AI commentary | LOW (out of scope) | HIGH | P3 (defer) |
 
 **Priority key:**
-- P1: Must have for launch
-- P2: Should have, add when possible
-- P3: Nice to have, future consideration
+- P1: In scope for this milestone's research-informed requirements
+- P2: Reasonable v1.x follow-up, not blocking
+- P3: Explicitly deferred, tied to other blocked/out-of-scope decisions
 
-## Competitor/Analogue Feature Analysis
-
-No direct competitor combines manual single-user entry + multi-horizon commodity forecasting + bull/base/bear scenarios in one small tool; the closest analogues are institutional commodity-outlook platforms (scenario forecasting, no manual entry) and personal budgeting/data-grid tools (manual entry, no forecasting). Comparison synthesizes patterns from both categories.
-
-| Feature | Institutional commodity outlook platforms (e.g., Citigroup, CRU Group style) | Personal budgeting/data-entry tools (spreadsheet-replacement category) | Our Approach |
-|---------|-------------------------------------------------------------------------------|--------------------------------------------------------------------------|--------------|
-| Scenario/range display | Shaded probability bands or explicit bull/base/bear cases with stated probabilities, presented as authoritative institutional research | Rarely present — these tools track actuals/budgets, not forward scenarios | v1: base ± statistical spread rendered as 3 lines; v1.x: shaded band styling once proven |
-| Data entry | None — data is provider-curated, read-only for the end user | Core feature — inline/grid editing is standard, often with keyboard-navigable cells (Excel-like) | Manual add/edit/delete row in v1, upgraded to inline in-row editing in v1.x |
-| Horizon control | Fixed report horizons (quarterly/annual outlooks), not user-adjustable | N/A — not forecast-oriented | User-adjustable 1-12 month slider, the project's stated differentiator |
-| Export | Often PDF/report download, not editable data export | Excel/CSV export is table stakes for spreadsheet-replacement tools | Excel export of the underlying data table (matches budgeting-tool convention, not report-PDF convention) |
+---
 
 ## Sources
 
-- Project context: `/Users/dlgvnbyr/Desktop/Prediction Dashboard/.planning/PROJECT.md` (validated/active/out-of-scope requirements, core value statement)
-- Design doc: `/Users/dlgvnbyr/Desktop/Prediction Dashboard/docs/plans/2026-08-21-reflex-dashboard-design.md` (architecture, scenario design v1/v2 split, weekly-mode data gap)
-- [Data Table Design UX Patterns & Best Practices — Pencil & Paper](https://www.pencilandpaper.io/articles/ux-pattern-analysis-enterprise-data-tables) (MEDIUM confidence — general enterprise data-table UX, applied here to a smaller-scale case)
-- [Best Practices for Inline Editing in Table Design — UX Design World](https://uxdworld.com/inline-editing-in-tables-design/) (MEDIUM confidence — supports "inline editing reduces friction" claim used for the in-row editing differentiator)
-- [Reflex Data Table Editor Template](https://reflex.dev/templates/data-table-editor/) (MEDIUM confidence — confirms Reflex has first-party support/patterns for editable data grids, relevant to feasibility of the inline-editing differentiator)
-- [Editable Data Tables in Streamlit — Streamlit Community](https://discuss.streamlit.io/t/editable-data-tables-in-streamlit/529) and [Interactively editable data table in streamlit](https://discuss.streamlit.io/t/interactively-editable-data-table-in-streamlit/5200) (LOW-MEDIUM confidence, adjacent-framework analogue, used only to confirm editable-grid patterns are a common expectation in small Python-dashboard tools generally)
-- Commodity scenario/outlook framing (bull/base/bear as an institutional convention): [Citigroup Commodities Market Outlook 4Q'25](https://www.citigroup.com/global/insights/commodities-market-outlook-4q-25), [CRU Group — Navigate Commodity Markets with Scenarios & Forecasts](https://www.crugroup.com/en/insight/forecasts-and-scenarios/) (MEDIUM confidence — confirms bull/base/bear with probability framing is an established convention in commodity forecasting, supporting the project's chosen scenario model)
+- [Financial Dashboard Template - Excel Dashboard School](https://exceldashboardschool.com/financial-dashboard-template/) — MEDIUM confidence, generic Excel dashboard structure advice (3-tab Data/Calculation/Dashboard pattern), consistent with multiple other sources in this search
+- [Best UX flow for spreadsheet imports - CSVBox Blog](https://blog.csvbox.io/spreadsheet-import-ux/) — MEDIUM confidence, file → map → validate → submit flow; vendor content but pattern is corroborated by other CSV-import UX sources
+- [How To Design Bulk Import UX (+ Figma Prototypes) — Smart Interface Design Patterns](https://smart-interface-design-patterns.com/articles/bulk-ux/) — MEDIUM confidence, general bulk-import UX patterns (preview, row-level errors)
+- [Best Practices for Handling Large CSV Files Efficiently](https://dromo.io/blog/best-practices-handling-large-csv-files) — MEDIUM confidence; explicitly noted here as describing a *different scale problem* than this app has (large-file streaming) — used as a negative reference to justify an anti-feature
+- [Key Features: Driver-Based Forecast Design | Medium](https://medium.com/@joshrapkin1/key-features-driver-based-forecast-design-b1b062045451) — LOW-MEDIUM confidence, single-author piece, but corroborates the general "driver-based" forecasting context pattern seen elsewhere
+- [Year-Over-Year (YOY) Growth: How to Calculate in Excel](https://www.xelplus.com/yoy-excel/) — MEDIUM confidence, standard YoY calculation approach, straightforward and uncontroversial
+- [The Ultimate Guide to Year-Over-Year Analysis](https://www.oneadvanced.com/resources/the-ultimate-guide-to-year-over-year-analysis/) — MEDIUM confidence, corroborates YoY as standard forecasting-context practice
+- [Data table design: Best practices for better UX - LogRocket Blog](https://blog.logrocket.com/ux-design/data-table-design-best-practices/) — MEDIUM confidence, corroborates pagination-over-infinite-scroll for analytical/reference tables
+- [Pagination UI design: Offset vs keyset vs infinite scroll | Setproduct Blog](https://www.setproduct.com/blog/pagination-ui-design) — MEDIUM confidence, corroborates pagination as the right pattern for structured/analytical data vs. feeds
+- Project files: `.planning/PROJECT.md` — source of hard constraints (single user, no LLM/news dependency yet, weekly-mode data gap, fixed backtested model families) used to filter generic research findings down to what's actually applicable here
 
 ---
-*Feature research for: single-user commodity/FX price forecasting dashboard*
-*Researched: 2026-08-21*
+*Feature research for: single-user commodity/FX forecasting dashboard — export/import UX, forecast context, large-table UX*
+*Researched: 2026-08-24*
