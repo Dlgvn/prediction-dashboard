@@ -2030,3 +2030,58 @@ def test_up_down_destructive_colors_resolve_per_mode():
     assert state.up_color == theme.DARK["UP"]
     assert state.down_color == theme.DARK["DOWN"]
     assert state.destructive_color == theme.DARK["DESTRUCTIVE"]
+
+
+# ---------------------------------------------------------------------------
+# Mode-aware Plotly figure builders (Phase 11 Plan 02 Task 3)
+# ---------------------------------------------------------------------------
+
+
+def test_historical_chart_figure_font_color_follows_theme_mode(session, monkeypatch):
+    session.add(PriceRow(date="2026-01-01", hdan=1.0))
+    session.add(PriceRow(date="2026-02-01", hdan=2.0))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+
+    figure = state.historical_chart_figure
+    assert figure.layout.font.color == theme.LIGHT["MUTED_TEXT"]
+    assert figure.layout.plot_bgcolor == "rgba(0,0,0,0)"
+
+    state.theme_mode = "dark"
+    figure = state.historical_chart_figure
+    assert figure.layout.font.color == theme.DARK["MUTED_TEXT"]
+    assert figure.layout.plot_bgcolor == "rgba(0,0,0,0)"
+
+
+def test_forecast_chart_figure_font_color_follows_theme_mode(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    figure = state.forecast_chart_figure
+    assert figure.layout.font.color == theme.LIGHT["MUTED_TEXT"]
+    assert figure.layout.plot_bgcolor == "rgba(0,0,0,0)"
+
+    state.theme_mode = "dark"
+    figure = state.forecast_chart_figure
+    assert figure.layout.font.color == theme.DARK["MUTED_TEXT"]
+    assert figure.layout.plot_bgcolor == "rgba(0,0,0,0)"
+
+
+def test_forecast_chart_band_fillcolor_follows_theme_mode(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+    state.theme_mode = "dark"
+
+    figure = state.forecast_chart_figure
+    assert figure.data[2].fillcolor == theme.DARK["ACCENT_FILL"]
