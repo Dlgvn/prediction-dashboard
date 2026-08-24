@@ -28,6 +28,7 @@ from app.theme import (
     NEUTRAL_LINE,
     NUMBER_FORMAT,
     PLOTLY_HOVER_NUMBER,
+    tokens,
 )
 from app.validators import validate_date, validate_numeric
 
@@ -183,6 +184,52 @@ class DashboardState(rx.State):
     # serialized to the frontend, per STACK.md's warning against putting a
     # whole parsed CSV into reactive state.
     _staged_import_rows: list[dict] = []
+
+    # Phase 11 (background/theme fix): backend-readable, localStorage-
+    # persisted theme mode (THEME-01/THEME-02/THEME-03). Deliberately uses
+    # its OWN localStorage key ("pd_theme_mode"), NOT Reflex's built-in
+    # "theme" key, so the two mechanisms never fight over one value's
+    # format. Both keys must always move together via the toggle's
+    # two-item on_click chain in app.py (Plan 11-03) — "simplifying" by
+    # deleting one reintroduces the Radix-chrome-vs-custom-surface
+    # mismatch bug documented in 11-RESEARCH.md Pattern 2.
+    theme_mode: str = rx.LocalStorage("light", name="pd_theme_mode")
+
+    def toggle_theme_mode(self) -> None:
+        """Flip theme_mode between "light" and "dark" (THEME-02).
+
+        Any unrecognized stored value resolves to "light" on the next
+        toggle (D-02: light is always the safe default).
+        """
+        self.theme_mode = "dark" if self.theme_mode == "light" else "light"
+
+    @rx.var
+    def page_bg(self) -> str:
+        return tokens(self.theme_mode)["PAGE_BG"]
+
+    @rx.var
+    def surface(self) -> str:
+        return tokens(self.theme_mode)["SURFACE"]
+
+    @rx.var
+    def muted_text(self) -> str:
+        return tokens(self.theme_mode)["MUTED_TEXT"]
+
+    @rx.var
+    def destructive_color(self) -> str:
+        return tokens(self.theme_mode)["DESTRUCTIVE"]
+
+    @rx.var
+    def up_color(self) -> str:
+        return tokens(self.theme_mode)["UP"]
+
+    @rx.var
+    def down_color(self) -> str:
+        return tokens(self.theme_mode)["DOWN"]
+
+    @rx.var
+    def card_border(self) -> str:
+        return f"1px solid {tokens(self.theme_mode)['BORDER']}"
 
     @rx.var
     def visible_rows(self) -> list[PriceRow]:
