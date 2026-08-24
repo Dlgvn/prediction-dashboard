@@ -206,7 +206,13 @@ Plans:
   2. User can toggle between light and dark mode from a visible control in the dashboard UI
   3. The chosen theme mode is still active after reloading the page or returning in a new visit
   4. Every existing color token (cards, charts, text, accent) has a correct, legible dark-mode counterpart — no illegible text or un-styled element in dark mode
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+- [ ] 11-01-PLAN.md — Dual-tokenize theme.py with a bespoke DARK palette, tokens(mode) lookup, and WCAG contrast tests (wave 1)
+- [ ] 11-02-PLAN.md — Set rx.Config(default_color_mode="light"), add persisted DashboardState.theme_mode + mode-resolved color vars, make both Plotly figures mode-aware (wave 2)
+- [ ] 11-03-PLAN.md — Bind html/body background to state, add the header toggle, convert every app.py color prop, browser-verify both themes (wave 3)
+
 **UI hint**: yes
 
 ### Phase 12: Fan Chart Legend/Axis Fix
