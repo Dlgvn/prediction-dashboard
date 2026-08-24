@@ -1,5 +1,40 @@
 # Requirements — Prediction Dashboard (Reflex forecasting app)
 
+## v1.3 Requirements
+
+### Theming & Layout
+
+- [ ] **THEME-01**: The `html`/`body` background renders a mode-aware color at every
+      viewport width — no transparent margins that show black (or any unstyled color)
+      outside the page content on wide screens or in a dark-mode browser/OS
+- [ ] **THEME-02**: User can toggle between light and dark mode from the dashboard UI
+- [ ] **THEME-03**: The chosen theme mode persists across page reloads/visits
+- [ ] **THEME-04**: Every existing color token (cards, charts, text, accent) has a
+      correct dark-mode counterpart — no illegible text or un-styled element in dark mode
+
+### Forecast Visualization
+
+- [ ] **VIS-04**: The fan chart's legend and axis labels do not visually overlap at any
+      supported viewport width
+- [ ] **VIS-05**: Each series' forecast section shows which model produced it (e.g.
+      "SARIMAX", "Direct-OLS VAR", "Naive") and its backtested accuracy (e.g. MAPE),
+      sourced from the single existing model-selection constants, not a second
+      hand-typed copy
+
+### Navigation
+
+- [ ] **NAV-01**: User can switch between the Summary, Forecast, and Data Entry sections
+      via a tab/nav bar, without a full page reload and without losing in-progress edits
+      or an in-progress CSV import preview when switching away and back
+
+### Data Entry
+
+- [ ] **DATA-09**: User can successfully enter a new row's date without the entry
+      silently failing — invalid or incomplete date input shows a visible, immediate
+      error, and valid input is reliably accepted
+- [ ] **DATA-10**: The date entry method does not require the user to know or type an
+      exact date format from memory
+
 ## v1.2 Requirements
 
 ### Data Entry & Persistence
@@ -141,8 +176,17 @@
 | FCST-08 | Phase 8 | Complete |
 | FCST-09 | Phase 8 | Complete |
 | EXPORT-02 | Phase 9 | Complete |
-| IMPORT-01 | Phase 10 | In Progress (parsing core + DB write path done, UI + human verification pending) |
-| IMPORT-02 | Phase 10 | In Progress (parsing core + DB write path done, UI + human verification pending) |
+| IMPORT-01 | Phase 10 | Complete |
+| IMPORT-02 | Phase 10 | Complete |
+| THEME-01 | TBD | Not started |
+| THEME-02 | TBD | Not started |
+| THEME-03 | TBD | Not started |
+| THEME-04 | TBD | Not started |
+| VIS-04 | TBD | Not started |
+| VIS-05 | TBD | Not started |
+| NAV-01 | TBD | Not started |
+| DATA-09 | TBD | Not started |
+| DATA-10 | TBD | Not started |
 
 ---
 *Requirements defined: 2026-08-21*
