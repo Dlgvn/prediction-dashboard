@@ -9,7 +9,7 @@
       outside the page content on wide screens or in a dark-mode browser/OS
 - [ ] **THEME-02**: User can toggle between light and dark mode from the dashboard UI
 - [ ] **THEME-03**: The chosen theme mode persists across page reloads/visits
-- [ ] **THEME-04**: Every existing color token (cards, charts, text, accent) has a
+- [x] **THEME-04**: Every existing color token (cards, charts, text, accent) has a
       correct dark-mode counterpart — no illegible text or un-styled element in dark mode
 
 ### Forecast Visualization
@@ -181,7 +181,7 @@
 | THEME-01 | Phase 11 | Pending |
 | THEME-02 | Phase 11 | Pending |
 | THEME-03 | Phase 11 | Pending |
-| THEME-04 | Phase 11 | Pending |
+| THEME-04 | Phase 11 | Complete |
 | VIS-04 | Phase 12 | Pending |
 | VIS-05 | Phase 13 | Pending |
 | NAV-01 | Phase 14 | Pending |
