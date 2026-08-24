@@ -8,9 +8,10 @@ bad ~ negation, bad dict indexing) at test time.
 import inspect
 import re
 
-import app.app as app_module
+import pytest
 import reflex as rx
 
+import app.app as app_module
 from app import state, theme
 from app.models import PriceRow
 
@@ -422,3 +423,79 @@ def test_card_copy_literals_match_ui_spec():
     assert "confidence interval" not in app_source.lower()
     assert "guaranteed" not in source.lower()
     assert "guaranteed" not in app_source.lower()
+
+
+# --- Phase 10 — CSV import control ------------------------------------------
+
+
+def test_csv_import_control_compiles_to_component():
+    component = app_module.csv_import_control()
+    assert isinstance(component, rx.Component)
+
+
+def test_csv_import_control_uses_rx_upload_with_csv_accept_and_single_file():
+    source = inspect.getsource(app_module.csv_import_control)
+    assert "rx.upload(" in source
+    assert 'accept={"text/csv": [".csv"]}' in source
+    assert "max_files=1" in source
+    assert "multiple=False" in source
+    assert 'id="csv_upload"' in source
+
+
+def test_csv_import_control_binds_upload_files_to_handle_csv_upload():
+    source = inspect.getsource(app_module.csv_import_control)
+    assert "on_drop=DashboardState.handle_csv_upload(" in source
+    assert 'rx.upload_files(upload_id="csv_upload")' in source
+
+
+@pytest.mark.parametrize(
+    "copy",
+    [
+        "Drag and drop a CSV file here, or click to browse.",
+        "Import preview",
+        "Confirm import",
+        "Cancel",
+        "Done",
+    ],
+)
+def test_csv_import_control_renders_uispec_copy_verbatim(copy):
+    source = inspect.getsource(app_module.csv_import_control)
+    assert copy in source
+
+
+def test_confirm_import_button_is_accent_not_destructive():
+    source = inspect.getsource(app_module.csv_import_control)
+    idx = source.index("Confirm import")
+    block = source[idx : idx + 300]
+    assert 'color_scheme="blue"' in block
+    assert 'color_scheme="red"' not in block
+    assert "DESTRUCTIVE" not in block
+
+
+def test_confirm_import_button_disabled_binding_uses_can_confirm_import():
+    source = inspect.getsource(app_module.csv_import_control)
+    idx = source.index("Confirm import")
+    block = source[idx : idx + 300]
+    assert "disabled=~DashboardState.can_confirm_import" in block
+
+
+def test_cancel_button_is_neutral_gray():
+    source = inspect.getsource(app_module.csv_import_control)
+    idx = source.index('"Cancel"')
+    block = source[idx : idx + 200]
+    assert 'color_scheme="gray"' in block
+
+
+def test_data_entry_section_places_import_control_after_add_row():
+    source = inspect.getsource(app_module.data_entry_section)
+    assert source.index("add_row_button()") < source.index("csv_import_control()")
+
+
+def test_csv_import_control_introduces_no_new_hex_or_px_literals():
+    source = inspect.getsource(app_module.csv_import_control)
+    assert re.findall(r"#[0-9A-Fa-f]{6}", source) == []
+    assert re.findall(r'"\d+px"', source) == []
+
+
+def test_app_py_has_no_session_calls():
+    assert "rx.session" not in inspect.getsource(app_module)
