@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: dashboard-polish-data-entry-rework
-status: planning
-stopped_at: Phase 15 UI-SPEC approved
-last_updated: "2026-08-25T01:25:00.000Z"
+status: executing
+stopped_at: Completed 15-01-PLAN.md
+last_updated: "2026-08-25T02:00:00.000Z"
 last_activity: 2026-08-25
 progress:
   total_phases: 15
   completed_phases: 14
-  total_plans: 41
-  completed_plans: 41
-  percent: 93
+  total_plans: 44
+  completed_plans: 43
+  percent: 98
 ---
 
 # Project State
@@ -36,11 +36,11 @@ anywhere on the page).
 ## Current Position
 
 Milestone: v1.3
-Phase: 14 of 15 (Tab/Nav Bar)
-Status: Phase 14 complete (Plan 01 state layer + Plan 02 tab bar UI both done, human-verified).
+Phase: 15 of 15 (Data Entry Rework)
+Status: Phase 15 Plan 01 complete (start_edit race-guard fix, state-transition table, D-03 audit). Plan 02 (native date picker + human verification) remains.
 Last activity: 2026-08-25
 
-Progress: [██████████] 100%
+Progress: [██████████] 98%
 
 ## Performance Metrics
 
@@ -102,6 +102,7 @@ Progress: [██████████] 100%
 | Phase 13 P02 | 15min | 2 tasks | 2 files |
 | Phase 14-tab-nav-bar P01 | 15min | 2 tasks | 2 files |
 | Phase 14-tab-nav-bar P02 | 25min | 2 tasks | 2 files |
+| Phase 15 P01 | 15min | 1 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -174,6 +175,7 @@ Recent decisions affecting current work:
 - [Phase 14-tab-nav-bar]: 14-01: active_section is a plain (non-persisted) base var per D-03 — always resets to "summary" on fresh load; set_active_section only assigns active_section and calls rx.call_script for scroll-to-top (rx.scroll_to needed a specific elem_id, unsuitable here), proven by source-inspection tests to never touch the edit/delete/draft-row/CSV-import state machine or re-trigger data loads
 - [Phase 14-tab-nav-bar]: 14-02: index() panel switching uses rx.match(active_section, ...) rather than nesting rx.tabs.content inside nav_bar() — keeps every section factory called exactly once in one place; historical_section()+data_entry_section() grouped in a new _data_entry_tab() helper per D-01
 - [Phase 14-tab-nav-bar]: Phase 14 complete — NAV-01 satisfied; human-verified live in browser that mid-edit cell state and mid-CSV-import-preview both survive a tab switch, on_mount fires exactly once, no full page reload, sticky bar, keyboard nav, both themes, D-01 grouping all confirmed
+- [Phase 15-01]: start_edit guard only applies inside start_edit; Escape and window-toggle remain unconditional overrides
 
 ### Pending Todos
 

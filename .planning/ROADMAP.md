@@ -272,7 +272,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 15-01-PLAN.md — start_edit race-guard fix, state-transition table, D-03 CSV-import audit (wave 1)
+- [x] 15-01-PLAN.md — start_edit race-guard fix, state-transition table, D-03 CSV-import audit (wave 1)
 - [ ] 15-02-PLAN.md — Native rx.input(type="date") swap in _editable_cell + human verification (wave 2)
 
 ## Progress
@@ -293,7 +293,7 @@ Plans:
 | 12. Fan Chart Legend/Axis Fix | 1/1 | Complete   | 2026-08-25 |
 | 13. Model Provenance Display | 2/2 | Complete   | 2026-08-25 |
 | 14. Tab/Nav Bar | 2/2 | Complete   | 2026-08-25 |
-| 15. Data Entry Rework | 0/2 | Not started | - |
+| 15. Data Entry Rework | 1/2 | In progress | - |
 
 ---
 *Roadmap created: 2026-08-21*
