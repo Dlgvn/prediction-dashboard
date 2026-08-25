@@ -195,6 +195,12 @@ class DashboardState(rx.State):
     # mismatch bug documented in 11-RESEARCH.md Pattern 2.
     theme_mode: str = rx.LocalStorage("light", name="pd_theme_mode")
 
+    # Phase 14 (tab/nav bar): which of the 3 tab groups (D-01) is currently
+    # rendered. Deliberately a plain var, NOT persisted like theme_mode
+    # above — D-03 is explicit that "Summary" is always the landing tab on
+    # a fresh page load, so this must reset every reload.
+    active_section: str = "summary"
+
     def toggle_theme_mode(self) -> None:
         """Flip theme_mode between "light" and "dark" (THEME-02).
 
@@ -202,6 +208,17 @@ class DashboardState(rx.State):
         toggle (D-02: light is always the safe default).
         """
         self.theme_mode = "dark" if self.theme_mode == "light" else "light"
+
+    # PITFALLS.md Pitfall 3: set_active_section below must do exactly two
+    # things — assign active_section and scroll to top — and NOTHING else.
+    # It must never touch any field of the in-progress edit/delete/draft-
+    # row/CSV-import state machine (the scalar and list vars declared
+    # above this point), and it must never re-trigger the on_mount data
+    # load (that fires exactly once, from the root container).
+    def set_active_section(self, value: str):
+        """Switch the active tab and scroll to top (D-02)."""
+        self.active_section = value
+        return rx.scroll_to()
 
     @rx.var
     def page_bg(self) -> str:
@@ -230,6 +247,18 @@ class DashboardState(rx.State):
     @rx.var
     def card_border(self) -> str:
         return f"1px solid {tokens(self.theme_mode)['BORDER']}"
+
+    @rx.var
+    def accent_color(self) -> str:
+        return tokens(self.theme_mode)["ACCENT"]
+
+    @rx.var
+    def border_color(self) -> str:
+        """Bare hex border color (distinct from card_border's "1px solid
+        ..." shorthand) — the tab bar composes both 1px and 2px rules from
+        the bare hex.
+        """
+        return tokens(self.theme_mode)["BORDER"]
 
     @rx.var
     def visible_rows(self) -> list[PriceRow]:
