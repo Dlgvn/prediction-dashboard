@@ -13,14 +13,16 @@ from app.state import (
 from app.theme import (
     CARD_PADDING,
     CARD_RADIUS,
+    FONT_SIZE_BODY,
     FONT_SIZE_DISPLAY,
+    FONT_WEIGHT_REGULAR,
     FONT_WEIGHT_SEMIBOLD,
     RADIX_SIZE_BODY,
     RADIX_SIZE_HEADING,
     RADIX_SIZE_LABEL,
     SPACE_LG,
     SPACE_MD,
-    SPACE_XXL,
+    SPACE_SM,
 )
 
 # Header labels in display order, paired with the PriceRow attribute they render.
@@ -721,6 +723,59 @@ def theme_toggle() -> rx.Component:
     )
 
 
+def nav_bar() -> rx.Component:
+    """Sticky, controlled tab bar switching between the three dashboard sections (NAV-01, D-02).
+
+    Built on rx.tabs so the tablist/tab/aria-selected/keyboard-navigation wiring comes for
+    free from Radix rather than being hand-rolled. Only rx.tabs.list is placed here; the
+    corresponding rx.tabs.content panels live in _data_entry_tab()/index() so index() can
+    keep calling each section factory exactly once.
+    """
+    def _trigger(label: str, value: str) -> rx.Component:
+        is_active = DashboardState.active_section == value
+        return rx.tabs.trigger(
+            label,
+            value=value,
+            padding_left=SPACE_MD,
+            padding_right=SPACE_MD,
+            font_size=FONT_SIZE_BODY,
+            color=rx.cond(is_active, DashboardState.accent_color, DashboardState.muted_text),
+            font_weight=rx.cond(is_active, FONT_WEIGHT_SEMIBOLD, FONT_WEIGHT_REGULAR),
+            border_bottom=rx.cond(
+                is_active,
+                f"2px solid {DashboardState.accent_color}",
+                "2px solid transparent",
+            ),
+        )
+
+    return rx.tabs.root(
+        rx.tabs.list(
+            _trigger("Summary", "summary"),
+            _trigger("Forecast", "forecast"),
+            _trigger("Data Entry", "data_entry"),
+            border_bottom=f"1px solid {DashboardState.border_color}",
+            width="100%",
+        ),
+        value=DashboardState.active_section,
+        on_change=DashboardState.set_active_section,
+        position="sticky",
+        top="0",
+        background=DashboardState.page_bg,
+        z_index="10",
+        width="100%",
+    )
+
+
+def _data_entry_tab() -> rx.Component:
+    """Historical chart and data-entry table, grouped as one unit (D-01)."""
+    return rx.vstack(
+        historical_section(),
+        data_entry_section(),
+        spacing="6",
+        width="100%",
+    )
+
+
 def index() -> rx.Component:
     return rx.container(
         # THEME-01: html/body background must be mode-aware and Var-driven
@@ -744,15 +799,17 @@ def index() -> rx.Component:
             width="100%",
             spacing="2",
         ),
+        nav_bar(),
         rx.text(
             "Forecasts and actuals for ammonium nitrate, diesel, and the FX rate.",
             size=RADIX_SIZE_BODY,
         ),
-        forecast_summary_cards(),
-        forecast_section(),
-        rx.box(height=SPACE_XXL),
-        historical_section(),
-        data_entry_section(),
+        rx.match(
+            DashboardState.active_section,
+            ("summary", forecast_summary_cards()),
+            ("forecast", forecast_section()),
+            ("data_entry", _data_entry_tab()),
+        ),
         background=DashboardState.page_bg,
         min_height="100vh",
         width="100%",
