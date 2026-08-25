@@ -32,7 +32,7 @@
 - [x] **DATA-09**: User can successfully enter a new row's date without the entry
       silently failing — invalid or incomplete date input shows a visible, immediate
       error, and valid input is reliably accepted
-- [ ] **DATA-10**: The date entry method does not require the user to know or type an
+- [x] **DATA-10**: The date entry method does not require the user to know or type an
       exact date format from memory
 
 ## v1.2 Requirements
@@ -186,7 +186,7 @@
 | VIS-05 | Phase 13 | Complete |
 | NAV-01 | Phase 14 | Complete |
 | DATA-09 | Phase 15 | Complete |
-| DATA-10 | Phase 15 | Pending |
+| DATA-10 | Phase 15 | Complete |
 
 ---
 *Requirements defined: 2026-08-21*

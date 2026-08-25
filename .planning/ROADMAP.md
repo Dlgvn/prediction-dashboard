@@ -16,7 +16,7 @@
 - [x] **Phase 12: Fan Chart Legend/Axis Fix** - Fan chart legend and axis labels no longer overlap at any viewport (completed 2026-08-25)
 - [x] **Phase 13: Model Provenance Display** - Each forecast shows which model produced it and its backtested accuracy (completed 2026-08-25)
 - [x] **Phase 14: Tab/Nav Bar** - User switches between Summary/Forecast/Data Entry via tabs without losing in-progress state (completed 2026-08-25)
-- [ ] **Phase 15: Data Entry Rework** - Date entry reliably accepts valid input with visible errors and no format memorization
+- [x] **Phase 15: Data Entry Rework** - Date entry reliably accepts valid input with visible errors and no format memorization (completed 2026-08-25)
 
 ## Phase Details
 
@@ -273,7 +273,7 @@ Plans:
 
 Plans:
 - [x] 15-01-PLAN.md — start_edit race-guard fix, state-transition table, D-03 CSV-import audit (wave 1)
-- [ ] 15-02-PLAN.md — Native rx.input(type="date") swap in _editable_cell + human verification (wave 2)
+- [x] 15-02-PLAN.md — Native rx.input(type="date") swap in _editable_cell + human verification (wave 2)
 
 ## Progress
 
@@ -293,7 +293,7 @@ Plans:
 | 12. Fan Chart Legend/Axis Fix | 1/1 | Complete   | 2026-08-25 |
 | 13. Model Provenance Display | 2/2 | Complete   | 2026-08-25 |
 | 14. Tab/Nav Bar | 2/2 | Complete   | 2026-08-25 |
-| 15. Data Entry Rework | 1/2 | In progress | - |
+| 15. Data Entry Rework | 2/2 | Complete   | 2026-08-25 |
 
 ---
 *Roadmap created: 2026-08-21*

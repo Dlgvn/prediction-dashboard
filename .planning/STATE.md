@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.3
 milestone_name: dashboard-polish-data-entry-rework
-status: executing
-stopped_at: Completed 15-01-PLAN.md
-last_updated: "2026-08-25T02:00:00.000Z"
+status: verifying
+stopped_at: Completed 15-02-PLAN.md
+last_updated: "2026-08-25T02:09:28.461Z"
 last_activity: 2026-08-25
 progress:
   total_phases: 15
-  completed_phases: 14
-  total_plans: 44
+  completed_phases: 15
+  total_plans: 43
   completed_plans: 43
-  percent: 98
+  percent: 100
 ---
 
 # Project State
@@ -37,10 +37,10 @@ anywhere on the page).
 
 Milestone: v1.3
 Phase: 15 of 15 (Data Entry Rework)
-Status: Phase 15 Plan 01 complete (start_edit race-guard fix, state-transition table, D-03 audit). Plan 02 (native date picker + human verification) remains.
+Status: Phase 15 complete. Plan 01 (start_edit race-guard fix, state-transition table, D-03 audit) and Plan 02 (native date picker, human-verified DATA-09/DATA-10 flow + regressions) both done.
 Last activity: 2026-08-25
 
-Progress: [██████████] 98%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -103,6 +103,7 @@ Progress: [██████████] 98%
 | Phase 14-tab-nav-bar P01 | 15min | 2 tasks | 2 files |
 | Phase 14-tab-nav-bar P02 | 25min | 2 tasks | 2 files |
 | Phase 15 P01 | 15min | 1 tasks | 2 files |
+| Phase 15 P02 | 25min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -176,6 +177,8 @@ Recent decisions affecting current work:
 - [Phase 14-tab-nav-bar]: 14-02: index() panel switching uses rx.match(active_section, ...) rather than nesting rx.tabs.content inside nav_bar() — keeps every section factory called exactly once in one place; historical_section()+data_entry_section() grouped in a new _data_entry_tab() helper per D-01
 - [Phase 14-tab-nav-bar]: Phase 14 complete — NAV-01 satisfied; human-verified live in browser that mid-edit cell state and mid-CSV-import-preview both survive a tab switch, on_mount fires exactly once, no full page reload, sticky bar, keyboard nav, both themes, D-01 grouping all confirmed
 - [Phase 15-01]: start_edit guard only applies inside start_edit; Escape and window-toggle remain unconditional overrides
+- [Phase 15-02]: rx.input(type="date") confirmed via installed reflex_components_radix TextFieldRoot source to pass `type` straight through and fire on_change with the native control's raw value string; _editable_cell branches a single shared input_kwargs dict on attr == "date" so every other column stays byte-identical
+- [Phase 15-02]: Phase 15 complete — DATA-09 and DATA-10 both satisfied; human-verified live in browser: valid/duplicate date commit, error-survives-click-away (15-01 race fix), Escape recovery, in-place date edit, windowing-toggle-mid-error, and CSV-import-mid-draft-error, all passed with no corruption
 
 ### Pending Todos
 
@@ -184,15 +187,11 @@ Recent decisions affecting current work:
   work" report: this scale of interactive DOM makes the table hang/unresponsive. Fix direction
   chosen by user: default to recent months + a "show all history" toggle. RESOLVED in v1.2 Phase 7.
 
-- [v1.3] Data Entry silent-validation bug — confirmed via live browser reproduction (2026-08-24):
-  typing an invalid date format (e.g. "08/25/2027" instead of ISO "YYYY-MM-DD") into a new draft
-  row's date cell leaves the editor open with the bad value and renders NO error text anywhere,
-  even though `_commit_draft_cell` in `app/app/state.py` does set `self.edit_error` on validation
-  failure. Very likely the actual cause behind the user report "current [entry] method is not able
-  to enter any new additional data" — the feature silently fails rather than being fundamentally
-  broken. Needs root-cause fix (why does the draft row's error text not render?) plus the
-  user-requested deep-research pass into a better entry UX (e.g. a real date picker instead of a
-  raw text field demanding exact ISO format with no format hint).
+- [v1.3] Data Entry silent-validation bug — RESOLVED in Phase 15 (2026-08-25): root cause was the
+  `start_edit` click-away race (fixed in 15-01), and the entry UX itself was reworked in 15-02 to
+  a native HTML5 date picker so no free-text ISO format is ever required. Human-verified both the
+  race fix and the picker swap live in-browser, including windowing-toggle and CSV-import
+  regression scenarios.
 
 ### Blockers/Concerns
 
@@ -212,6 +211,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-08-25T01:25:00.000Z
-Stopped at: Completed 14-02-PLAN.md
+Last session: 2026-08-25T02:35:00.000Z
+Stopped at: Completed 15-02-PLAN.md
 Resume file: None
