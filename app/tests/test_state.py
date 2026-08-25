@@ -2150,7 +2150,7 @@ def test_chart_bottom_margin_accommodates_legend(session, monkeypatch, synthetic
         empty_hist_figure,
         empty_forecast_figure,
     ):
-        assert figure.layout.margin.b >= 80
+        assert figure.layout.margin.b >= 130
         assert figure.layout.margin.l == 40
         assert figure.layout.margin.r == 16
         assert figure.layout.margin.t == 16
