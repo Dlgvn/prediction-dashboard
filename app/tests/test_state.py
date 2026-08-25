@@ -118,6 +118,95 @@ def test_start_edit_accepts_none_from_empty_numeric_cell(session, monkeypatch):
     assert state.draft_value == ""
 
 
+def test_start_edit_does_not_clobber_pending_error_on_different_cell(session, monkeypatch):
+    """Regression (15-CONTEXT.md D-02): a near-simultaneous click on a
+    different cell must not wipe an unrendered validation error still
+    pending on the cell that produced it.
+    """
+    session.add(PriceRow(date="2026-01-01", hdan=1.0))
+    session.add(PriceRow(date="2026-02-01", hdan=2.0))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+    state.add_row()
+    state.start_edit(":date", "")
+    state.update_draft("2026-01-20")
+    state.commit_edit()
+
+    assert state.edit_error == validators.DATE_DUPLICATE_ERROR
+    assert state.editing_key == ":date"
+
+    state.start_edit("2026-02-01:hdan", 2.0)
+
+    assert state.edit_error == validators.DATE_DUPLICATE_ERROR
+    assert state.editing_key == ":date"
+
+
+def test_start_edit_on_same_errored_cell_clears_error_and_reopens(session, monkeypatch):
+    session.add(PriceRow(date="2026-01-01", hdan=1.0))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+    state.add_row()
+    state.start_edit(":date", "")
+    state.update_draft("2026-01-20")
+    state.commit_edit()
+
+    assert state.edit_error == validators.DATE_DUPLICATE_ERROR
+    assert state.editing_key == ":date"
+
+    state.start_edit(":date", "2026-01-20")
+
+    assert state.edit_error == ""
+    assert state.editing_key == ":date"
+    assert state.draft_value == "2026-01-20"
+
+
+def test_start_edit_with_no_pending_error_behaves_as_before(session, monkeypatch):
+    session.add(PriceRow(date="2026-01-01", hdan=1.0))
+    session.add(PriceRow(date="2026-02-01", hdan=2.0))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+
+    state.start_edit("2026-01-01:hdan", 1.0)
+    assert state.editing_key == "2026-01-01:hdan"
+    assert state.edit_error == ""
+
+    state.start_edit("2026-02-01:hdan", 2.0)
+    assert state.editing_key == "2026-02-01:hdan"
+    assert state.draft_value == "2.0"
+    assert state.edit_error == ""
+
+
+def test_toggle_show_all_history_clears_pending_error_from_different_cell(session, monkeypatch):
+    session.add(PriceRow(date="2026-01-01", hdan=1.0))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+    state.add_row()
+    state.start_edit(":date", "")
+    state.update_draft("2026-01-20")
+    state.commit_edit()
+
+    assert state.edit_error == validators.DATE_DUPLICATE_ERROR
+    assert state.editing_key == ":date"
+
+    state.toggle_show_all_history(True)
+
+    assert state.editing_key == ""
+    assert state.draft_value == ""
+    assert state.edit_error == ""
+
+
 def test_commit_edit_updates_db(session, monkeypatch):
     session.add(PriceRow(date="2026-01-01", hdan=1.0))
     session.commit()
@@ -1815,6 +1904,36 @@ def test_handle_csv_upload_import_does_not_touch_edit_error(session, monkeypatch
     asyncio.run(state.handle_csv_upload([_FakeUpload(csv_bytes)]))
 
     assert state.edit_error == "sentinel"
+
+
+def test_handle_csv_upload_does_not_touch_edit_error_or_editing_key(session, monkeypatch):
+    """D-03 audit proof: CSV import must not interact with the edit machine
+    at all, even while a genuine validation error is pending on an
+    open cell.
+    """
+    session.add(PriceRow(date="2025-01-01", hdan=1.0))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+    state.add_row()
+    state.start_edit(":date", "")
+    state.update_draft("2025-01-20")
+    state.commit_edit()
+
+    assert state.edit_error == validators.DATE_DUPLICATE_ERROR
+    editing_key_before = state.editing_key
+    draft_value_before = state.draft_value
+    draft_rows_before = list(state.draft_rows)
+
+    csv_bytes = _import_csv([_full_import_row("2026-01-01")])
+    asyncio.run(state.handle_csv_upload([_FakeUpload(csv_bytes)]))
+
+    assert state.edit_error == validators.DATE_DUPLICATE_ERROR
+    assert state.editing_key == editing_key_before
+    assert state.draft_value == draft_value_before
+    assert state.draft_rows == draft_rows_before
 
 
 def test_confirm_import_batch_writes_valid_rows(session, monkeypatch):

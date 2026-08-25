@@ -175,6 +175,12 @@ class DashboardState(rx.State):
     # cell, while a multi-row import needs counts plus a stage, not one
     # message.
     import_stage: str = "idle"          # "idle" | "preview" | "error" | "done"
+    # D-03 audit (15-CONTEXT.md/Plan 15-01): import_error is only ever set by
+    # handle_csv_upload's explicit failure branches and cleared only by
+    # _reset_import() (called from handle_csv_upload's start, cancel_import,
+    # dismiss_import) — all single-shot, user-initiated actions with no
+    # analogue of start_edit's "open a different thing mid-flight" trigger.
+    # No clobber-race bug exists here; no fix needed.
     import_error: str = ""              # D-06 malformed/rejected-file message only
     import_filename: str = ""           # for the "Parsing {filename}…" copy
     import_added_count: int = 0         # rows that WILL be added (preview) / WERE added (done)
@@ -893,7 +899,40 @@ class DashboardState(rx.State):
                 PriceRow.select().order_by(PriceRow.date)
             ).all()
 
+    # State-transition table (15-CONTEXT.md D-02) — for each trigger, what
+    # happens to editing_key / draft_value / edit_error / draft_rows /
+    # pending_delete:
+    #
+    # | Trigger                        | editing_key      | draft_value | edit_error | draft_rows | pending_delete |
+    # |---------------------------------|-------------------|-------------|------------|------------|----------------|
+    # | Normal cell edit (start_edit,   | -> key            | -> current  | -> ""      | unchanged  | -> ""          |
+    # | no pending error elsewhere)     |                   |             |            |            |                |
+    # | Draft-row date entry            | ":date" while     | keystrokes  | cleared on | draft row  | unchanged      |
+    # | (add_row -> start_edit(":date"))| open              | via         | open/success| mutated on |               |
+    # |                                  |                   | update_draft| , set on   | success    |               |
+    # |                                  |                   |             | failure    |            |                |
+    # | Draft-row non-date entry        | same as above, key| keystrokes  | same       | same       | unchanged      |
+    # | Escape (cancel_edit)            | -> "" (always)    | -> ""       | -> ""      | unchanged  | unchanged      |
+    # | Blur/commit success             | -> ""              | -> ""       | -> ""      | mutated/   | unchanged      |
+    # |                                  |                   |             |            | flushed    |                |
+    # | Blur/commit failure             | UNCHANGED (stays  | unchanged   | -> error   | unchanged  | unchanged      |
+    # |                                  | open on failing   |             | message    |            |                |
+    # |                                  | cell)              |             |            |            |                |
+    # | Window toggle                    | -> "" (always,    | -> ""       | -> ""      | unchanged  | -> ""          |
+    # | (toggle_show_all_history)       | via cancel_edit)  |             |            |            |                |
+    # | Delete-arm (request_delete)     | unchanged          | unchanged   | unchanged  | unchanged  | -> row_date    |
+    #
+    # The row above this comment ("Blur/commit failure") is why start_edit
+    # cannot unconditionally clear edit_error: a failure leaves editing_key
+    # pointing at the failing cell so its error can render, but a
+    # near-simultaneous click that opens a DIFFERENT cell would otherwise
+    # wipe that still-unrendered error before the user ever sees it. Guard
+    # below: ignore the click-away while a real error is pending on a
+    # different cell; re-opening the SAME errored cell (retry) or opening
+    # any cell when no error is pending both behave exactly as before.
     def start_edit(self, key: str, current: str | float | None) -> None:
+        if self.edit_error != "" and self.editing_key != "" and key != self.editing_key:
+            return
         self.editing_key = key
         # `current` arrives from a numeric cell as a raw JS number, not a
         # string — Reflex's Var-level string casting (.to_string()/f-string
