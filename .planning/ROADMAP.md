@@ -236,8 +236,12 @@ Plans:
   1. Each series' forecast section displays the model name that produced it (e.g. "SARIMAX", "Direct-OLS VAR", "Naive")
   2. Each series' forecast section displays its backtested accuracy (e.g. MAPE)
   3. The displayed model name and accuracy are sourced from the existing model-selection constants, not a second hand-typed copy
-**Plans**: TBD
+**Plans**: 2 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 13-01-PLAN.md — MODEL_INFO constant in forecasting.py + model_label/model_text on summary_cards (wave 1)
+- [ ] 13-02-PLAN.md — Model line in _summary_card, extended aria_label, component tests + human verification (wave 2)
 
 ### Phase 14: Tab/Nav Bar
 **Goal**: The user navigates between Summary, Forecast, and Data Entry sections via a tab/nav bar instead of one long scroll, without losing in-progress work.
@@ -278,7 +282,7 @@ Plans:
 | 10. CSV Bulk Import | 3/3 | Complete   | 2026-08-24 |
 | 11. Background Fix + Theme Toggle | 3/3 | Complete   | 2026-08-24 |
 | 12. Fan Chart Legend/Axis Fix | 1/1 | Complete   | 2026-08-25 |
-| 13. Model Provenance Display | 0/? | Not started | - |
+| 13. Model Provenance Display | 0/2 | Not started | - |
 | 14. Tab/Nav Bar | 0/? | Not started | - |
 | 15. Data Entry Rework | 0/? | Not started | - |
 
