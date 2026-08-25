@@ -185,18 +185,20 @@ def test_data_entry_section_compiles_to_component():
 
 
 def test_index_heading_order_matches_locked_layout():
+    # Phase 14: sections now live behind an rx.match on active_section rather
+    # than a single flat top-to-bottom stack, so DOM order across tab panels
+    # is no longer a meaningful layout guarantee (only one panel is visible
+    # to the user at a time; the compiled tree still contains all match
+    # arms). This test is narrowed to presence-only -- the strict ordering
+    # assertion it used to make no longer corresponds to any user-facing
+    # property once sections are tab-scoped instead of stacked.
     rendered = str(app_module.index().render())
-    summary_idx = rendered.find("Forecast Summary")
+    assert rendered.find("Forecast Summary") != -1
     # The em dash is JSON-escaped (—) in the compiled render tree, so
     # anchor on the surrounding literal text rather than the raw glyph.
-    forecast_idx = rendered.find("u2014 base / bull / bear")
-    historical_idx = rendered.find("Historical")
-    data_entry_idx = rendered.find("Data Entry")
-    assert summary_idx != -1
-    assert forecast_idx != -1
-    assert historical_idx != -1
-    assert data_entry_idx != -1
-    assert summary_idx < forecast_idx < historical_idx < data_entry_idx
+    assert rendered.find("u2014 base / bull / bear") != -1
+    assert rendered.find("Historical") != -1
+    assert rendered.find("Data Entry") != -1
 
 
 def test_index_has_theme_toggle():
@@ -607,3 +609,78 @@ def test_app_py_uses_mode_resolved_vars_for_surfaces_and_borders():
     assert "DashboardState.destructive_color" in source
     assert "DashboardState.up_color" in source
     assert "DashboardState.down_color" in source
+
+
+# --- Phase 14 Plan 02: tab bar structure -------------------------------------
+
+
+def test_nav_bar_compiles_to_component():
+    component = app_module.nav_bar()
+    assert isinstance(component, rx.Component)
+
+
+def test_nav_bar_uses_controlled_radix_tabs():
+    source = inspect.getsource(app_module.nav_bar)
+    assert "rx.tabs.root" in source
+    assert "value=DashboardState.active_section" in source
+    assert "on_change=DashboardState.set_active_section" in source
+    # Radix supplies role/aria-selected wiring for free; no hand-rolled
+    # accessibility attributes should be added on top of it.
+    assert 'role="tab' not in source
+    assert "aria_selected" not in source
+
+
+def test_nav_bar_has_three_verbatim_tab_labels():
+    source = inspect.getsource(app_module.nav_bar)
+    for label in ["Summary", "Forecast", "Data Entry"]:
+        assert f'"{label}"' in source
+    for value in ["summary", "forecast", "data_entry"]:
+        assert f'"{value}"' in source
+    # nav_bar() defines a single _trigger() helper (one rx.tabs.trigger call
+    # site) invoked three times -- one per tab -- rather than three separate
+    # literal rx.tabs.trigger(...) call sites.
+    assert source.count("rx.tabs.trigger") == 1
+    assert source.count("_trigger(") == 4  # 1 def + 3 call sites
+
+
+def test_index_declares_on_mount_exactly_once():
+    source_path = app_module.__file__
+    with open(source_path) as f:
+        lines = f.readlines()
+    non_comment_lines = [line for line in lines if not line.strip().startswith("#")]
+    joined = "".join(non_comment_lines)
+    assert joined.count("on_mount") == 1
+    assert "on_mount=[DashboardState.load_rows, DashboardState.load_markup_pct]" in joined
+
+
+def test_data_entry_tab_groups_historical_and_data_entry():
+    source = inspect.getsource(app_module._data_entry_tab)
+    assert "historical_section()" in source
+    assert "data_entry_section()" in source
+    # Both calls must live inside the same helper, proving they mount and
+    # unmount together (D-01) rather than being reachable from separate
+    # branches of the tab match.
+    index_source = inspect.getsource(app_module.index)
+    assert "_data_entry_tab()" in index_source
+    assert "historical_section()" not in index_source
+    assert "data_entry_section()" not in index_source
+
+
+def test_index_renders_each_section_once():
+    combined_source = inspect.getsource(app_module.index) + inspect.getsource(
+        app_module._data_entry_tab
+    )
+    for call in [
+        "forecast_summary_cards()",
+        "forecast_section()",
+        "historical_section()",
+        "data_entry_section()",
+    ]:
+        assert combined_source.count(call) == 1
+
+
+def test_index_does_not_css_hide_sections():
+    source_path = app_module.__file__
+    with open(source_path) as f:
+        source = f.read()
+    assert re.search(r"display[^,\n]*none", source) is None
