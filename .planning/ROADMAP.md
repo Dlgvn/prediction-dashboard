@@ -252,7 +252,12 @@ Plans:
   2. Switching sections does not trigger a full page reload
   3. In-progress edits (e.g. a draft row) are preserved when switching away from Data Entry and back
   4. An in-progress CSV import preview is preserved when switching away from Data Entry and back
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 14-01-PLAN.md — active_section state field, set_active_section handler, and state-preservation regression tests (wave 1)
+- [ ] 14-02-PLAN.md — nav_bar() Radix tab bar and tabbed index() restructure, with live-browser verification (wave 2)
+
 **UI hint**: yes
 
 ### Phase 15: Data Entry Rework
