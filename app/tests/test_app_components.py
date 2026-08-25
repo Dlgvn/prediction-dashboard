@@ -158,6 +158,22 @@ def test_forecast_summary_cards_has_no_forbidden_copy():
     assert "guaranteed" not in rendered
 
 
+def test_forecast_summary_cards_wires_model_line():
+    rendered = str(app_module.forecast_summary_cards().render())
+    assert "model_label" in rendered
+    assert "model_text" in rendered
+
+
+def test_forecast_summary_cards_aria_label_includes_model_text():
+    source = inspect.getsource(app_module._summary_card)
+    assert 'card["model_text"]' in source
+    # aria_label expression must be a single chained concatenation ending
+    # with the model_text term appended after yoy_text.
+    aria_start = source.rfind("aria_label=")
+    aria_expr = source[aria_start:]
+    assert aria_expr.find('card["yoy_text"]') < aria_expr.find('card["model_text"]')
+
+
 def test_historical_section_compiles_to_component():
     component = app_module.historical_section()
     assert isinstance(component, rx.Component)

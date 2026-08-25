@@ -459,6 +459,15 @@ def _summary_card(card: rx.Var) -> rx.Component:
                         ),
                         spacing="2",
                     ),
+                    rx.hstack(
+                        rx.text(
+                            card["model_label"] + ":",
+                            size=RADIX_SIZE_LABEL,
+                            color=DashboardState.muted_text,
+                        ),
+                        rx.text(card["model_text"], size=RADIX_SIZE_BODY),
+                        spacing="2",
+                    ),
                 ),
                 rx.text(card["no_data_text"], size=RADIX_SIZE_BODY, color=DashboardState.muted_text),
             ),
@@ -479,7 +488,9 @@ def _summary_card(card: rx.Var) -> rx.Component:
         + " "
         + card["hilo_text"]
         + " "
-        + card["yoy_text"],
+        + card["yoy_text"]
+        + " "
+        + card["model_text"],
     )
 
 
