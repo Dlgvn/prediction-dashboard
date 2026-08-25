@@ -1,10 +1,11 @@
 ---
 phase: 15
 slug: data-entry-rework
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-08-25
+reviewed_at: 2026-08-25
 ---
 
 # Phase 15 — UI Design Contract
