@@ -216,9 +216,15 @@ class DashboardState(rx.State):
     # above this point), and it must never re-trigger the on_mount data
     # load (that fires exactly once, from the root container).
     def set_active_section(self, value: str):
-        """Switch the active tab and scroll to top (D-02)."""
+        """Switch the active tab and scroll to top (D-02).
+
+        Uses rx.call_script rather than rx.scroll_to: the installed
+        Reflex version's rx.scroll_to requires a specific elem_id target,
+        whereas a tab switch needs an unconditional scroll to the very
+        top of the page regardless of which section is now showing.
+        """
         self.active_section = value
-        return rx.scroll_to()
+        return rx.call_script("window.scrollTo({top: 0, behavior: 'instant'})")
 
     @rx.var
     def page_bg(self) -> str:

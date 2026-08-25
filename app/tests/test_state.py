@@ -2254,3 +2254,56 @@ def test_summary_cards_model_text_identical_across_data_branches(
 
     for key in ("hdan", "ppan", "diesel_mnt", "fx_rate"):
         assert populated_cards[key]["model_text"] == empty_cards[key]["model_text"]
+
+
+def test_active_section_defaults_to_summary():
+    state = DashboardState()
+    assert state.active_section == "summary"
+
+
+def test_set_active_section_preserves_mid_edit_state(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+    state.add_row()
+    state.start_edit(":hdan", "")
+    state.update_draft("7")
+
+    editing_key = state.editing_key
+    draft_value = state.draft_value
+    edit_error = state.edit_error
+    pending_delete = state.pending_delete
+    draft_rows = list(state.draft_rows)
+
+    state.set_active_section("summary")
+    state.set_active_section("data_entry")
+
+    assert state.active_section == "data_entry"
+    assert state.editing_key == editing_key
+    assert state.draft_value == draft_value
+    assert state.edit_error == edit_error
+    assert state.pending_delete == pending_delete
+    assert state.draft_rows == draft_rows
+
+
+def test_set_active_section_preserves_import_preview_state(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.import_stage = "preview"
+    state._staged_import_rows = [{"date": "2026-01-01", "hdan": 1.0}]
+
+    staged_rows = list(state._staged_import_rows)
+
+    state.set_active_section("data_entry")
+    state.set_active_section("summary")
+
+    assert state.import_stage == "preview"
+    assert state._staged_import_rows == staged_rows
+
+
+def test_set_active_section_does_not_reload_data():
+    src = inspect.getsource(DashboardState.set_active_section.fn)
+    assert "load_rows" not in src
+    assert "load_markup_pct" not in src
