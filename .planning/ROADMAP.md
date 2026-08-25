@@ -226,7 +226,7 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 12-01-PLAN.md — Move chart legends below the plot area, widen bottom margin, add layout regression tests + human viewport check (wave 1)
+- [x] 12-01-PLAN.md — Move chart legends below the plot area, widen bottom margin, add layout regression tests + human viewport check (wave 1)
 
 ### Phase 13: Model Provenance Display
 **Goal**: Each series' forecast section shows which model produced it and its backtested accuracy, sourced from a single existing source of truth.

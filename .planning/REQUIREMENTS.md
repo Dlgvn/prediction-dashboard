@@ -14,7 +14,7 @@
 
 ### Forecast Visualization
 
-- [ ] **VIS-04**: The fan chart's legend and axis labels do not visually overlap at any
+- [x] **VIS-04**: The fan chart's legend and axis labels do not visually overlap at any
       supported viewport width
 - [ ] **VIS-05**: Each series' forecast section shows which model produced it (e.g.
       "SARIMAX", "Direct-OLS VAR", "Naive") and its backtested accuracy (e.g. MAPE),
@@ -182,7 +182,7 @@
 | THEME-02 | Phase 11 | Complete |
 | THEME-03 | Phase 11 | Complete |
 | THEME-04 | Phase 11 | Complete |
-| VIS-04 | Phase 12 | Pending |
+| VIS-04 | Phase 12 | Complete |
 | VIS-05 | Phase 13 | Pending |
 | NAV-01 | Phase 14 | Pending |
 | DATA-09 | Phase 15 | Pending |
