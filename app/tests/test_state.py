@@ -2085,3 +2085,95 @@ def test_forecast_chart_band_fillcolor_follows_theme_mode(
 
     figure = state.forecast_chart_figure
     assert figure.data[2].fillcolor == theme.DARK["ACCENT_FILL"]
+
+
+# ---------------------------------------------------------------------------
+# Phase 12: fan chart legend / axis non-overlap (VIS-04)
+# ---------------------------------------------------------------------------
+
+
+def test_forecast_chart_legend_sits_below_plot_area(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    figure = state.forecast_chart_figure
+    assert figure.layout.legend.orientation == "h"
+    assert figure.layout.legend.y < 0
+    assert figure.layout.legend.yanchor == "top"
+    assert figure.layout.legend.x == 0.5
+    assert figure.layout.legend.xanchor == "center"
+
+
+def test_historical_chart_legend_layout_matches_forecast(session, monkeypatch):
+    session.add(PriceRow(date="2026-01-01", hdan=1.0))
+    session.add(PriceRow(date="2026-02-01", hdan=2.0))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+
+    figure = state.historical_chart_figure
+    assert figure.layout.legend.orientation == "h"
+    assert figure.layout.legend.y < 0
+    assert figure.layout.legend.yanchor == "top"
+    assert figure.layout.legend.x == 0.5
+    assert figure.layout.legend.xanchor == "center"
+    assert figure.layout.showlegend is False
+
+
+def test_chart_bottom_margin_accommodates_legend(session, monkeypatch, synthetic_history):
+    session.add(PriceRow(date="2026-01-01", hdan=1.0))
+    session.add(PriceRow(date="2026-02-01", hdan=2.0))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    populated_hist_state = DashboardState()
+    populated_hist_state.load_rows()
+    populated_hist_figure = populated_hist_state.historical_chart_figure
+
+    populated_forecast_state = DashboardState()
+    populated_forecast_state.rows = _rows_from_synthetic_history(synthetic_history)
+    populated_forecast_state.horizon_months = 4
+    populated_forecast_figure = populated_forecast_state.forecast_chart_figure
+
+    empty_state = DashboardState()
+    empty_state.rows = []
+    empty_hist_figure = empty_state.historical_chart_figure
+    empty_forecast_figure = empty_state.forecast_chart_figure
+
+    for figure in (
+        populated_hist_figure,
+        populated_forecast_figure,
+        empty_hist_figure,
+        empty_forecast_figure,
+    ):
+        assert figure.layout.margin.b >= 80
+        assert figure.layout.margin.l == 40
+        assert figure.layout.margin.r == 16
+        assert figure.layout.margin.t == 16
+
+
+def test_empty_state_figures_also_carry_below_plot_legend():
+    state = DashboardState()
+    state.rows = []
+
+    empty_hist_figure = state.historical_chart_figure
+    empty_forecast_figure = state.forecast_chart_figure
+
+    for figure in (empty_hist_figure, empty_forecast_figure):
+        assert figure.layout.legend.y < 0
+        assert figure.layout.legend.yanchor == "top"
+
+
+def test_forecast_start_annotation_position_unchanged(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    figure = state.forecast_chart_figure
+    annotation_texts = [a.text for a in figure.layout.annotations]
+    assert "Forecast start" in annotation_texts
