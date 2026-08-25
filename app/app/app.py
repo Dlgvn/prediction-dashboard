@@ -51,18 +51,26 @@ def _editable_cell(row: PriceRow, attr: str) -> rx.Component:
         size="2",
     )
 
+    # Date column uses a native HTML5 date picker (D-01/DATA-10) so the user
+    # never has to type/recall an exact ISO date string; every other column
+    # keeps the plain free-text input. rx.input's `type` prop passes straight
+    # through to the underlying TextField.Root -> <input> element, and its
+    # on_change fires with the raw ISO YYYY-MM-DD string (or "") the browser's
+    # native date control emits, so update_draft/commit_edit are unchanged.
+    input_kwargs = dict(
+        value=DashboardState.draft_value,
+        on_change=DashboardState.update_draft,
+        on_blur=DashboardState.commit_edit,
+        on_key_down=DashboardState.handle_key_down,
+        auto_focus=True,
+        size="1",
+        border_color=rx.cond(DashboardState.edit_error != "", "red", None),
+    )
+    if attr == "date":
+        input_kwargs["type"] = "date"
+
     editor = rx.vstack(
-        rx.input(
-            value=DashboardState.draft_value,
-            on_change=DashboardState.update_draft,
-            on_blur=DashboardState.commit_edit,
-            on_key_down=DashboardState.handle_key_down,
-            auto_focus=True,
-            size="1",
-            border_color=rx.cond(
-                DashboardState.edit_error != "", "red", None
-            ),
-        ),
+        rx.input(**input_kwargs),
         rx.cond(
             DashboardState.edit_error != "",
             rx.text(DashboardState.edit_error, color_scheme="red", size="1"),

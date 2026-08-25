@@ -61,6 +61,20 @@ def test_editable_cell_start_edit_arg_not_json_stringified_for_numeric():
     assert "toJSON" not in rendered
 
 
+def test_editable_cell_date_column_renders_native_date_picker():
+    """D-01/DATA-10: the date column's editor input carries type="date"."""
+    row = PriceRow(date="2026-08-01")
+    rendered = _start_edit_arg_source(row, "date")
+    assert 'type:"date"' in rendered
+
+
+def test_editable_cell_non_date_column_has_no_date_type():
+    """Regression guard: non-date columns keep the plain free-text input."""
+    row = PriceRow(date="2026-08-01", hdan=123.45)
+    rendered = _start_edit_arg_source(row, "hdan")
+    assert 'type:"date"' not in rendered
+
+
 # --- Phase 5 ---------------------------------------------------------------
 
 
