@@ -15,7 +15,7 @@
 - [x] **Phase 11: Background Fix + Theme Toggle** - Dashboard renders correctly at every viewport with a persisted dark/light mode toggle (completed 2026-08-24)
 - [x] **Phase 12: Fan Chart Legend/Axis Fix** - Fan chart legend and axis labels no longer overlap at any viewport (completed 2026-08-25)
 - [x] **Phase 13: Model Provenance Display** - Each forecast shows which model produced it and its backtested accuracy (completed 2026-08-25)
-- [ ] **Phase 14: Tab/Nav Bar** - User switches between Summary/Forecast/Data Entry via tabs without losing in-progress state
+- [x] **Phase 14: Tab/Nav Bar** - User switches between Summary/Forecast/Data Entry via tabs without losing in-progress state (completed 2026-08-25)
 - [ ] **Phase 15: Data Entry Rework** - Date entry reliably accepts valid input with visible errors and no format memorization
 
 ## Phase Details
@@ -256,7 +256,7 @@ Plans:
 
 Plans:
 - [x] 14-01-PLAN.md — active_section state field, set_active_section handler, and state-preservation regression tests (wave 1)
-- [ ] 14-02-PLAN.md — nav_bar() Radix tab bar and tabbed index() restructure, with live-browser verification (wave 2)
+- [x] 14-02-PLAN.md — nav_bar() Radix tab bar and tabbed index() restructure, with live-browser verification (wave 2)
 
 **UI hint**: yes
 
@@ -288,7 +288,7 @@ Plans:
 | 11. Background Fix + Theme Toggle | 3/3 | Complete   | 2026-08-24 |
 | 12. Fan Chart Legend/Axis Fix | 1/1 | Complete   | 2026-08-25 |
 | 13. Model Provenance Display | 2/2 | Complete   | 2026-08-25 |
-| 14. Tab/Nav Bar | 1/2 | In Progress|  |
+| 14. Tab/Nav Bar | 2/2 | Complete   | 2026-08-25 |
 | 15. Data Entry Rework | 0/? | Not started | - |
 
 ---
