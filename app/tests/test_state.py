@@ -2177,3 +2177,80 @@ def test_forecast_start_annotation_position_unchanged(session, monkeypatch, synt
     figure = state.forecast_chart_figure
     annotation_texts = [a.text for a in figure.layout.annotations]
     assert "Forecast start" in annotation_texts
+
+
+# Model provenance on summary_cards (VIS-05, Phase 13 plan 13-01 Task 2)
+
+
+def test_summary_cards_model_label_and_text_present_populated(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    for key in ("hdan", "ppan", "diesel_mnt", "fx_rate"):
+        assert cards[key]["model_label"] == "Model"
+        assert cards[key]["model_text"] != ""
+
+
+def test_summary_cards_model_label_and_text_present_empty(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = []
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    for key in ("hdan", "ppan", "diesel_mnt", "fx_rate"):
+        assert cards[key]["model_label"] == "Model"
+        assert cards[key]["model_text"] != ""
+
+
+def test_summary_cards_model_text_matches_model_info(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    assert cards["hdan"]["model_text"] == "SARIMAX · 13.3% typical error"
+    assert cards["ppan"]["model_text"] == "Direct-OLS VAR · 23.8% typical error"
+    assert cards["fx_rate"]["model_text"] == "Naive · 1.7% typical error"
+
+
+def test_summary_cards_diesel_mnt_model_text_has_no_percentage(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    assert cards["diesel_mnt"]["model_text"] == "Derived (Diesel USD × FX)"
+    assert "%" not in cards["diesel_mnt"]["model_text"]
+    assert "·" not in cards["diesel_mnt"]["model_text"]
+
+
+def test_summary_cards_model_text_identical_across_data_branches(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    populated_state = DashboardState()
+    populated_state.rows = _rows_from_synthetic_history(synthetic_history)
+    populated_state.horizon_months = 4
+    populated_cards = {c["series_key"]: c for c in populated_state.summary_cards}
+
+    empty_state = DashboardState()
+    empty_state.rows = []
+    empty_cards = {c["series_key"]: c for c in empty_state.summary_cards}
+
+    for key in ("hdan", "ppan", "diesel_mnt", "fx_rate"):
+        assert populated_cards[key]["model_text"] == empty_cards[key]["model_text"]

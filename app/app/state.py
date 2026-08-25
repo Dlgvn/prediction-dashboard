@@ -15,7 +15,12 @@ import plotly.graph_objects as go
 import reflex as rx
 
 from app.csv_import import parse_import_csv
-from app.forecasting import MAX_HORIZON, InsufficientHistoryError, forecast_all
+from app.forecasting import (
+    MAX_HORIZON,
+    MODEL_INFO,
+    InsufficientHistoryError,
+    forecast_all,
+)
 from app.models import AppSetting, PriceRow
 from app.theme import (
     ARROW_DOWN,
@@ -546,6 +551,17 @@ class DashboardState(rx.State):
                         yoy_arrow, yoy_direction = ARROW_FLAT, "flat"
                     yoy_text = f"{abs(pct):.1f}% vs. {MONTH_ABBR[month - 1]} {year - 1}"
 
+            # VIS-05: model provenance, computed before the no-data early
+            # return so both branches carry the same keys (model selection
+            # is frozen, not data-dependent). Every value flows from
+            # MODEL_INFO — never hand-type a model name or percentage here.
+            model_label = "Model"
+            model_name, model_mape = MODEL_INFO[key]
+            if model_mape is None:
+                model_text = model_name
+            else:
+                model_text = f"{model_name} · {model_mape:.1f}% typical error"
+
             if not series:
                 cards.append(
                     {
@@ -565,6 +581,8 @@ class DashboardState(rx.State):
                         "yoy_text": "",
                         "yoy_arrow": "",
                         "yoy_direction": "flat",
+                        "model_label": model_label,
+                        "model_text": model_text,
                         "no_data_text": "Add pricing data to see a forecast",
                     }
                 )
@@ -615,6 +633,8 @@ class DashboardState(rx.State):
                     "yoy_text": yoy_text,
                     "yoy_arrow": yoy_arrow,
                     "yoy_direction": yoy_direction,
+                    "model_label": model_label,
+                    "model_text": model_text,
                     "no_data_text": "Add pricing data to see a forecast",
                 }
             )
