@@ -41,11 +41,22 @@ def _editable_cell(row: PriceRow, attr: str) -> rx.Component:
     """
     value = getattr(row, attr)
     key = row.date + ":" + attr
-    display_value = rx.cond(value != None, value, "")  # noqa: E711  (Var-level comparison)
+    # `edit_value` seeds start_edit's draft (unrounded — must round-trip
+    # exactly on a no-op edit, or committing without changing anything would
+    # silently truncate the stored precision). `shown_text` is display-only:
+    # numeric columns are stored as raw source floats (e.g.
+    # 2.9299999999999997 from CSV import) and are rounded to 2dp so the
+    # table is readable; the date column is untouched either way.
+    edit_value = rx.cond(value != None, value, "")  # noqa: E711  (Var-level comparison)
+    shown_text = (
+        edit_value
+        if attr == "date"
+        else rx.cond(value != None, round(value, 2), "")  # noqa: E711
+    )
 
     display = rx.text(
-        display_value,
-        on_click=DashboardState.start_edit(key, display_value),
+        shown_text,
+        on_click=DashboardState.start_edit(key, edit_value),
         cursor="pointer",
         size="2",
     )
