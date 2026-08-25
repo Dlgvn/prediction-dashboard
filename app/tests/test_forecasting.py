@@ -8,6 +8,7 @@ from app.forecasting import (
     ARIMA_SE_ORDER,
     HDAN_GARCH_SIGMA_PCT,
     HDAN_PREDICTORS,
+    MODEL_INFO,
     InsufficientHistoryError,
     _apply_garch_spread,
     _apply_se_spread,
@@ -460,3 +461,43 @@ def test_spread_widens_with_horizon(synthetic_history):
             half_widths[i] <= half_widths[i + 1] + 1e-9
             for i in range(len(half_widths) - 1)
         ), key
+
+
+def test_model_info_has_exactly_forecast_all_keys():
+    """VIS-05: MODEL_INFO keys must match forecast_all's 5 returned keys exactly."""
+    assert set(MODEL_INFO) == {"hdan", "ppan", "diesel_usd_ton", "fx_rate", "diesel_mnt"}
+
+
+def test_model_info_hdan():
+    assert MODEL_INFO["hdan"] == ("SARIMAX", 13.33)
+
+
+def test_model_info_ppan():
+    assert MODEL_INFO["ppan"] == ("Direct-OLS VAR", 23.80)
+
+
+def test_model_info_diesel_usd_ton():
+    assert MODEL_INFO["diesel_usd_ton"] == ("Naive", 7.04)
+
+
+def test_model_info_fx_rate():
+    assert MODEL_INFO["fx_rate"] == ("Naive", 1.72)
+
+
+def test_model_info_diesel_mnt_has_no_mape():
+    """D-01: Diesel MNT is derived, has no independent backtest MAPE."""
+    name, mape = MODEL_INFO["diesel_mnt"]
+    assert name == "Derived (Diesel USD × FX)"
+    assert mape is None
+
+
+def test_model_info_mape_values_are_float_or_none():
+    for name, mape in MODEL_INFO.values():
+        assert isinstance(name, str)
+        assert mape is None or isinstance(mape, float)
+
+
+def test_model_info_matches_forecast_all_output_keys(synthetic_history):
+    """No-drift guard: MODEL_INFO keys track forecast_all's actual return keys."""
+    result = forecast_all(synthetic_history, horizon=1, markup_pct=5.0)
+    assert set(MODEL_INFO) == set(result.keys())

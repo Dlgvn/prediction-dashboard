@@ -89,6 +89,22 @@ PPAN_TARGET_LAGS = (1, 2, 3)
 MAX_HORIZON = 12
 MIN_HISTORY_ROWS = 24
 
+# Single source of truth for model provenance display (VIS-05,
+# PITFALLS.md Pitfall 4). Keys mirror forecast_all's 5 returned series
+# exactly. Values are (model_name, mape_pct) transcribed verbatim from
+# the forecast_* docstrings below (themselves sourced from
+# 02-MODEL-DECISIONS.md). diesel_mnt is derived (Diesel USD x FX), has
+# no independent backtest, so its MAPE is None -- never 0.0, never a
+# summed/averaged number. Display-layer code (state.py, app.py) must
+# never hand-type these names or percentages -- read from this constant.
+MODEL_INFO: dict[str, tuple[str, float | None]] = {
+    "hdan": ("SARIMAX", 13.33),
+    "ppan": ("Direct-OLS VAR", 23.80),
+    "diesel_usd_ton": ("Naive", 7.04),
+    "fx_rate": ("Naive", 1.72),
+    "diesel_mnt": ("Derived (Diesel USD × FX)", None),
+}
+
 # Orders used by `_forecast_predictor` to project an exogenous predictor
 # forward when it is needed as SARIMAX exog input (not a winning-model
 # order for any tracked series -- purely a helper for feeding predictors).
