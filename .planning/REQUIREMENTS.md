@@ -23,7 +23,7 @@
 
 ### Navigation
 
-- [ ] **NAV-01**: User can switch between the Summary, Forecast, and Data Entry sections
+- [x] **NAV-01**: User can switch between the Summary, Forecast, and Data Entry sections
       via a tab/nav bar, without a full page reload and without losing in-progress edits
       or an in-progress CSV import preview when switching away and back
 
@@ -184,7 +184,7 @@
 | THEME-04 | Phase 11 | Complete |
 | VIS-04 | Phase 12 | Complete |
 | VIS-05 | Phase 13 | Complete |
-| NAV-01 | Phase 14 | Pending |
+| NAV-01 | Phase 14 | Complete |
 | DATA-09 | Phase 15 | Pending |
 | DATA-10 | Phase 15 | Pending |
 

@@ -255,7 +255,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 14-01-PLAN.md — active_section state field, set_active_section handler, and state-preservation regression tests (wave 1)
+- [x] 14-01-PLAN.md — active_section state field, set_active_section handler, and state-preservation regression tests (wave 1)
 - [ ] 14-02-PLAN.md — nav_bar() Radix tab bar and tabbed index() restructure, with live-browser verification (wave 2)
 
 **UI hint**: yes
@@ -288,7 +288,7 @@ Plans:
 | 11. Background Fix + Theme Toggle | 3/3 | Complete   | 2026-08-24 |
 | 12. Fan Chart Legend/Axis Fix | 1/1 | Complete   | 2026-08-25 |
 | 13. Model Provenance Display | 2/2 | Complete   | 2026-08-25 |
-| 14. Tab/Nav Bar | 0/? | Not started | - |
+| 14. Tab/Nav Bar | 1/2 | In Progress|  |
 | 15. Data Entry Rework | 0/? | Not started | - |
 
 ---
