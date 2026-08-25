@@ -14,7 +14,7 @@
 - [x] **Phase 10: CSV Bulk Import** - User can bulk-import historical prices via CSV with preview, confirm, and duplicate-date skipping (completed 2026-08-24)
 - [x] **Phase 11: Background Fix + Theme Toggle** - Dashboard renders correctly at every viewport with a persisted dark/light mode toggle (completed 2026-08-24)
 - [x] **Phase 12: Fan Chart Legend/Axis Fix** - Fan chart legend and axis labels no longer overlap at any viewport (completed 2026-08-25)
-- [ ] **Phase 13: Model Provenance Display** - Each forecast shows which model produced it and its backtested accuracy
+- [x] **Phase 13: Model Provenance Display** - Each forecast shows which model produced it and its backtested accuracy (completed 2026-08-25)
 - [ ] **Phase 14: Tab/Nav Bar** - User switches between Summary/Forecast/Data Entry via tabs without losing in-progress state
 - [ ] **Phase 15: Data Entry Rework** - Date entry reliably accepts valid input with visible errors and no format memorization
 
@@ -241,7 +241,7 @@ Plans:
 
 Plans:
 - [x] 13-01-PLAN.md — MODEL_INFO constant in forecasting.py + model_label/model_text on summary_cards (wave 1)
-- [ ] 13-02-PLAN.md — Model line in _summary_card, extended aria_label, component tests + human verification (wave 2)
+- [x] 13-02-PLAN.md — Model line in _summary_card, extended aria_label, component tests + human verification (wave 2)
 
 ### Phase 14: Tab/Nav Bar
 **Goal**: The user navigates between Summary, Forecast, and Data Entry sections via a tab/nav bar instead of one long scroll, without losing in-progress work.
@@ -282,7 +282,7 @@ Plans:
 | 10. CSV Bulk Import | 3/3 | Complete   | 2026-08-24 |
 | 11. Background Fix + Theme Toggle | 3/3 | Complete   | 2026-08-24 |
 | 12. Fan Chart Legend/Axis Fix | 1/1 | Complete   | 2026-08-25 |
-| 13. Model Provenance Display | 1/2 | In Progress|  |
+| 13. Model Provenance Display | 2/2 | Complete   | 2026-08-25 |
 | 14. Tab/Nav Bar | 0/? | Not started | - |
 | 15. Data Entry Rework | 0/? | Not started | - |
 
