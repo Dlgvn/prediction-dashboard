@@ -22,7 +22,6 @@ from app.theme import (
     RADIX_SIZE_LABEL,
     SPACE_LG,
     SPACE_MD,
-    SPACE_SM,
 )
 
 # Header labels in display order, paired with the PriceRow attribute they render.
@@ -817,6 +816,11 @@ def index() -> rx.Component:
             ("summary", forecast_summary_cards()),
             ("forecast", forecast_section()),
             ("data_entry", _data_entry_tab()),
+            rx.text(
+                "Unknown section — try switching tabs again.",
+                size=RADIX_SIZE_BODY,
+                color=DashboardState.muted_text,
+            ),
         ),
         background=DashboardState.page_bg,
         min_height="100vh",
