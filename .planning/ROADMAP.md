@@ -13,7 +13,7 @@
 - [x] **Phase 9: Excel Export Polish** - Excel export includes a forecast sheet (base/bull/bear) alongside the existing actuals sheet (completed 2026-08-24)
 - [x] **Phase 10: CSV Bulk Import** - User can bulk-import historical prices via CSV with preview, confirm, and duplicate-date skipping (completed 2026-08-24)
 - [x] **Phase 11: Background Fix + Theme Toggle** - Dashboard renders correctly at every viewport with a persisted dark/light mode toggle (completed 2026-08-24)
-- [ ] **Phase 12: Fan Chart Legend/Axis Fix** - Fan chart legend and axis labels no longer overlap at any viewport
+- [x] **Phase 12: Fan Chart Legend/Axis Fix** - Fan chart legend and axis labels no longer overlap at any viewport (completed 2026-08-25)
 - [ ] **Phase 13: Model Provenance Display** - Each forecast shows which model produced it and its backtested accuracy
 - [ ] **Phase 14: Tab/Nav Bar** - User switches between Summary/Forecast/Data Entry via tabs without losing in-progress state
 - [ ] **Phase 15: Data Entry Rework** - Date entry reliably accepts valid input with visible errors and no format memorization
@@ -277,7 +277,7 @@ Plans:
 | 9. Excel Export Polish | 1/1 | Complete   | 2026-08-24 |
 | 10. CSV Bulk Import | 3/3 | Complete   | 2026-08-24 |
 | 11. Background Fix + Theme Toggle | 3/3 | Complete   | 2026-08-24 |
-| 12. Fan Chart Legend/Axis Fix | 0/? | Not started | - |
+| 12. Fan Chart Legend/Axis Fix | 1/1 | Complete   | 2026-08-25 |
 | 13. Model Provenance Display | 0/? | Not started | - |
 | 14. Tab/Nav Bar | 0/? | Not started | - |
 | 15. Data Entry Rework | 0/? | Not started | - |
