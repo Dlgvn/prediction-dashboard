@@ -222,8 +222,11 @@ Plans:
 **Success Criteria** (what must be TRUE):
   1. The fan chart's legend does not visually overlap its axis labels at any supported viewport width
   2. The fix is applied consistently to both the historical chart and the forecast chart
-**Plans**: TBD
+**Plans**: 1 plan
 **UI hint**: yes
+
+Plans:
+- [ ] 12-01-PLAN.md — Move chart legends below the plot area, widen bottom margin, add layout regression tests + human viewport check (wave 1)
 
 ### Phase 13: Model Provenance Display
 **Goal**: Each series' forecast section shows which model produced it and its backtested accuracy, sourced from a single existing source of truth.
