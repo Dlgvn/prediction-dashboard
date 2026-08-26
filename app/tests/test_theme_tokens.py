@@ -66,12 +66,12 @@ def test_token_key_set_matches_locked_10_key_frozenset():
 # ---------------------------------------------------------------------------
 
 CONTRAST_TABLE = [
-    ("BORDER", 3.08, 3.0),
-    ("ACCENT", 5.86, 4.5),
-    ("DESTRUCTIVE", 5.39, 4.5),
-    ("UP", 8.55, 4.5),
-    ("DOWN", 5.39, 4.5),
-    ("MUTED_TEXT", 5.82, 4.5),
+    ("BORDER", 4.70, 3.0),
+    ("ACCENT", 7.68, 4.5),
+    ("DESTRUCTIVE", 5.89, 4.5),
+    ("UP", 9.34, 4.5),
+    ("DOWN", 5.89, 4.5),
+    ("MUTED_TEXT", 6.24, 4.5),
 ]
 
 

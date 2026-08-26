@@ -67,35 +67,33 @@ LIGHT: dict[str, str] = {
 # ---------------------------------------------------------------------------
 
 DARK: dict[str, str] = {
-    # Darkest layer — page canvas beneath cards. No contrast pairing
-    # (background reference, not text/boundary).
-    "PAGE_BG": "#18181B",
-    # Card layer — one step lighter than PAGE_BG, mirrors the light-mode
-    # PAGE_BG -> SURFACE step direction. No contrast pairing.
-    "SURFACE": "#27272A",
-    # Amended in Task 11-01: #52525B measured 1.92:1 against SURFACE dark,
-    # below the WCAG 3:1 non-text-boundary threshold. Lightened within the
-    # same neutral-gray hue to #71717A (3.08:1 measured, threshold 3:1).
-    "BORDER": "#71717A",
-    # Measured 5.86:1 against SURFACE dark (threshold 4.5:1 normal text).
-    "ACCENT": "#60A5FA",
-    # Fill only, not a contrast-tested pairing — matching rgba of ACCENT
-    # dark, mirrors light mode's ACCENT_FILL derivation.
-    "ACCENT_FILL": "rgba(96,165,250,0.15)",
-    # Measured 5.39:1 against SURFACE dark (threshold 4.5:1 normal text).
+    # 2026-08-26 precision-instrument redesign: darkened from #18181B to
+    # #101416 (cooler near-black) to match the light mode's cooler
+    # PAGE_BG shift. No contrast pairing (background reference only).
+    "PAGE_BG": "#101416",
+    # 2026-08-26 precision-instrument redesign: #1B2124 (was #27272A) —
+    # cooler card layer matching the new PAGE_BG hue family. No contrast
+    # pairing (background reference only).
+    "SURFACE": "#1B2124",
+    # 2026-08-26 precision-instrument redesign: #828B92 (was #71717A) —
+    # 4.70:1 against the new SURFACE dark (threshold 3:1 non-text).
+    "BORDER": "#828B92",
+    # 2026-08-26 precision-instrument redesign: brightened teal-cyan (was
+    # #60A5FA blue) — 7.68:1 against SURFACE dark (threshold 4.5:1).
+    "ACCENT": "#3FC3CE",
+    "ACCENT_FILL": "rgba(63,195,206,0.15)",
+    # Unchanged hex from before the redesign, but ratio vs the new
+    # SURFACE dark recalculated: 5.89:1 (was 5.39:1 vs the old SURFACE).
     "DESTRUCTIVE": "#F87171",
-    # Chart line color — reuses MUTED_TEXT dark's hue family. Not
-    # independently re-measured (chart-line legibility is visual, not a
-    # text-contrast pairing).
     "NEUTRAL_LINE": "#A1A1AA",
-    # Measured 8.55:1 against SURFACE dark (threshold 4.5:1 normal text).
+    # Unchanged hex; ratio vs new SURFACE dark recalculated: 9.34:1.
     "UP": "#4ADE80",
     # Same value as DESTRUCTIVE dark, reused — mirrors light mode's
-    # DOWN == DESTRUCTIVE reuse.
-    # Measured 5.39:1 against SURFACE dark (threshold 4.5:1 normal text).
+    # DOWN == DESTRUCTIVE reuse. Ratio vs new SURFACE dark: 5.89:1.
     "DOWN": "#F87171",
-    # Measured 5.82:1 against SURFACE dark (threshold 4.5:1 normal text).
-    "MUTED_TEXT": "#A1A1AA",
+    # 2026-08-26 precision-instrument redesign: #9BA1A6 (was #A1A1AA) —
+    # 6.24:1 against SURFACE dark (threshold 4.5:1).
+    "MUTED_TEXT": "#9BA1A6",
 }
 
 

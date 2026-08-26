@@ -2234,7 +2234,7 @@ def test_page_bg_resolves_per_mode():
     assert state.page_bg == theme.DARK["PAGE_BG"]
     # End-to-end anchor proving the theme.py -> theme_mode -> computed var
     # chain is fully wired (11-02-PLAN.md Task 2).
-    assert state.page_bg == "#18181B"
+    assert state.page_bg == "#101416"
 
 
 def test_surface_resolves_per_mode():
