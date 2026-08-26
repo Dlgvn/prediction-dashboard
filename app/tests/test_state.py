@@ -348,6 +348,32 @@ def test_handle_key_down_escape_cancels(session, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
+# Quick-add form field updates
+# ---------------------------------------------------------------------------
+
+
+def test_update_quick_add_field_sets_one_key(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+
+    state.update_quick_add_field("hdan", "7")
+
+    assert state.quick_add_values["hdan"] == "7"
+    assert state.quick_add_values.get("date", "") == ""
+
+
+def test_update_quick_add_field_does_not_touch_other_keys(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+
+    state.update_quick_add_field("hdan", "7")
+    state.update_quick_add_field("ppan", "3")
+
+    assert state.quick_add_values["hdan"] == "7"
+    assert state.quick_add_values["ppan"] == "3"
+
+
+# ---------------------------------------------------------------------------
 # Add-row path (DATA-01, D-06, D-06b)
 # ---------------------------------------------------------------------------
 

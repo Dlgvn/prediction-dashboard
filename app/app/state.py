@@ -154,6 +154,9 @@ class DashboardState(rx.State):
 
     pending_delete: str = ""
 
+    quick_add_values: dict[str, str] = {}
+    quick_add_error: str = ""
+
     # D-01/D-02 (Phase 7): controls the Data Entry table's rendered window
     # ONLY (see visible_rows below) — never affects self.rows, which stays
     # the full-history source of truth for every other computed var.
@@ -983,6 +986,12 @@ class DashboardState(rx.State):
     def update_draft(self, value: str) -> None:
         # Fires on every keystroke — never touch the DB or reload here.
         self.draft_value = value
+
+    def update_quick_add_field(self, attr: str, value: str) -> None:
+        # Whole-dict reassignment, not in-place mutation, so Reflex reliably
+        # detects the change (same pattern as draft_rows elsewhere in this
+        # file).
+        self.quick_add_values = {**self.quick_add_values, attr: value}
 
     def cancel_edit(self) -> None:
         self.editing_key = ""
