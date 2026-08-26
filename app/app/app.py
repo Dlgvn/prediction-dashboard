@@ -604,6 +604,9 @@ def csv_import_control() -> rx.Component:
         ),
         spacing="2",
         align="center",
+        padding=SPACE_MD,
+        border=f"1px solid {DashboardState.destructive_color}",
+        border_radius=CARD_RADIUS,
     )
 
     preview_state = rx.box(
