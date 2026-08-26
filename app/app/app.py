@@ -582,6 +582,7 @@ def historical_section() -> rx.Component:
         rx.heading("Historical", size=RADIX_SIZE_HEADING, as_="h2"),
         historical_chart(),
         spacing="3",
+        width="100%",
         aria_label="Historical prices",
         role="region",
     )
