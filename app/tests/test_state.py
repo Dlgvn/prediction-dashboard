@@ -347,146 +347,109 @@ def test_handle_key_down_escape_cancels(session, monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Quick-add form field updates
+# Add-row path (DATA-01, D-06, D-06b)
 # ---------------------------------------------------------------------------
 
 
-def test_update_quick_add_field_sets_one_key(session, monkeypatch):
+def test_add_row_creates_unsaved_draft(session, monkeypatch):
     monkeypatch.setattr("reflex.session", lambda: session)
-    state = DashboardState()
 
-    state.update_quick_add_field("hdan", "7")
-
-    assert state.quick_add_values["hdan"] == "7"
-    assert state.quick_add_values.get("date", "") == ""
-
-
-def test_update_quick_add_field_does_not_touch_other_keys(session, monkeypatch):
-    monkeypatch.setattr("reflex.session", lambda: session)
-    state = DashboardState()
-
-    state.update_quick_add_field("hdan", "7")
-    state.update_quick_add_field("ppan", "3")
-
-    assert state.quick_add_values["hdan"] == "7"
-    assert state.quick_add_values["ppan"] == "3"
-
-
-def test_submit_quick_add_inserts_row_with_all_fields(session, monkeypatch):
-    monkeypatch.setattr("reflex.session", lambda: session)
     state = DashboardState()
     state.load_rows()
-    state.update_quick_add_field("date", "2026-06-01")
-    state.update_quick_add_field("hdan", "7")
-    state.update_quick_add_field("ppan", "3.5")
+    before = _db_row_count(session)
+    state.add_row()
 
-    state.submit_quick_add()
+    assert len(state.draft_rows) == 1
+    assert state.draft_rows[0].date == ""
+    assert _db_row_count(session) == before
+
+
+def test_add_row_disabled_while_draft_pending(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+    state.add_row()
+    assert state.can_add_row is False
+
+    state.add_row()
+    assert len(state.draft_rows) == 1
+
+
+def test_draft_numeric_edit_does_not_touch_db(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+    before = _db_row_count(session)
+    state.add_row()
+    state.start_edit(":hdan", "")
+    state.update_draft("7")
+    state.commit_edit()
+
+    assert _db_row_count(session) == before
+    assert state.draft_rows[0].hdan == 7.0
+
+
+def test_add_row_deferred_persist(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_rows()
+    state.add_row()
+    state.start_edit(":hdan", "")
+    state.update_draft("7")
+    state.commit_edit()
+
+    state.start_edit(":date", "")
+    state.update_draft("2026-06-01")
+    state.commit_edit()
 
     db_row = _get_db_row(session, "2026-06-01")
     assert db_row is not None
     assert db_row.hdan == 7.0
-    assert db_row.ppan == 3.5
-    assert db_row.brent is None
+    assert state.draft_rows == []
+    assert state.can_add_row is True
     assert any(r.date == "2026-06-01" for r in state.rows)
 
 
-def test_submit_quick_add_clears_form_and_error_on_success(session, monkeypatch):
+def test_draft_invalid_date_stays_draft(session, monkeypatch):
     monkeypatch.setattr("reflex.session", lambda: session)
-    state = DashboardState()
-    state.load_rows()
-    state.update_quick_add_field("date", "2026-06-01")
-    state.update_quick_add_field("hdan", "7")
 
-    state.submit_quick_add()
-
-    assert state.quick_add_values == {}
-    assert state.quick_add_error == ""
-
-
-def test_submit_quick_add_missing_date_rejected(session, monkeypatch):
-    monkeypatch.setattr("reflex.session", lambda: session)
     state = DashboardState()
     state.load_rows()
     before = _db_row_count(session)
-    state.update_quick_add_field("hdan", "7")
-
-    state.submit_quick_add()
-
-    assert _db_row_count(session) == before
-    assert state.quick_add_error != ""
-    # Nothing the user typed is lost on failure.
-    assert state.quick_add_values["hdan"] == "7"
-
-
-def test_submit_quick_add_invalid_date_rejected(session, monkeypatch):
-    monkeypatch.setattr("reflex.session", lambda: session)
-    state = DashboardState()
-    state.load_rows()
-    before = _db_row_count(session)
-    state.update_quick_add_field("date", "nope")
-
-    state.submit_quick_add()
+    state.add_row()
+    state.start_edit(":date", "")
+    state.update_draft("nope")
+    state.commit_edit()
 
     assert _db_row_count(session) == before
-    assert state.quick_add_error == validators.DATE_INVALID_ERROR
+    assert len(state.draft_rows) == 1
+    assert state.edit_error == validators.DATE_INVALID_ERROR
 
 
-def test_submit_quick_add_duplicate_month_rejected(session, monkeypatch):
+def test_draft_duplicate_month_rejected(session, monkeypatch):
     session.add(PriceRow(date="2026-01-01", hdan=1.0))
     session.commit()
     monkeypatch.setattr("reflex.session", lambda: session)
+
     state = DashboardState()
     state.load_rows()
     before = _db_row_count(session)
-    state.update_quick_add_field("date", "2026-01-20")
-
-    state.submit_quick_add()
-
-    assert _db_row_count(session) == before
-    assert state.quick_add_error == validators.DATE_DUPLICATE_ERROR
-
-
-def test_submit_quick_add_invalid_numeric_field_rejected_and_names_field(
-    session, monkeypatch
-):
-    monkeypatch.setattr("reflex.session", lambda: session)
-    state = DashboardState()
-    state.load_rows()
-    before = _db_row_count(session)
-    state.update_quick_add_field("date", "2026-06-01")
-    state.update_quick_add_field("ammonia", "not-a-number")
-
-    state.submit_quick_add()
+    state.add_row()
+    state.start_edit(":date", "")
+    state.update_draft("2026-01-20")
+    state.commit_edit()
 
     assert _db_row_count(session) == before
-    assert "Ammonia" in state.quick_add_error
-    # Values persist so the user doesn't have to retype everything.
-    assert state.quick_add_values["date"] == "2026-06-01"
-    assert state.quick_add_values["ammonia"] == "not-a-number"
-
-
-def test_submit_quick_add_blank_series_fields_stay_null(session, monkeypatch):
-    monkeypatch.setattr("reflex.session", lambda: session)
-    state = DashboardState()
-    state.load_rows()
-    state.update_quick_add_field("date", "2026-06-01")
-
-    state.submit_quick_add()
-
-    db_row = _get_db_row(session, "2026-06-01")
-    assert db_row is not None
-    for attr in SERIES_ATTRS:
-        assert getattr(db_row, attr) is None
-
-
-# ---------------------------------------------------------------------------
-# Add-row path (DATA-01, D-06, D-06b)
-# ---------------------------------------------------------------------------
+    assert state.edit_error == validators.DATE_DUPLICATE_ERROR
 
 
 # ---------------------------------------------------------------------------
 # Delete path (DATA-03, D-07)
 # ---------------------------------------------------------------------------
+
 
 
 def test_delete_first_click_only_arms(session, monkeypatch):
@@ -569,9 +532,13 @@ def test_writes_survive_reload(session, monkeypatch):
     state.commit_edit()
 
     # add
-    state.update_quick_add_field("hdan", "5")
-    state.update_quick_add_field("date", "2026-06-01")
-    state.submit_quick_add()
+    state.add_row()
+    state.start_edit(":hdan", "")
+    state.update_draft("5")
+    state.commit_edit()
+    state.start_edit(":date", "")
+    state.update_draft("2026-06-01")
+    state.commit_edit()
 
     # delete
     state.request_delete("2026-02-01")
@@ -1591,7 +1558,7 @@ def test_toggle_show_all_history_cancels_edit_and_pending_delete(session, monkey
     state.draft_value = "9"
     state.edit_error = "x"
     state.pending_delete = "2024-01-01"
-    state.update_quick_add_field("hdan", "9")
+    state.draft_rows = [PriceRow(date="")]
 
     state.toggle_show_all_history(True)
 
@@ -1599,7 +1566,7 @@ def test_toggle_show_all_history_cancels_edit_and_pending_delete(session, monkey
     assert state.draft_value == ""
     assert state.edit_error == ""
     assert state.pending_delete == ""
-    assert state.quick_add_values["hdan"] == "9"
+    assert len(state.draft_rows) == 1
 
 
 def test_toggle_show_all_history_never_mutates_rows(session, monkeypatch):
@@ -2029,7 +1996,8 @@ def test_handle_csv_upload_import_does_not_touch_edit_error(session, monkeypatch
 
 def test_handle_csv_upload_does_not_touch_edit_error_or_editing_key(session, monkeypatch):
     """D-03 audit proof: CSV import must not interact with the edit machine
-    or the quick-add form, even while a genuine validation error is pending.
+    at all, even while a genuine validation error is pending on an
+    open cell.
     """
     session.add(PriceRow(date="2025-01-01", hdan=1.0))
     session.commit()
@@ -2037,22 +2005,23 @@ def test_handle_csv_upload_does_not_touch_edit_error_or_editing_key(session, mon
 
     state = DashboardState()
     state.load_rows()
-    state.update_quick_add_field("date", "2025-01-20")
-    state.submit_quick_add()
+    state.add_row()
+    state.start_edit(":date", "")
+    state.update_draft("2025-01-20")
+    state.commit_edit()
 
-    assert state.quick_add_error == validators.DATE_DUPLICATE_ERROR
+    assert state.edit_error == validators.DATE_DUPLICATE_ERROR
     editing_key_before = state.editing_key
     draft_value_before = state.draft_value
-    quick_add_values_before = dict(state.quick_add_values)
-    quick_add_error_before = state.quick_add_error
+    draft_rows_before = list(state.draft_rows)
 
     csv_bytes = _import_csv([_full_import_row("2026-01-01")])
     asyncio.run(state.handle_csv_upload([_FakeUpload(csv_bytes)]))
 
+    assert state.edit_error == validators.DATE_DUPLICATE_ERROR
     assert state.editing_key == editing_key_before
     assert state.draft_value == draft_value_before
-    assert state.quick_add_values == quick_add_values_before
-    assert state.quick_add_error == quick_add_error_before
+    assert state.draft_rows == draft_rows_before
 
 
 def test_confirm_import_batch_writes_valid_rows(session, monkeypatch):
@@ -2500,21 +2469,19 @@ def test_active_section_defaults_to_summary():
 
 
 def test_set_active_section_preserves_mid_edit_state(session, monkeypatch):
-    session.add(PriceRow(date="2026-01-01", hdan=1.0))
-    session.commit()
     monkeypatch.setattr("reflex.session", lambda: session)
 
     state = DashboardState()
     state.load_rows()
-    state.start_edit("2026-01-01:hdan", 1.0)
+    state.add_row()
+    state.start_edit(":hdan", "")
     state.update_draft("7")
-    state.update_quick_add_field("hdan", "5")
 
     editing_key = state.editing_key
     draft_value = state.draft_value
     edit_error = state.edit_error
     pending_delete = state.pending_delete
-    quick_add_values = dict(state.quick_add_values)
+    draft_rows = list(state.draft_rows)
 
     state.set_active_section("summary")
     state.set_active_section("data_entry")
@@ -2524,7 +2491,7 @@ def test_set_active_section_preserves_mid_edit_state(session, monkeypatch):
     assert state.draft_value == draft_value
     assert state.edit_error == edit_error
     assert state.pending_delete == pending_delete
-    assert state.quick_add_values == quick_add_values
+    assert state.draft_rows == draft_rows
 
 
 def test_set_active_section_preserves_import_preview_state(session, monkeypatch):

@@ -153,6 +153,14 @@ def data_table() -> rx.Component:
                     _delete_cell(row),
                 ),
             ),
+            rx.foreach(
+                DashboardState.draft_rows,
+                lambda row: rx.table.row(
+                    _editable_cell(row, "date", cell_style=date_cell_style),
+                    *[_editable_cell(row, attr) for _, attr in _COLUMNS[1:]],
+                    rx.table.cell(),
+                ),
+            ),
         ),
     )
 
@@ -174,6 +182,16 @@ def history_toggle() -> rx.Component:
         ),
         spacing="2",
         align="center",
+    )
+
+
+def add_row_button() -> rx.Component:
+    return rx.button(
+        "Add row",
+        on_click=DashboardState.add_row,
+        disabled=~DashboardState.can_add_row,
+        size="2",
+        color_scheme="blue",
     )
 
 
@@ -719,72 +737,6 @@ def csv_import_control() -> rx.Component:
     )
 
 
-def _quick_add_field(attr: str, label: str, required: bool = False) -> rx.Component:
-    return rx.vstack(
-        rx.text(
-            label + (" *" if required else ""),
-            size=RADIX_SIZE_LABEL,
-            font_weight=FONT_WEIGHT_SEMIBOLD if required else FONT_WEIGHT_REGULAR,
-            color_scheme="gray",
-        ),
-        rx.input(
-            value=DashboardState.quick_add_values[attr].to(str),
-            on_change=lambda value: DashboardState.update_quick_add_field(attr, value),
-            type="date" if attr == "date" else "text",
-            size="2",
-            font_family="'IBM Plex Mono', monospace",
-        ),
-        spacing="1",
-        align="start",
-    )
-
-
-def quick_add_form() -> rx.Component:
-    """Compact form for entering one full month's actuals at once (replaces
-    the old add-row-then-click-each-cell draft flow).
-    """
-    return rx.box(
-        rx.cond(
-            DashboardState.quick_add_error != "",
-            rx.hstack(
-                rx.icon("circle-alert", size=16, color=DashboardState.destructive_color),
-                rx.text(
-                    DashboardState.quick_add_error,
-                    size=RADIX_SIZE_BODY,
-                    color=DashboardState.destructive_color,
-                ),
-                spacing="2",
-                align="center",
-                margin_bottom=SPACE_SM,
-            ),
-            rx.fragment(),
-        ),
-        rx.flex(
-            _quick_add_field("date", "Date", required=True),
-            *[
-                _quick_add_field(attr, SERIES_LABELS[attr])
-                for attr in SERIES_ATTRS
-            ],
-            wrap="wrap",
-            spacing="3",
-            align="end",
-        ),
-        rx.button(
-            "Save row",
-            on_click=DashboardState.submit_quick_add,
-            size="2",
-            color_scheme="blue",
-            margin_top=SPACE_SM,
-        ),
-        background=DashboardState.surface,
-        border=DashboardState.card_border,
-        border_radius=CARD_RADIUS,
-        padding=CARD_PADDING,
-        width="100%",
-        aria_label="Add a month's actuals",
-    )
-
-
 def data_entry_section() -> rx.Component:
     """Data-entry table under its own heading, at the bottom of the page (D-02/D-03)."""
     return rx.vstack(
@@ -792,7 +744,7 @@ def data_entry_section() -> rx.Component:
         rx.text("Click any cell to edit a month's actuals.", size=RADIX_SIZE_BODY),
         history_toggle(),
         rx.cond(
-            DashboardState.rows.length() > 0,
+            (DashboardState.rows.length() + DashboardState.draft_rows.length()) > 0,
             rx.box(
                 data_table(),
                 background=DashboardState.surface,
@@ -807,11 +759,15 @@ def data_entry_section() -> rx.Component:
             ),
             empty_state(),
         ),
-        quick_add_form(),
-        rx.text(
-            "Import CSV",
-            size=RADIX_SIZE_BODY,
-            font_weight=FONT_WEIGHT_SEMIBOLD,
+        rx.hstack(
+            add_row_button(),
+            rx.text(
+                "Import CSV",
+                size=RADIX_SIZE_BODY,
+                font_weight=FONT_WEIGHT_SEMIBOLD,
+            ),
+            spacing="2",
+            align="center",
         ),
         csv_import_control(),
         spacing="3",
