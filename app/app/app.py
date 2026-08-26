@@ -924,5 +924,12 @@ def index() -> rx.Component:
     )
 
 
-app = rx.App()
+app = rx.App(
+    stylesheets=[
+        "https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap",
+    ],
+    style={
+        "font_family": "'IBM Plex Sans', sans-serif",
+    },
+)
 app.add_page(index, route="/")
