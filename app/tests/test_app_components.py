@@ -250,7 +250,7 @@ def test_index_preserves_locked_copy_strings():
         "No price data yet",
         "Add a row to start tracking monthly actuals.",
         "Export to Excel",
-        "Add row",
+        "Save row",
         "Confirm delete?",
     ]:
         assert copy in rendered
