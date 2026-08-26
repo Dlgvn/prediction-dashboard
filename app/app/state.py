@@ -139,9 +139,8 @@ class DashboardState(rx.State):
     rows: list[PriceRow] = []
 
     # editing_key format: f"{row_date}:{column}"; "" means no cell is in
-    # edit mode. The single draft row always has date == "", so its keys
-    # look like ":hdan" / ":date" — unambiguous against persisted rows,
-    # whose dates are non-empty ISO strings.
+    # edit mode. Only persisted rows are ever edited this way, so row_date
+    # is always a non-empty ISO date string.
     editing_key: str = ""
     draft_value: str = ""
 
@@ -293,10 +292,9 @@ class DashboardState(rx.State):
 
         Per PITFALLS.md Pitfall 1 (self.rows is overloaded): this is a pure
         read that never assigns to self.rows and never calls load_rows.
-        self.rows
-        remains the full-history source for forecast_results, _history_df,
-        historical_chart_figure, freshness_chips, summary_cards, and
-        _export_bytes — none of those read this var.
+        self.rows remains the full-history source for forecast_results,
+        _history_df, historical_chart_figure, freshness_chips,
+        summary_cards, and _export_bytes — none of those read this var.
         """
         if self.show_all_history:
             return self.rows
