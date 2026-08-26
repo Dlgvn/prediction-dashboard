@@ -373,6 +373,113 @@ def test_update_quick_add_field_does_not_touch_other_keys(session, monkeypatch):
     assert state.quick_add_values["ppan"] == "3"
 
 
+def test_submit_quick_add_inserts_row_with_all_fields(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+    state.update_quick_add_field("date", "2026-06-01")
+    state.update_quick_add_field("hdan", "7")
+    state.update_quick_add_field("ppan", "3.5")
+
+    state.submit_quick_add()
+
+    db_row = _get_db_row(session, "2026-06-01")
+    assert db_row is not None
+    assert db_row.hdan == 7.0
+    assert db_row.ppan == 3.5
+    assert db_row.brent is None
+    assert any(r.date == "2026-06-01" for r in state.rows)
+
+
+def test_submit_quick_add_clears_form_and_error_on_success(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+    state.update_quick_add_field("date", "2026-06-01")
+    state.update_quick_add_field("hdan", "7")
+
+    state.submit_quick_add()
+
+    assert state.quick_add_values == {}
+    assert state.quick_add_error == ""
+
+
+def test_submit_quick_add_missing_date_rejected(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+    before = _db_row_count(session)
+    state.update_quick_add_field("hdan", "7")
+
+    state.submit_quick_add()
+
+    assert _db_row_count(session) == before
+    assert state.quick_add_error != ""
+    # Nothing the user typed is lost on failure.
+    assert state.quick_add_values["hdan"] == "7"
+
+
+def test_submit_quick_add_invalid_date_rejected(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+    before = _db_row_count(session)
+    state.update_quick_add_field("date", "nope")
+
+    state.submit_quick_add()
+
+    assert _db_row_count(session) == before
+    assert state.quick_add_error == validators.DATE_INVALID_ERROR
+
+
+def test_submit_quick_add_duplicate_month_rejected(session, monkeypatch):
+    session.add(PriceRow(date="2026-01-01", hdan=1.0))
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+    before = _db_row_count(session)
+    state.update_quick_add_field("date", "2026-01-20")
+
+    state.submit_quick_add()
+
+    assert _db_row_count(session) == before
+    assert state.quick_add_error == validators.DATE_DUPLICATE_ERROR
+
+
+def test_submit_quick_add_invalid_numeric_field_rejected_and_names_field(
+    session, monkeypatch
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+    before = _db_row_count(session)
+    state.update_quick_add_field("date", "2026-06-01")
+    state.update_quick_add_field("ammonia", "not-a-number")
+
+    state.submit_quick_add()
+
+    assert _db_row_count(session) == before
+    assert "Ammonia" in state.quick_add_error
+    # Values persist so the user doesn't have to retype everything.
+    assert state.quick_add_values["date"] == "2026-06-01"
+    assert state.quick_add_values["ammonia"] == "not-a-number"
+
+
+def test_submit_quick_add_blank_series_fields_stay_null(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_rows()
+    state.update_quick_add_field("date", "2026-06-01")
+
+    state.submit_quick_add()
+
+    db_row = _get_db_row(session, "2026-06-01")
+    assert db_row is not None
+    for attr in SERIES_ATTRS:
+        assert getattr(db_row, attr) is None
+
+
 # ---------------------------------------------------------------------------
 # Add-row path (DATA-01, D-06, D-06b)
 # ---------------------------------------------------------------------------

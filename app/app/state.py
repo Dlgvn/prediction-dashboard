@@ -993,6 +993,32 @@ class DashboardState(rx.State):
         # file).
         self.quick_add_values = {**self.quick_add_values, attr: value}
 
+    def submit_quick_add(self) -> None:
+        raw_date = self.quick_add_values.get("date", "")
+        ok, iso_date, error = validate_date(
+            raw_date, [r.date for r in self.rows], own_original_date=None
+        )
+        if not ok:
+            self.quick_add_error = error
+            return
+
+        parsed_values: dict[str, float | None] = {}
+        for attr in SERIES_ATTRS:
+            raw = self.quick_add_values.get(attr, "")
+            ok, value, error = validate_numeric(raw)
+            if not ok:
+                self.quick_add_error = f"{SERIES_LABELS[attr]}: {error}"
+                return
+            parsed_values[attr] = value
+
+        with rx.session() as session:
+            session.add(PriceRow(date=iso_date, **parsed_values))
+            session.commit()
+
+        self.quick_add_values = {}
+        self.quick_add_error = ""
+        self.load_rows()
+
     def cancel_edit(self) -> None:
         self.editing_key = ""
         self.draft_value = ""
