@@ -130,40 +130,39 @@ def test_start_edit_does_not_clobber_pending_error_on_different_cell(session, mo
 
     state = DashboardState()
     state.load_rows()
-    state.add_row()
-    state.start_edit(":date", "")
-    state.update_draft("2026-01-20")
+    state.start_edit("2026-02-01:date", "2026-02-01")
+    state.update_draft("2026-01-01")
     state.commit_edit()
 
     assert state.edit_error == validators.DATE_DUPLICATE_ERROR
-    assert state.editing_key == ":date"
+    assert state.editing_key == "2026-02-01:date"
 
-    state.start_edit("2026-02-01:hdan", 2.0)
+    state.start_edit("2026-01-01:hdan", 1.0)
 
     assert state.edit_error == validators.DATE_DUPLICATE_ERROR
-    assert state.editing_key == ":date"
+    assert state.editing_key == "2026-02-01:date"
 
 
 def test_start_edit_on_same_errored_cell_clears_error_and_reopens(session, monkeypatch):
     session.add(PriceRow(date="2026-01-01", hdan=1.0))
+    session.add(PriceRow(date="2026-02-01", hdan=2.0))
     session.commit()
     monkeypatch.setattr("reflex.session", lambda: session)
 
     state = DashboardState()
     state.load_rows()
-    state.add_row()
-    state.start_edit(":date", "")
-    state.update_draft("2026-01-20")
+    state.start_edit("2026-02-01:date", "2026-02-01")
+    state.update_draft("2026-01-01")
     state.commit_edit()
 
     assert state.edit_error == validators.DATE_DUPLICATE_ERROR
-    assert state.editing_key == ":date"
+    assert state.editing_key == "2026-02-01:date"
 
-    state.start_edit(":date", "2026-01-20")
+    state.start_edit("2026-02-01:date", "2026-02-01")
 
     assert state.edit_error == ""
-    assert state.editing_key == ":date"
-    assert state.draft_value == "2026-01-20"
+    assert state.editing_key == "2026-02-01:date"
+    assert state.draft_value == "2026-02-01"
 
 
 def test_start_edit_with_no_pending_error_behaves_as_before(session, monkeypatch):
@@ -187,18 +186,18 @@ def test_start_edit_with_no_pending_error_behaves_as_before(session, monkeypatch
 
 def test_toggle_show_all_history_clears_pending_error_from_different_cell(session, monkeypatch):
     session.add(PriceRow(date="2026-01-01", hdan=1.0))
+    session.add(PriceRow(date="2026-02-01", hdan=2.0))
     session.commit()
     monkeypatch.setattr("reflex.session", lambda: session)
 
     state = DashboardState()
     state.load_rows()
-    state.add_row()
-    state.start_edit(":date", "")
-    state.update_draft("2026-01-20")
+    state.start_edit("2026-02-01:date", "2026-02-01")
+    state.update_draft("2026-01-01")
     state.commit_edit()
 
     assert state.edit_error == validators.DATE_DUPLICATE_ERROR
-    assert state.editing_key == ":date"
+    assert state.editing_key == "2026-02-01:date"
 
     state.toggle_show_all_history(True)
 
@@ -485,101 +484,6 @@ def test_submit_quick_add_blank_series_fields_stay_null(session, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_add_row_creates_unsaved_draft(session, monkeypatch):
-    monkeypatch.setattr("reflex.session", lambda: session)
-
-    state = DashboardState()
-    state.load_rows()
-    before = _db_row_count(session)
-    state.add_row()
-
-    assert len(state.draft_rows) == 1
-    assert state.draft_rows[0].date == ""
-    assert _db_row_count(session) == before
-
-
-def test_add_row_disabled_while_draft_pending(session, monkeypatch):
-    monkeypatch.setattr("reflex.session", lambda: session)
-
-    state = DashboardState()
-    state.load_rows()
-    state.add_row()
-    assert state.can_add_row is False
-
-    state.add_row()
-    assert len(state.draft_rows) == 1
-
-
-def test_draft_numeric_edit_does_not_touch_db(session, monkeypatch):
-    monkeypatch.setattr("reflex.session", lambda: session)
-
-    state = DashboardState()
-    state.load_rows()
-    before = _db_row_count(session)
-    state.add_row()
-    state.start_edit(":hdan", "")
-    state.update_draft("7")
-    state.commit_edit()
-
-    assert _db_row_count(session) == before
-    assert state.draft_rows[0].hdan == 7.0
-
-
-def test_add_row_deferred_persist(session, monkeypatch):
-    monkeypatch.setattr("reflex.session", lambda: session)
-
-    state = DashboardState()
-    state.load_rows()
-    state.add_row()
-    state.start_edit(":hdan", "")
-    state.update_draft("7")
-    state.commit_edit()
-
-    state.start_edit(":date", "")
-    state.update_draft("2026-06-01")
-    state.commit_edit()
-
-    db_row = _get_db_row(session, "2026-06-01")
-    assert db_row is not None
-    assert db_row.hdan == 7.0
-    assert state.draft_rows == []
-    assert state.can_add_row is True
-    assert any(r.date == "2026-06-01" for r in state.rows)
-
-
-def test_draft_invalid_date_stays_draft(session, monkeypatch):
-    monkeypatch.setattr("reflex.session", lambda: session)
-
-    state = DashboardState()
-    state.load_rows()
-    before = _db_row_count(session)
-    state.add_row()
-    state.start_edit(":date", "")
-    state.update_draft("nope")
-    state.commit_edit()
-
-    assert _db_row_count(session) == before
-    assert len(state.draft_rows) == 1
-    assert state.edit_error == validators.DATE_INVALID_ERROR
-
-
-def test_draft_duplicate_month_rejected(session, monkeypatch):
-    session.add(PriceRow(date="2026-01-01", hdan=1.0))
-    session.commit()
-    monkeypatch.setattr("reflex.session", lambda: session)
-
-    state = DashboardState()
-    state.load_rows()
-    before = _db_row_count(session)
-    state.add_row()
-    state.start_edit(":date", "")
-    state.update_draft("2026-01-20")
-    state.commit_edit()
-
-    assert _db_row_count(session) == before
-    assert state.edit_error == validators.DATE_DUPLICATE_ERROR
-
-
 # ---------------------------------------------------------------------------
 # Delete path (DATA-03, D-07)
 # ---------------------------------------------------------------------------
@@ -665,13 +569,9 @@ def test_writes_survive_reload(session, monkeypatch):
     state.commit_edit()
 
     # add
-    state.add_row()
-    state.start_edit(":hdan", "")
-    state.update_draft("5")
-    state.commit_edit()
-    state.start_edit(":date", "")
-    state.update_draft("2026-06-01")
-    state.commit_edit()
+    state.update_quick_add_field("hdan", "5")
+    state.update_quick_add_field("date", "2026-06-01")
+    state.submit_quick_add()
 
     # delete
     state.request_delete("2026-02-01")
@@ -1690,7 +1590,7 @@ def test_toggle_show_all_history_cancels_edit_and_pending_delete(session, monkey
     state.draft_value = "9"
     state.edit_error = "x"
     state.pending_delete = "2024-01-01"
-    state.draft_rows = [PriceRow(date="")]
+    state.update_quick_add_field("hdan", "9")
 
     state.toggle_show_all_history(True)
 
@@ -1698,7 +1598,7 @@ def test_toggle_show_all_history_cancels_edit_and_pending_delete(session, monkey
     assert state.draft_value == ""
     assert state.edit_error == ""
     assert state.pending_delete == ""
-    assert len(state.draft_rows) == 1
+    assert state.quick_add_values["hdan"] == "9"
 
 
 def test_toggle_show_all_history_never_mutates_rows(session, monkeypatch):
@@ -2128,8 +2028,7 @@ def test_handle_csv_upload_import_does_not_touch_edit_error(session, monkeypatch
 
 def test_handle_csv_upload_does_not_touch_edit_error_or_editing_key(session, monkeypatch):
     """D-03 audit proof: CSV import must not interact with the edit machine
-    at all, even while a genuine validation error is pending on an
-    open cell.
+    or the quick-add form, even while a genuine validation error is pending.
     """
     session.add(PriceRow(date="2025-01-01", hdan=1.0))
     session.commit()
@@ -2137,23 +2036,22 @@ def test_handle_csv_upload_does_not_touch_edit_error_or_editing_key(session, mon
 
     state = DashboardState()
     state.load_rows()
-    state.add_row()
-    state.start_edit(":date", "")
-    state.update_draft("2025-01-20")
-    state.commit_edit()
+    state.update_quick_add_field("date", "2025-01-20")
+    state.submit_quick_add()
 
-    assert state.edit_error == validators.DATE_DUPLICATE_ERROR
+    assert state.quick_add_error == validators.DATE_DUPLICATE_ERROR
     editing_key_before = state.editing_key
     draft_value_before = state.draft_value
-    draft_rows_before = list(state.draft_rows)
+    quick_add_values_before = dict(state.quick_add_values)
+    quick_add_error_before = state.quick_add_error
 
     csv_bytes = _import_csv([_full_import_row("2026-01-01")])
     asyncio.run(state.handle_csv_upload([_FakeUpload(csv_bytes)]))
 
-    assert state.edit_error == validators.DATE_DUPLICATE_ERROR
     assert state.editing_key == editing_key_before
     assert state.draft_value == draft_value_before
-    assert state.draft_rows == draft_rows_before
+    assert state.quick_add_values == quick_add_values_before
+    assert state.quick_add_error == quick_add_error_before
 
 
 def test_confirm_import_batch_writes_valid_rows(session, monkeypatch):
@@ -2601,19 +2499,21 @@ def test_active_section_defaults_to_summary():
 
 
 def test_set_active_section_preserves_mid_edit_state(session, monkeypatch):
+    session.add(PriceRow(date="2026-01-01", hdan=1.0))
+    session.commit()
     monkeypatch.setattr("reflex.session", lambda: session)
 
     state = DashboardState()
     state.load_rows()
-    state.add_row()
-    state.start_edit(":hdan", "")
+    state.start_edit("2026-01-01:hdan", 1.0)
     state.update_draft("7")
+    state.update_quick_add_field("hdan", "5")
 
     editing_key = state.editing_key
     draft_value = state.draft_value
     edit_error = state.edit_error
     pending_delete = state.pending_delete
-    draft_rows = list(state.draft_rows)
+    quick_add_values = dict(state.quick_add_values)
 
     state.set_active_section("summary")
     state.set_active_section("data_entry")
@@ -2623,7 +2523,7 @@ def test_set_active_section_preserves_mid_edit_state(session, monkeypatch):
     assert state.draft_value == draft_value
     assert state.edit_error == edit_error
     assert state.pending_delete == pending_delete
-    assert state.draft_rows == draft_rows
+    assert state.quick_add_values == quick_add_values
 
 
 def test_set_active_section_preserves_import_preview_state(session, monkeypatch):

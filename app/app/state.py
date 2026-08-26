@@ -137,7 +137,6 @@ class DashboardState(rx.State):
     """Holds the price table for display, reflecting the DB as source of truth."""
 
     rows: list[PriceRow] = []
-    draft_rows: list[PriceRow] = []
 
     # editing_key format: f"{row_date}:{column}"; "" means no cell is in
     # edit mode. The single draft row always has date == "", so its keys
@@ -293,9 +292,8 @@ class DashboardState(rx.State):
         """Display-only windowed slice of self.rows for the Data Entry table.
 
         Per PITFALLS.md Pitfall 1 (self.rows is overloaded): this is a pure
-        read that never assigns to self.rows, never calls load_rows, and
-        never touches draft_rows (drafts are rendered by a separate foreach
-        and stay always-visible per 07-CONTEXT.md discretion). self.rows
+        read that never assigns to self.rows and never calls load_rows.
+        self.rows
         remains the full-history source for forecast_results, _history_df,
         historical_chart_figure, freshness_chips, summary_cards, and
         _export_bytes — none of those read this var.
@@ -312,11 +310,6 @@ class DashboardState(rx.State):
         if self.show_all_history:
             return f"Showing full history ({len(self.rows)} rows)."
         return f"Showing the most recent {TABLE_WINDOW_ROWS} months."
-
-    @rx.var
-    def can_add_row(self) -> bool:
-        """False while an unsaved draft exists (D-06b)."""
-        return len(self.draft_rows) == 0
 
     @rx.var
     def series_label(self) -> str:
@@ -417,7 +410,7 @@ class DashboardState(rx.State):
             # row.model_dump() misbehaves on this SQLModel/rx.Model instance
             # (returns non-dict values for some fields) — build the record
             # manually from date + SERIES_ATTRS, mirroring the proven
-            # pattern in _commit_draft_cell rather than trusting .model_dump().
+            # pattern used elsewhere in this file rather than trusting .model_dump().
             record = {"date": row.date}
             for attr in SERIES_ATTRS:
                 record[attr] = getattr(row, attr)
@@ -936,27 +929,20 @@ class DashboardState(rx.State):
             ).all()
 
     # State-transition table (15-CONTEXT.md D-02) — for each trigger, what
-    # happens to editing_key / draft_value / edit_error / draft_rows /
-    # pending_delete:
+    # happens to editing_key / draft_value / edit_error / pending_delete:
     #
-    # | Trigger                        | editing_key      | draft_value | edit_error | draft_rows | pending_delete |
-    # |---------------------------------|-------------------|-------------|------------|------------|----------------|
-    # | Normal cell edit (start_edit,   | -> key            | -> current  | -> ""      | unchanged  | -> ""          |
-    # | no pending error elsewhere)     |                   |             |            |            |                |
-    # | Draft-row date entry            | ":date" while     | keystrokes  | cleared on | draft row  | unchanged      |
-    # | (add_row -> start_edit(":date"))| open              | via         | open/success| mutated on |               |
-    # |                                  |                   | update_draft| , set on   | success    |               |
-    # |                                  |                   |             | failure    |            |                |
-    # | Draft-row non-date entry        | same as above, key| keystrokes  | same       | same       | unchanged      |
-    # | Escape (cancel_edit)            | -> "" (always)    | -> ""       | -> ""      | unchanged  | unchanged      |
-    # | Blur/commit success             | -> ""              | -> ""       | -> ""      | mutated/   | unchanged      |
-    # |                                  |                   |             |            | flushed    |                |
-    # | Blur/commit failure             | UNCHANGED (stays  | unchanged   | -> error   | unchanged  | unchanged      |
-    # |                                  | open on failing   |             | message    |            |                |
-    # |                                  | cell)              |             |            |            |                |
-    # | Window toggle                    | -> "" (always,    | -> ""       | -> ""      | unchanged  | -> ""          |
-    # | (toggle_show_all_history)       | via cancel_edit)  |             |            |            |                |
-    # | Delete-arm (request_delete)     | unchanged          | unchanged   | unchanged  | unchanged  | -> row_date    |
+    # | Trigger                        | editing_key      | draft_value | edit_error | pending_delete |
+    # |---------------------------------|-------------------|-------------|------------|----------------|
+    # | Normal cell edit (start_edit,   | -> key            | -> current  | -> ""      | -> ""          |
+    # | no pending error elsewhere)     |                   |             |            |                |
+    # | Escape (cancel_edit)            | -> "" (always)    | -> ""       | -> ""      | unchanged      |
+    # | Blur/commit success             | -> ""              | -> ""       | -> ""      | unchanged      |
+    # | Blur/commit failure             | UNCHANGED (stays  | unchanged   | -> error   | unchanged      |
+    # |                                  | open on failing   |             | message    |                |
+    # |                                  | cell)              |             |            |                |
+    # | Window toggle                    | -> "" (always,    | -> ""       | -> ""      | -> ""          |
+    # | (toggle_show_all_history)       | via cancel_edit)  |             |            |                |
+    # | Delete-arm (request_delete)     | unchanged          | unchanged   | unchanged  | -> row_date    |
     #
     # The row above this comment ("Blur/commit failure") is why start_edit
     # cannot unconditionally clear edit_error: a failure leaves editing_key
@@ -989,8 +975,7 @@ class DashboardState(rx.State):
 
     def update_quick_add_field(self, attr: str, value: str) -> None:
         # Whole-dict reassignment, not in-place mutation, so Reflex reliably
-        # detects the change (same pattern as draft_rows elsewhere in this
-        # file).
+        # detects the change.
         self.quick_add_values = {**self.quick_add_values, attr: value}
 
     def submit_quick_add(self) -> None:
@@ -1033,10 +1018,11 @@ class DashboardState(rx.State):
 
         Per D-03, also cancels any in-progress cell edit and any armed
         two-click delete confirmation, since a row can leave the visible
-        window mid-edit/mid-delete-arm. draft_rows is intentionally left
-        untouched — the single-slot unsaved draft is unrelated to windowing
-        and must survive the toggle (PITFALLS.md). This is a pure in-memory
-        re-slice; it never calls load_rows() or opens a DB session.
+        window mid-edit/mid-delete-arm. The quick-add form is intentionally
+        left untouched — an in-progress unsaved entry is unrelated to
+        windowing and must survive the toggle (PITFALLS.md). This is a pure
+        in-memory re-slice; it never calls load_rows() or opens a DB
+        session.
         """
         self.show_all_history = value
         self.cancel_edit()
@@ -1047,10 +1033,6 @@ class DashboardState(rx.State):
             return
 
         row_date, column = self.editing_key.split(":", 1)
-
-        if row_date == "":
-            self._commit_draft_cell(column)
-            return
 
         if column == "date":
             ok, value, error = validate_date(
@@ -1083,63 +1065,11 @@ class DashboardState(rx.State):
         self.draft_value = ""
         self.load_rows()
 
-    def _commit_draft_cell(self, column: str) -> None:
-        if len(self.draft_rows) == 0:
-            self.editing_key = ""
-            return
-
-        draft = self.draft_rows[0]
-
-        if column != "date":
-            ok, value, error = validate_numeric(self.draft_value)
-            if not ok:
-                self.edit_error = error
-                return
-            setattr(draft, column, value)
-            # Whole-list assignment, not .append, so Reflex reliably
-            # detects the mutation.
-            self.draft_rows = [draft]
-            self.editing_key = ""
-            self.draft_value = ""
-            self.edit_error = ""
-            # D-06 forbids persisting a row that has no valid date.
-            return
-
-        ok, iso_date, error = validate_date(
-            self.draft_value,
-            [r.date for r in self.rows],
-            own_original_date=None,
-        )
-        if not ok:
-            self.edit_error = error
-            return
-
-        new_row_kwargs = {"date": iso_date}
-        for attr in SERIES_ATTRS:
-            new_row_kwargs[attr] = getattr(draft, attr)
-
-        with rx.session() as session:
-            session.add(PriceRow(**new_row_kwargs))
-            session.commit()
-
-        self.draft_rows = []
-        self.editing_key = ""
-        self.draft_value = ""
-        self.edit_error = ""
-        self.load_rows()
-
     def handle_key_down(self, key: str) -> None:
         if key == "Enter":
             self.commit_edit()
         elif key == "Escape":
             self.cancel_edit()
-
-    def add_row(self) -> None:
-        if len(self.draft_rows) > 0:
-            return
-        self.draft_rows = [PriceRow(date="")]
-        self.editing_key = ""
-        self.edit_error = ""
 
     def request_delete(self, row_date: str) -> None:
         if self.pending_delete == row_date:
