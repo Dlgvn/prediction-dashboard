@@ -60,6 +60,7 @@ def _editable_cell(row: PriceRow, attr: str, cell_style: dict | None = None) -> 
         on_click=DashboardState.start_edit(key, edit_value),
         cursor="pointer",
         size="2",
+        font_family="'IBM Plex Mono', monospace",
     )
 
     # Date column uses a native HTML5 date picker (D-01/DATA-10) so the user
@@ -277,6 +278,7 @@ def _freshness_chip(chip: rx.Var) -> rx.Component:
                     chip["date"],
                     size=RADIX_SIZE_BODY,
                     font_weight=FONT_WEIGHT_SEMIBOLD,
+                    font_family="'IBM Plex Mono', monospace",
                 ),
                 rx.text("no data yet", size=RADIX_SIZE_BODY, color=DashboardState.muted_text),
             ),
@@ -381,9 +383,9 @@ def forecast_table() -> rx.Component:
             rx.foreach(
                 DashboardState.forecast_table_rows,
                 lambda row: rx.table.row(
-                    rx.table.cell(row["month"]),
+                    rx.table.cell(row["month"], font_family="'IBM Plex Mono', monospace"),
                     *[
-                        rx.table.cell(row[key])
+                        rx.table.cell(row[key], font_family="'IBM Plex Mono', monospace")
                         for key, _ in FORECAST_TABLE_COLUMNS
                     ],
                 ),
@@ -445,6 +447,7 @@ def _summary_card(card: rx.Var) -> rx.Component:
                         font_size=FONT_SIZE_DISPLAY,
                         font_weight=FONT_WEIGHT_SEMIBOLD,
                         line_height="1.2",
+                        font_family="'IBM Plex Mono', monospace",
                     ),
                     rx.hstack(
                         rx.text(
@@ -726,6 +729,7 @@ def _quick_add_field(attr: str, label: str, required: bool = False) -> rx.Compon
             on_change=lambda value: DashboardState.update_quick_add_field(attr, value),
             type="date" if attr == "date" else "text",
             size="2",
+            font_family="'IBM Plex Mono', monospace",
         ),
         spacing="1",
         align="start",
