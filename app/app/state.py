@@ -174,6 +174,14 @@ class DashboardState(rx.State):
     forecast_warning: str = ""
     export_message: str = ""
     export_failed: bool = False
+    # Backend-only var (leading underscore, EXPORT-02 follow-up): set by
+    # _export_bytes when forecast computation raises an *unexpected*
+    # exception (not the already-handled InsufficientHistoryError/ValueError
+    # "no history yet" case, which forecast_results resolves internally to
+    # an empty-list result with no exception at all). Read by
+    # export_to_excel immediately afterward to decide whether to surface a
+    # partial-failure banner without blocking the actuals-only download.
+    _last_export_forecast_failed: bool = False
 
     # Phase 10 (CSV bulk import) state — deliberately NOT reusing edit_error
     # (PITFALLS.md): edit_error is a single scalar sized for one in-edit
@@ -414,10 +422,19 @@ class DashboardState(rx.State):
 
         actuals_df = pd.DataFrame(records, columns=["date", *SERIES_ATTRS])
 
+        # forecast_table_rows (via forecast_results) already converts the
+        # legitimate "not enough history yet" case into an empty list with
+        # no exception raised (InsufficientHistoryError/ValueError are
+        # caught there). So if _forecast_export_records DOES raise here,
+        # it's a genuine unexpected failure (e.g. a statsmodels/VAR bug),
+        # not the routine empty-forecast case -- track that distinction so
+        # export_to_excel can surface it instead of silently swallowing it.
         try:
             forecast_records = self._forecast_export_records()
+            self._last_export_forecast_failed = False
         except Exception:
             forecast_records = []
+            self._last_export_forecast_failed = True
 
         forecast_columns = ["Month", *[label for _, label in FORECAST_TABLE_COLUMNS]]
         forecast_df = pd.DataFrame(forecast_records, columns=forecast_columns)
@@ -440,8 +457,16 @@ class DashboardState(rx.State):
             )
             return None
 
-        self.export_failed = False
-        self.export_message = "Downloaded prediction_dashboard_prices.xlsx"
+        if self._last_export_forecast_failed:
+            self.export_failed = True
+            self.export_message = (
+                "Downloaded prediction_dashboard_prices.xlsx, but the "
+                "Forecast sheet is empty because forecast computation "
+                "failed unexpectedly. Actuals data was exported."
+            )
+        else:
+            self.export_failed = False
+            self.export_message = "Downloaded prediction_dashboard_prices.xlsx"
         return rx.download(
             data=data, filename="prediction_dashboard_prices.xlsx"
         )

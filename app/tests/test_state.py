@@ -932,6 +932,69 @@ def test_export_does_not_add_forecast_all_call_site(session, monkeypatch, synthe
     assert call_count["n"] == 1
 
 
+def test_export_with_no_history_succeeds_silently(session, monkeypatch):
+    """Legitimate insufficient-history case: export_to_excel should
+    complete normally (actuals-only) with no forecast-failure signal --
+    forecast_results already resolves 'not enough history' to an empty
+    result internally, without raising, so _export_bytes never hits its
+    except-Exception branch for this case."""
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = []
+
+    state.export_to_excel()
+
+    assert state.export_failed is False
+    assert state.export_message == "Downloaded prediction_dashboard_prices.xlsx"
+
+
+def test_export_surfaces_message_when_forecast_computation_raises_unexpectedly(
+    session, monkeypatch, synthetic_history
+):
+    """Genuine unexpected failure (e.g. a statsmodels/VAR bug) inside
+    forecast computation must not be silently swallowed: export still
+    completes with actuals data (download still triggered), but
+    export_failed/export_message must surface that the Forecast sheet is
+    incomplete."""
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 3
+
+    def _boom(history, horizon, markup_pct):
+        raise RuntimeError("simulated statsmodels convergence failure")
+
+    monkeypatch.setattr("app.state.forecast_all", _boom)
+
+    event = state.export_to_excel()
+
+    # Export must still complete (actuals-only) rather than being blocked.
+    assert event is not None
+    assert state.export_failed is True
+    assert "Forecast" in state.export_message
+    assert "Downloaded" in state.export_message
+
+
+def test_export_bytes_still_produces_actuals_when_forecast_raises_unexpectedly(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 3
+
+    def _boom(history, horizon, markup_pct):
+        raise RuntimeError("simulated VAR system failure")
+
+    monkeypatch.setattr("app.state.forecast_all", _boom)
+
+    data = state._export_bytes()
+    df = pd.read_excel(io.BytesIO(data), sheet_name="Actuals")
+
+    assert len(df) == len(state.rows)
+    assert state._last_export_forecast_failed is True
+
+
 # ---------------------------------------------------------------------------
 # Freshness chips (DATA-06 / D-07)
 # ---------------------------------------------------------------------------
