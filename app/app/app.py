@@ -389,7 +389,23 @@ def forecast_table() -> rx.Component:
             )
         ),
     )
+    warning_banner = rx.cond(
+        DashboardState.forecast_warning != "",
+        rx.hstack(
+            rx.icon("triangle-alert", size=16, color="amber"),
+            rx.text(
+                DashboardState.forecast_warning,
+                size=RADIX_SIZE_BODY,
+                color="amber",
+            ),
+            spacing="2",
+            align="center",
+            margin_bottom="0.75rem",
+        ),
+        rx.fragment(),
+    )
     return rx.box(
+        warning_banner,
         rx.cond(
             DashboardState.forecast_table_rows.length() > 0,
             table,

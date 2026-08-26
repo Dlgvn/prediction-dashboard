@@ -167,6 +167,11 @@ class DashboardState(rx.State):
     forecast_series: str = "hdan"
     markup_pct: float = 0.0
     forecast_error: str = ""
+    # Non-fatal data-quality signal from forecast_all's `warning` key (e.g.
+    # PPAN's stale-feature-anchor check) -- distinct from forecast_error,
+    # which means "no forecast was produced at all". A forecast can be
+    # valid AND carry a warning simultaneously.
+    forecast_warning: str = ""
     export_message: str = ""
     export_failed: bool = False
 
@@ -456,6 +461,7 @@ class DashboardState(rx.State):
                 "Not enough historical data to forecast yet. Add at least "
                 "one month of actuals above."
             )
+            self.forecast_warning = ""
             return empty_result
 
         history = self._history_df()
@@ -466,9 +472,11 @@ class DashboardState(rx.State):
                 "Not enough historical data to forecast yet. Add at least "
                 "one month of actuals above."
             )
+            self.forecast_warning = ""
             return empty_result
 
         self.forecast_error = ""
+        self.forecast_warning = result.get("warning", "")
         return result
 
     def select_series(self, label: str) -> None:

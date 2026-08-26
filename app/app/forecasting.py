@@ -393,7 +393,37 @@ def forecast_ppan_var_system(history: pd.DataFrame, horizon: int) -> dict:
     base = np.asarray(preds, dtype=float)
 
     se = _arima_forecast_se(ppan_series, ARIMA_SE_ORDER["ppan"], horizon)
-    return _apply_se_spread(base, se)
+    result = _apply_se_spread(base, se)
+
+    # Staleness check: complete_features.iloc[[-1]] is the most recent row
+    # where every system-member feature is simultaneously observed, which
+    # can be strictly older than `design`'s (and thus `history`'s) latest
+    # row when any single member (e.g. urals) has a more recent gap while
+    # ppan/hdan are current. Detecting this does NOT change `base` -- the
+    # anchor row above is unconditionally still used to fit/predict; this
+    # only adds a non-fatal, UI-facing warning describing which column(s)
+    # are stale and by how much, per the D-08 "detect and surface, don't
+    # block" requirement.
+    anchor_date = complete_features.index[-1]
+    latest_date = design.index[-1]
+    if anchor_date < latest_date:
+        stale_cols = [
+            col
+            for col in PPAN_SYSTEM_MEMBERS
+            if pd.isna(design[col].loc[latest_date])
+        ]
+        result["warning"] = (
+            "PPAN forecast anchored on data from "
+            f"{anchor_date.date()} instead of the latest available "
+            f"{latest_date.date()} because "
+            f"{', '.join(stale_cols) if stale_cols else 'a system-member column'} "
+            "has a more recent gap. Forecast may not reflect the newest "
+            "prices."
+        )
+    else:
+        result["warning"] = ""
+
+    return result
 
 
 def forecast_diesel_usd(history: pd.DataFrame, horizon: int) -> dict:
@@ -522,6 +552,12 @@ def forecast_all(history: pd.DataFrame, horizon: int, markup_pct: float) -> dict
     "bear": float}`, ordered h=1..horizon (P-02). This row-per-month shape
     is directly renderable by Phase 5 as both a table (`rx.foreach`) and a
     chart, with no further transformation.
+
+    Also returns a sixth key, `warning` -- a str, empty when no non-fatal
+    data-quality issue was detected, or a human-readable message when one
+    was (currently only `forecast_ppan_var_system`'s stale-feature-anchor
+    check populates this). This is additive: existing callers that only
+    look up the five series keys via `.get()`/`[...]` are unaffected.
     """
     if not isinstance(horizon, int) or isinstance(horizon, bool) or not (
         1 <= horizon <= MAX_HORIZON
@@ -545,4 +581,5 @@ def forecast_all(history: pd.DataFrame, horizon: int, markup_pct: float) -> dict
         "diesel_usd_ton": _to_rows(diesel_usd_fc, horizon),
         "fx_rate": _to_rows(fx_fc, horizon),
         "diesel_mnt": _to_rows(diesel_mnt_fc, horizon),
+        "warning": ppan_fc.get("warning", ""),
     }

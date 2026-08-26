@@ -196,11 +196,13 @@ def test_forecast_hdan_raises_on_missing_hdan_column(synthetic_history):
 
 def test_ppan_var_system_shape_and_finite(synthetic_history):
     result = forecast_ppan_var_system(synthetic_history, horizon=12)
-    assert set(result.keys()) == {"base", "bull", "bear"}
+    assert set(result.keys()) == {"base", "bull", "bear", "warning"}
     for key in ("base", "bull", "bear"):
         assert len(result[key]) == 12
         assert np.isfinite(np.asarray(result[key])).all()
     assert "hdan" not in result
+    # No gap in synthetic_history's system-member columns -> no warning.
+    assert result["warning"] == ""
 
 
 def test_ppan_responds_to_system_members(synthetic_history):
@@ -228,6 +230,46 @@ def test_ppan_var_system_raises_on_missing_member(synthetic_history):
     history = synthetic_history.drop(columns=["urals"])
     with pytest.raises(InsufficientHistoryError):
         forecast_ppan_var_system(history, horizon=6)
+
+
+def test_ppan_var_system_warns_on_stale_anchor_row(synthetic_history):
+    """A recent gap in a single system-member column (urals) while ppan/hdan
+    stay current must not silently anchor on a stale feature row -- it must
+    still produce a valid forecast AND surface a non-empty warning naming
+    the stale column.
+    """
+    history = synthetic_history.copy()
+    history.loc[history.index[-2] :, "urals"] = np.nan
+
+    result = forecast_ppan_var_system(history, horizon=3)
+
+    # Forecast is still produced and numerically valid.
+    for key in ("base", "bull", "bear"):
+        assert len(result[key]) == 3
+        assert np.isfinite(np.asarray(result[key])).all()
+
+    # Staleness is surfaced, mentioning the offending column.
+    assert result["warning"] != ""
+    assert "urals" in result["warning"]
+
+
+def test_ppan_var_system_no_warning_when_anchor_is_current(synthetic_history):
+    result = forecast_ppan_var_system(synthetic_history, horizon=3)
+    assert result["warning"] == ""
+
+
+def test_forecast_all_surfaces_ppan_warning(synthetic_history):
+    history = synthetic_history.copy()
+    history.loc[history.index[-1], "urals"] = np.nan
+
+    result = forecast_all(history, horizon=3, markup_pct=0.0)
+
+    assert "warning" in result
+    assert result["warning"] != ""
+    assert "urals" in result["warning"]
+    # Series output shape is unaffected by the added key.
+    for key in ("hdan", "ppan", "diesel_usd_ton", "fx_rate", "diesel_mnt"):
+        assert len(result[key]) == 3
 
 
 def test_forecast_diesel_usd_holds_last_value(synthetic_history):
@@ -309,14 +351,17 @@ def test_diesel_mnt_forecast_applies_markup():
 
 def test_forecast_all_shape_and_keys(synthetic_history):
     result = forecast_all(synthetic_history, horizon=6, markup_pct=5.0)
-    assert set(result.keys()) == {
+    series_keys = {
         "hdan",
         "ppan",
         "diesel_usd_ton",
         "fx_rate",
         "diesel_mnt",
     }
-    for key, rows in result.items():
+    # `warning` is an additive sixth key -- a plain str, not a row list.
+    assert set(result.keys()) == series_keys | {"warning"}
+    for key in series_keys:
+        rows = result[key]
         assert len(rows) == 6
         for row in rows:
             assert set(row.keys()) == {"month", "base", "bull", "bear"}
@@ -375,14 +420,19 @@ def test_forecast_all_shape(synthetic_history):
     """FCST-02: One call to forecast_all returns base/bull/bear for HDAN,
     PPAN, Diesel-USD, FX, and Diesel-MNT at the chosen horizon."""
     result = forecast_all(synthetic_history, horizon=12, markup_pct=5.0)
-    assert set(result.keys()) == {
+    series_keys = {
         "hdan",
         "ppan",
         "diesel_usd_ton",
         "fx_rate",
         "diesel_mnt",
     }
-    for key, rows in result.items():
+    # `warning` is an additive sixth key (empty str here -- no stale-anchor
+    # condition in synthetic_history) alongside the five P-02 series keys.
+    assert set(result.keys()) == series_keys | {"warning"}
+    assert result["warning"] == ""
+    for key in series_keys:
+        rows = result[key]
         assert len(rows) == 12
         for row in rows:
             for field in ("base", "bull", "bear"):
@@ -454,7 +504,8 @@ def test_spread_widens_with_horizon(synthetic_history):
     """FCST-05: Every series' band widens with horizon."""
     result = forecast_all(synthetic_history, horizon=12, markup_pct=5.0)
 
-    for key, rows in result.items():
+    for key in ("hdan", "ppan", "diesel_usd_ton", "fx_rate", "diesel_mnt"):
+        rows = result[key]
         half_widths = [row["bull"] - row["base"] for row in rows]
         assert half_widths[-1] > half_widths[0], key
         assert all(
@@ -498,6 +549,7 @@ def test_model_info_mape_values_are_float_or_none():
 
 
 def test_model_info_matches_forecast_all_output_keys(synthetic_history):
-    """No-drift guard: MODEL_INFO keys track forecast_all's actual return keys."""
+    """No-drift guard: MODEL_INFO keys track forecast_all's five series keys
+    (the additive `warning` key is not a modeled series, so it's excluded)."""
     result = forecast_all(synthetic_history, horizon=1, markup_pct=5.0)
-    assert set(MODEL_INFO) == set(result.keys())
+    assert set(MODEL_INFO) == set(result.keys()) - {"warning"}

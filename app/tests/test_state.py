@@ -683,12 +683,36 @@ def test_forecast_results_shape(session, monkeypatch, synthetic_history):
 
     results = state.forecast_results
 
-    assert set(results.keys()) == {"hdan", "ppan", "diesel_usd_ton", "fx_rate", "diesel_mnt"}
-    for key, series in results.items():
+    series_keys = {"hdan", "ppan", "diesel_usd_ton", "fx_rate", "diesel_mnt"}
+    assert set(results.keys()) == series_keys | {"warning"}
+    for key in series_keys:
+        series = results[key]
         assert len(series) == 4
         for i, entry in enumerate(series, start=1):
             assert set(entry.keys()) == {"month", "base", "bull", "bear"}
             assert entry["month"] == i
+
+
+def test_forecast_results_surfaces_stale_ppan_warning(
+    session, monkeypatch, synthetic_history
+):
+    """A stale-feature-anchor gap in a PPAN system-member column threads
+    through forecast_all -> state.forecast_results -> state.forecast_warning
+    without blocking the forecast itself."""
+    monkeypatch.setattr("reflex.session", lambda: session)
+    history = synthetic_history.copy()
+    history.loc[history.index[-1], "urals"] = float("nan")
+
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(history)
+    state.horizon_months = 3
+
+    results = state.forecast_results
+
+    assert len(results["ppan"]) == 3
+    assert state.forecast_warning != ""
+    assert "urals" in state.forecast_warning
+    assert state.forecast_error == ""
 
 
 def test_forecast_results_empty_history_sets_error(session, monkeypatch):
