@@ -5,3 +5,8 @@ __pycache__/
 .web/
 *.db
 .claude/settings.local.json
+
+# Research/reference datasets not meant to be committed (v2 news-sentiment
+# feature research material)
+News_Category_Dataset_v3.json
+archive.zip
