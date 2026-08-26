@@ -4,9 +4,10 @@ from app import theme
 
 
 def test_accent_is_locked_hex():
-    # Amended in Task 06-03: darkened from #3B82F6 to #2563EB within the
-    # same blue hue to meet WCAG AA 4.5:1 contrast with a white label.
-    assert theme.ACCENT == "#2563EB"
+    # 2026-08-26 precision-instrument redesign: teal-cyan INDICATOR accent
+    # (#0E7C86) replaces the prior generic blue (#2563EB). 4.95:1 against
+    # SURFACE white, meets WCAG AA 4.5:1 normal-text threshold.
+    assert theme.ACCENT == "#0E7C86"
 
 
 def test_spacing_values_are_multiples_of_four():
@@ -42,13 +43,14 @@ def test_only_two_font_weights_declared():
 
 
 def test_all_locked_color_hex_values_present():
-    # Amended in Task 06-03: BORDER, ACCENT, and UP were darkened within
-    # their original hues to meet WCAG AA contrast thresholds.
+    # 2026-08-26 precision-instrument redesign: PAGE_BG, BORDER, ACCENT,
+    # and MUTED_TEXT were retuned to the new palette; SURFACE, DESTRUCTIVE,
+    # and UP are unchanged (already correct/contrast-verified).
     for hex_value in (
-        "#FAFAFA",
+        "#EEF1F3",
         "#FFFFFF",
-        "#8E9096",
-        "#2563EB",
+        "#7B838B",
+        "#0E7C86",
         "#DC2626",
         "#15803D",
     ):

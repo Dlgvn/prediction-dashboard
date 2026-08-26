@@ -22,26 +22,27 @@ LIGHT dict otherwise (light is always the safe default, per D-02).
 # Color (06-UI-SPEC.md "Color" section)
 # ---------------------------------------------------------------------------
 
-PAGE_BG = "#FAFAFA"
+PAGE_BG = "#EEF1F3"
 SURFACE = "#FFFFFF"
-# Amended in Task 06-03 (responsive/a11y pass): #E4E4E7 measured 1.27:1
-# against SURFACE, below the WCAG 3:1 non-text-boundary threshold.
-# Darkened within the same neutral-gray hue to #8E9096 (3.19:1 measured).
-BORDER = "#8E9096"
-# Amended in Task 06-03: #3B82F6 measured 3.68:1 with a white label,
-# below the WCAG 4.5:1 normal-text threshold. Darkened within the same
-# blue hue to #2563EB (5.17:1 measured).
-ACCENT = "#2563EB"
-ACCENT_FILL = "rgba(37,99,235,0.15)"
+# 2026-08-26 precision-instrument redesign: darkened from #8E9096 to
+# #7B838B (a cooler blue-gray) to clear WCAG 3:1 non-text-boundary
+# contrast against the new PAGE_BG (#EEF1F3, 3.39:1) as well as SURFACE
+# (3.85:1) — the redesign's lighter/cooler PAGE_BG made the prior value
+# fail against PAGE_BG specifically (2.81:1 measured).
+BORDER = "#7B838B"
+# 2026-08-26 precision-instrument redesign: teal-cyan accent (was generic
+# blue #2563EB) — 4.95:1 against SURFACE white (WCAG AA 4.5:1 threshold).
+ACCENT = "#0E7C86"
+ACCENT_FILL = "rgba(14,124,134,0.15)"
 DESTRUCTIVE = "#DC2626"
 NEUTRAL_LINE = "#697177"
-# Amended in Task 06-03: #16A34A measured 3.30:1 against SURFACE, below
-# the WCAG 4.5:1 normal-text threshold. Darkened within the same green
-# hue to #15803D (5.02:1 measured).
 UP = "#15803D"
 DOWN = "#DC2626"
-# Radix gray.11-equivalent neutral gray for muted/secondary text.
-MUTED_TEXT = "#71717A"
+# 2026-08-26 precision-instrument redesign: darkened from #71717A to
+# #5B6167 within the same neutral hue — 6.27:1 against SURFACE (was
+# already passing; kept comfortably above threshold after the palette's
+# other tones shifted cooler, for visual consistency of the neutral family).
+MUTED_TEXT = "#5B6167"
 
 # LIGHT dict: same 10 light-mode literals above, referenced (not
 # re-typed) so there is exactly one literal per light color.
@@ -145,7 +146,7 @@ RADIX_SIZE_HEADING = "4"
 # Shared surface chrome
 # ---------------------------------------------------------------------------
 
-CARD_RADIUS = "8px"
+CARD_RADIUS = "4px"
 CARD_BORDER = f"1px solid {BORDER}"
 CARD_PADDING = SPACE_MD
 

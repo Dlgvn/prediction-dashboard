@@ -1131,9 +1131,9 @@ def test_forecast_chart_band_fill(session, monkeypatch, synthetic_history):
     figure = state.forecast_chart_figure
 
     assert figure.data[2].fill == "tonexty"
-    # Amended in Task 06-03: ACCENT_FILL darkened alongside ACCENT
-    # (#3B82F6 -> #2563EB) to meet WCAG AA contrast.
-    assert figure.data[2].fillcolor == "rgba(37,99,235,0.15)"
+    # 2026-08-26 precision-instrument redesign: ACCENT_FILL retuned
+    # alongside ACCENT (teal-cyan #0E7C86, was #2563EB).
+    assert figure.data[2].fillcolor == "rgba(14,124,134,0.15)"
     assert figure.data[1].line.width == 0
     assert figure.data[2].line.width == 0
     assert figure.data[1].showlegend is False
@@ -1147,8 +1147,9 @@ def test_forecast_chart_base_line_drawn_last(session, monkeypatch, synthetic_his
 
     figure = state.forecast_chart_figure
 
-    # Amended in Task 06-03: ACCENT darkened from #3B82F6 to #2563EB.
-    assert figure.data[3].line.color == "#2563EB"
+    # 2026-08-26 precision-instrument redesign: ACCENT retuned to
+    # teal-cyan (#0E7C86, was #2563EB).
+    assert figure.data[3].line.color == "#0E7C86"
     assert len(figure.data) == 4
 
 
