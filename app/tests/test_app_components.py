@@ -352,9 +352,9 @@ def test_data_table_iterates_visible_rows_not_rows():
     assert "DashboardState.rows" not in source
 
 
-def test_draft_rows_foreach_unchanged():
+def test_data_table_has_no_draft_rows_foreach():
     source = inspect.getsource(app_module.data_table)
-    assert "DashboardState.draft_rows" in source
+    assert "draft_rows" not in source
 
 
 def test_data_entry_section_empty_state_uses_full_rows():
@@ -526,9 +526,9 @@ def test_cancel_button_is_neutral_gray():
     assert 'color_scheme="gray"' in block
 
 
-def test_data_entry_section_places_import_control_after_add_row():
+def test_data_entry_section_places_import_control_after_quick_add_form():
     source = inspect.getsource(app_module.data_entry_section)
-    assert source.index("add_row_button()") < source.index("csv_import_control()")
+    assert source.index("quick_add_form()") < source.index("csv_import_control()")
 
 
 def test_csv_import_control_introduces_no_new_hex_or_px_literals():
