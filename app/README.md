@@ -12,11 +12,23 @@ bulk import, Excel export, and light/dark theming — all in one Python process
 cd app
 python3 -m venv .venv && source .venv/bin/activate   # if .venv doesn't already exist
 pip install -r requirements.txt
-reflex run
+.venv/bin/reflex run --frontend-port 3005 --backend-port 8005
 ```
 
-Opens the dashboard at `http://localhost:3000` (frontend) with the backend on
-`http://localhost:8000`. First run compiles the frontend, which takes a minute.
+Wait for the terminal to print `App Running`, then open **http://localhost:3005**
+in your browser (backend runs on `http://localhost:8005`). First run compiles the
+frontend, which takes a minute.
+
+Ports 3005/8005 are this project's pinned dev ports (see `.claude/launch.json`) —
+use them consistently rather than plain `reflex run`'s default 3000/8000, so you
+don't end up with two different servers running side by side and end up looking
+at a stale one. If `3005`/`8005` are already in use, either a server is already
+running (just open the URL — nothing to start) or a previous run didn't shut
+down cleanly:
+
+```bash
+lsof -ti:3005,8005 | xargs kill -9   # frees the ports if something stale is stuck
+```
 
 ## What's in this folder
 
