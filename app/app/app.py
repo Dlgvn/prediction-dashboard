@@ -61,6 +61,13 @@ def _editable_cell(row: PriceRow, attr: str, cell_style: dict | None = None) -> 
         cursor="pointer",
         size="2",
         font_family="'IBM Plex Mono', monospace",
+        # Blank cells (None values) render as empty text with no
+        # intrinsic width, leaving nothing to click on — width="100%"
+        # plus a minimum height keeps the whole cell clickable even
+        # when shown_text is "".
+        width="100%",
+        min_height="1.5em",
+        display="block",
     )
 
     # Date column uses a native HTML5 date picker (D-01/DATA-10) so the user
