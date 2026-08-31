@@ -17,6 +17,9 @@
 - [x] **Phase 13: Model Provenance Display** - Each forecast shows which model produced it and its backtested accuracy (completed 2026-08-25)
 - [x] **Phase 14: Tab/Nav Bar** - User switches between Summary/Forecast/Data Entry via tabs without losing in-progress state (completed 2026-08-25)
 - [x] **Phase 15: Data Entry Rework** - Date entry reliably accepts valid input with visible errors and no format memorization (completed 2026-08-25)
+- [ ] **Phase 16: Sentiment Data Sufficiency & Causality Research** - A documented go/no-go on whether a sentiment-driven scenario adjustment is viable against the app's real series
+- [ ] **Phase 17: Weekly Forecast Re-Research Spike** - A documented go/no-go on new weekly-cadence candidates for HDAN/PPAN, compared against the prior no-go benchmark
+- [ ] **Phase 18: Sentiment-Adjusted Scenario UI (conditional on Phase 16 go)** - User sees an additive, honestly-labeled sentiment band on the fan chart with provenance and a toggle
 
 ## Phase Details
 
@@ -275,6 +278,40 @@ Plans:
 - [x] 15-01-PLAN.md — start_edit race-guard fix, state-transition table, D-03 CSV-import audit (wave 1)
 - [x] 15-02-PLAN.md — Native rx.input(type="date") swap in _editable_cell + human verification (wave 2)
 
+### Phase 16: Sentiment Data Sufficiency & Causality Research
+**Goal**: Determine, via a rigorous causality/correlation backtest run against the app's actual HDAN/PPAN/Diesel-USD/FX series (not equities), whether a sentiment-driven scenario adjustment is viable enough to build — with a documented, frozen go/no-go result as the deliverable. A "no-go" is a complete, valid outcome for this phase, not a failure to fix.
+**Depends on**: Nothing (independent research phase; reuses Phase 2's `walk_forward.py`/causality-screen discipline)
+**Requirements**: SENT-01, SENT-02
+**Success Criteria** (what must be TRUE):
+  1. A causality/correlation screen has been run against the app's actual HDAN/PPAN/Diesel-USD/FX series (mirroring `causality_screen.py`'s pattern, not against equities like SPY/QQQ/VIX)
+  2. The screen's output explicitly reports the effective monthly sample size (not raw daily row counts) so a small-N illusion cannot pass as sufficient evidence
+  3. A frozen, documented go/no-go result exists (e.g. `results/sentiment_backtest.json` + a written report) stating pass/fail against a defined significance bar, mirroring the project's "no un-backtested model ships" discipline
+  4. The result closes SENT-01/SENT-02 regardless of outcome — a "no-go" report is accepted as complete and unblocks nothing further in this milestone; a "go" report specifies which adjustment approach cleared the bar, scoping Phase 18
+**Plans**: TBD
+
+### Phase 17: Weekly Forecast Re-Research Spike
+**Goal**: Re-research weekly-cadence HDAN/PPAN forecasting with genuinely new candidate variables and/or model families (not a rerun of the prior weekly-VAR-on-Baltic-AN/Ammonia/Urea/Natural-Gas no-go), and produce a documented go/no-go comparison against the prior spike's exact benchmark (9.49%/10.08% monthly MAPE). No weekly UI ships in this milestone regardless of the outcome — this phase is research-only.
+**Depends on**: Nothing (independent of Phase 16; reuses the existing walk-forward, horizon-matched backtest methodology)
+**Requirements**: WKLY-01, WKLY-02
+**Success Criteria** (what must be TRUE):
+  1. The re-research backtest tests candidate variables and/or model families not used in the prior spike (e.g. SARIMAX/ExponentialSmoothing at weekly cadence, Baltic-AN dedup resolution), using the same walk-forward, horizon-matched methodology as before
+  2. A documented go/no-go report exists with an explicit side-by-side comparison against the prior spike's exact benchmark figures (9.49%/10.08% monthly MAPE)
+  3. The report closes WKLY-01/WKLY-02 regardless of outcome; no `app/` code changes occur in this phase and no weekly UI ships this milestone even if the result is a go
+**Plans**: TBD
+
+### Phase 18: Sentiment-Adjusted Scenario UI (conditional on Phase 16 go)
+**Goal**: If Phase 16 returns a go, surface a sentiment-adjusted bull/bear band on the existing fan chart with honest provenance, staleness/coverage warnings, and a toggle — strictly additive to, and never mutating or replacing, the existing backtested statistical band. If Phase 16 returns a no-go, this phase is dropped from the milestone rather than built in a degraded form.
+**Depends on**: Phase 16 (requires a "go" result; not started otherwise)
+**Requirements**: SENT-03, SENT-04, SENT-05, SENT-06, SENT-07, SENT-08
+**Success Criteria** (what must be TRUE):
+  1. User sees a sentiment-adjusted bull/bear band on the existing fan chart, visually distinguished (e.g. dashed) from the statistical band, which is never mutated or replaced
+  2. A provenance line near the chart shows the sentiment score's date range, article count, and mean/weighted score, honestly labeled "general market sentiment" — never presented as commodity- or Mongolia-specific news
+  3. A staleness/coverage warning appears when the sentiment data doesn't cover the requested period or is stale
+  4. User can view the top 3-5 headlines by absolute sentiment score behind a given sentiment adjustment, and a sample-size confidence flag appears when scores are based on very few articles
+  5. User can toggle between a statistical-only view and a statistical+sentiment view of the scenario bands
+**Plans**: TBD
+**UI hint**: yes
+
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
@@ -294,9 +331,13 @@ Plans:
 | 13. Model Provenance Display | 2/2 | Complete   | 2026-08-25 |
 | 14. Tab/Nav Bar | 2/2 | Complete   | 2026-08-25 |
 | 15. Data Entry Rework | 2/2 | Complete   | 2026-08-25 |
+| 16. Sentiment Data Sufficiency & Causality Research | 0/0 | Not started | - |
+| 17. Weekly Forecast Re-Research Spike | 0/0 | Not started | - |
+| 18. Sentiment-Adjusted Scenario UI (conditional) | 0/0 | Not started | - |
 
 ---
 *Roadmap created: 2026-08-21*
 *v1.2 phases (7-10) added: 2026-08-24*
 *v1.3 phases (11-15) added: 2026-08-24*
+*v2.0 phases (16-18) added: 2026-08-31*
 *Granularity: coarse*

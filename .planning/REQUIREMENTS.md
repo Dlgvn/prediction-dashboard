@@ -240,6 +240,17 @@
 | NAV-01 | Phase 14 | Complete |
 | DATA-09 | Phase 15 | Complete |
 | DATA-10 | Phase 15 | Complete |
+| SENT-01 | Phase 16 | Pending |
+| SENT-02 | Phase 16 | Pending |
+| SENT-03 | Phase 18 | Pending |
+| SENT-04 | Phase 18 | Pending |
+| SENT-05 | Phase 18 | Pending |
+| SENT-06 | Phase 18 | Pending |
+| SENT-07 | Phase 18 | Pending |
+| SENT-08 | Phase 18 | Pending |
+| WKLY-01 | Phase 17 | Pending |
+| WKLY-02 | Phase 17 | Pending |
 
 ---
 *Requirements defined: 2026-08-21*
+*v2.0 requirements (SENT-01..08, WKLY-01..02) mapped to Phases 16-18: 2026-08-31*
