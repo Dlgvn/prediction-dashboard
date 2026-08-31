@@ -287,7 +287,11 @@ Plans:
   2. The screen's output explicitly reports the effective monthly sample size (not raw daily row counts) so a small-N illusion cannot pass as sufficient evidence
   3. A frozen, documented go/no-go result exists (e.g. `results/sentiment_backtest.json` + a written report) stating pass/fail against a defined significance bar, mirroring the project's "no un-backtested model ships" discipline
   4. The result closes SENT-01/SENT-02 regardless of outcome — a "no-go" report is accepted as complete and unblocks nothing further in this milestone; a "go" report specifies which adjustment approach cleared the bar, scoping Phase 18
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+- [ ] 16-01-PLAN.md — Monthly sentiment predictor loader (UTC+8-corrected) and leakage-guarded merge helper with tests (wave 1)
+- [ ] 16-02-PLAN.md — Run the causality screen against the real HDAN/PPAN/Diesel-USD/FX series, freeze `results/sentiment_causality_screen.json` and generate `REPORT-SENTIMENT.md` (wave 2)
 
 ### Phase 17: Weekly Forecast Re-Research Spike
 **Goal**: Re-research weekly-cadence HDAN/PPAN forecasting with genuinely new candidate variables and/or model families (not a rerun of the prior weekly-VAR-on-Baltic-AN/Ammonia/Urea/Natural-Gas no-go), and produce a documented go/no-go comparison against the prior spike's exact benchmark (9.49%/10.08% monthly MAPE). No weekly UI ships in this milestone regardless of the outcome — this phase is research-only.
