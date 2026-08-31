@@ -1,218 +1,193 @@
 # Pitfalls Research
 
-**Domain:** Retrofitting theme/nav/UI features onto an existing single-page Reflex dashboard with a complex edit/delete/draft-row state machine
-**Researched:** 2026-08-24
-**Confidence:** HIGH (grounded directly in `app/app/state.py`, `app/app/app.py`, `app/app/theme.py`, `app/app/forecasting.py`, `app/rxconfig.py`)
+**Domain:** Adding a news/sentiment scenario-adjustment layer + weekly-forecast re-research spike to an already-shipped Reflex forecasting dashboard
+**Researched:** 2026-08-31
+**Confidence:** HIGH (grounded in direct inspection of `archive/*.csv`, `backend_research/REPORT.md`, and the prior `20260821-weekly-an-backtest` quick-task result — not generic ML folklore)
 
 ## Critical Pitfalls
 
-### Pitfall 1: Theme toggle reintroduces OS-dark-mode inheritance (the exact bug v1.2 Phase 6 fixed)
+### Pitfall 1: The `archive/` sentiment dataset was built for a different prediction problem entirely
 
 **What goes wrong:**
-`rxconfig.py` currently pins `RadixThemesPlugin(theme=rx.theme(appearance="light", accent_color="blue"))` — a static, build-time config value. Radix's `appearance` prop, when set to `"inherit"` (or omitted), follows the OS/browser `prefers-color-scheme`. If a naive toggle implementation removes this static `light` pin and instead sets `appearance="inherit"` at the `rx.theme()` level, any user whose browser prefers dark mode is instantly back to the original bug: illegible text because `theme.py`'s hardcoded hex colors (`PAGE_BG = "#FAFAFA"`, `SURFACE = "#FFFFFF"`, `MUTED_TEXT = "#71717A"`, etc.) assume a light background and are never swapped by Radix's own dark palette (since none of these are Radix theme tokens — they're raw hex literals wired directly into `plot_bgcolor`, `background=`, chart colors, etc.).
-
-**Why it happens:**
-Radix Themes' idiomatic dark-mode pattern is `appearance="inherit"` + a `<Theme.Panel>`/CSS-variable driven design system. But this app doesn't use Radix CSS variables for its custom tokens — `theme.py` is a *parallel* hardcoded color system (explicitly built as "no scattered literals," single source of truth, but only for one appearance). Naively wiring a toggle to Radix's `appearance` prop without also branching `theme.py`'s constants creates a mismatch: Radix chrome (buttons, inputs, table borders) goes dark, but every custom `SURFACE`/`PAGE_BG`/Plotly `font.color` stays light-colored — the same "light text/background assumptions violated" failure class as before, just triggered by a user click instead of OS inheritance.
-
-**How to avoid:**
-- Make `appearance` a controlled value driven by *persisted app state*, never `"inherit"`. The toggle should explicitly set `"light"` or `"dark"` — OS preference should never be consulted as a fallback for anything currently visible on load.
-- `theme.py`'s constants must become theme-aware (either two token dicts selected by mode, or restructure so components/figures read from a state-derived color at render time). Every one of `PAGE_BG`, `SURFACE`, `BORDER`, `MUTED_TEXT`, `NEUTRAL_LINE`, `ACCENT`, `ACCENT_FILL`, `UP`/`DOWN`, `DESTRUCTIVE` needs a dark-mode counterpart — including the Plotly figure builders in `state.py` (`historical_chart_figure`, `forecast_chart_figure`) which currently hardcode `plot_bgcolor="rgba(0,0,0,0)"` + `font=dict(color=MUTED_TEXT)`, so a light MUTED_TEXT on a dark Radix background is invisible even if the *page* background is fixed.
-- Persist the choice server-side (SQLite `AppSetting`, same pattern as `markup_pct`) and set it via `on_mount`, so a returning user never sees a flash of the wrong theme or an OS-driven default.
-
-**Warning signs:**
-- Any use of `appearance="inherit"` anywhere in the diff.
-- `theme.py` constants referenced without going through a mode-aware lookup.
-- Plotly `font=dict(color=MUTED_TEXT)` / `plot_bgcolor` left unconditional in `historical_chart_figure` / `forecast_chart_figure` after the toggle ships.
-
-**Phase to address:**
-Theme toggle phase — must be scoped to include a `theme.py` rework (dual token sets) and a Plotly figure color audit, not just an `rxconfig.py`/`rx.color_mode` change.
+The team treats `archive/` as "pre-prepared sentiment data for this project" and wires it into the forecast without re-checking what it actually measures. Direct inspection shows `sentiment_market_panel.csv` and `ml_features.csv` were built to predict **next-day SPY/QQQ/DIA returns** from **VADER sentiment on general NewsAPI financial headlines** (`spy_return_next1d`, `spy_up_next1d` are the literal regression/classification targets — see header row). Nothing in the pipeline references ammonium nitrate, diesel, Brent, or USD/MNT. `rolling_corr_60d` in the panel is the correlation between sentiment and **SPY**, not any series this app forecasts. Separately, `News_Category_Dataset_v3.json` (87MB) is the well-known Kaggle "News Category Dataset" — general HuffPost topic-classification data (POLITICS/COMEDY/WELLNESS/etc., confirmed by sampling), not finance or commodity news, and its date coverage (2012–2022 per its known provenance; confirmed 2020–2022 in a 5k-row sample) doesn't even overlap the live 2026 forecasting window.
+**Why it happens:** The file names ("news_sentiment", "market_panel") sound domain-relevant, and PROJECT.md's Key Decisions table already states the milestone "builds on the existing `archive/` dataset ... rather than researching a provider from scratch" — creating pressure to treat the data as fit-for-purpose without re-verifying the fit.
+**How to avoid:** Before any backtest work, explicitly document what target variable each archive file was built for, and run a fresh Granger-causality/correlation screen (mirroring `backend_research/causality_screen.py`'s existing pattern) between the sentiment aggregates (`weighted_compound`, `sent_ema10`, `sent_momentum`) and each of the app's actual four series (HDAN, PPAN, Diesel-USD, FX_rate) at monthly resample — not equities. Treat "general market sentiment might carry macro risk-appetite signal relevant to Brent-linked Diesel or risk-off FX moves" as an unproven hypothesis to test, not a given. Exclude `News_Category_Dataset_v3.json` from the pipeline entirely unless a concrete use for it (e.g., training a topic classifier) is identified — it has no date overlap with current forecasting needs and no finance labeling.
+**Warning signs:** Any backtest script that merges archive columns onto price data using date-join alone, without a documented causality/correlation check against the *actual* target series; any PR description that says "sentiment score" without stating what it was validated against.
+**Phase to address:** Backtest/leakage-check phase (before any UI work) — this is a go/no-go gate, same posture as the Phase 2 model-research process already used for VAR/SARIMAX.
 
 ---
 
-### Pitfall 2: Page-background fix (html/body transparency) collides with the card/surface system's transparent-canvas trick
+### Pitfall 2: Sparse historical coverage makes any sentiment backtest a small-N illusion
 
 **What goes wrong:**
-`historical_chart_figure` and `forecast_chart_figure` both explicitly set `plot_bgcolor="rgba(0,0,0,0)"` and `paper_bgcolor="rgba(0,0,0,0)"` — the chart canvas is *intentionally transparent* so it inherits the `SURFACE` (`#FFFFFF`) card background it sits inside (`rx.box(..., background=SURFACE, ...)` in `historical_chart()`/`forecast_chart()`). The reported bug — black margins from a transparent `html`/`body` — is almost certainly the *same transparency mechanism* operating one level up: Reflex/Radix's root `html`/`body` has no explicit background set, so it falls through to the browser default (black in dark-mode browsers, or just "whatever's behind it" on wide viewports where `rx.container`'s max-width leaves gutters). A fix applied carelessly (e.g. "just set `background: white` on `html`/`body` globally via raw CSS") will hardcode a light color at the *browser root*, which directly conflicts with the theme toggle work (Pitfall 1) — the moment dark mode is added, that hardcoded root background becomes the new black-margin bug's dark-mode twin (a permanently-white flash margin outside a dark page).
-
-**Why it happens:**
-Reflex apps get their `html`/`body` styling from `rx.App`'s stylesheet configuration or global CSS, which is easy to patch in isolation from the Radix theme system and from `theme.py`, since neither file currently touches `html`/`body`. Fixing this "in isolation" (pure CSS reset) without coordinating with the theme toggle phase means doing the background-color work twice, or shipping a fix that only covers one mode.
-</br>
-**How to avoid:**
-- Set the `html`/`body` background using the same mode-aware source of truth as `PAGE_BG`/`SURFACE` (Pitfall 1's dual-token system), not a separate hardcoded value. In Reflex this is typically done via `rx.App(style=...)` or a global stylesheet that reads the same `PAGE_BG` token, or by relying on Radix's own `appearance`-driven root background instead of a custom override.
-- Sequence this fix together with (or after) the theme toggle work, even though PROJECT.md lists them as separate bullets — doing the background fix first with a hardcoded light value creates rework once the toggle lands.
-- Verify at three viewport widths (narrow, `rx.container`'s max-width, and ultra-wide) and both appearances — the "black margins" report specifically calls out wide viewports, meaning `rx.container`'s side gutters are the visible surface, distinct from the page's own scrollable background.
-
-**Warning signs:**
-- A raw `background: white` or `background: #FAFAFA` CSS rule added outside `theme.py`'s token system.
-- Fix verified only in light mode / only at one viewport width.
-
-**Phase to address:**
-Should be the SAME phase as the theme toggle, or explicitly sequenced immediately after it with the same token source — not a fully independent phase, despite being listed as a separate bullet in PROJECT.md.
+`news_sentiment_daily.csv` has only 164 rows total, but they are wildly non-uniform: 1–4 rows per year from 2020–2025 (mostly single-headline days, `article_count=1`), then 148 rows concentrated in the last ~5 months (Mar–Aug 2026) — a direct artifact of NewsAPI's free-tier 28-day lookback window (confirmed in `archive/README.md`: "last 28 days per run"). Any monthly-resampled merge against the ~44-month HDAN/PPAN/Diesel/FX price history will have real (dense, multi-article) sentiment coverage for only ~5 of those months. A backtest run naively against this will effectively be "trained and tested" on a handful of overlapping months, then padded with statistically meaningless single-headline outliers from unrelated years.
+**Why it happens:** The daily/panel/ml_features CSVs *look* like a continuous 6-year time series (2020–2026 date range spans years), which invites treating row count or date range as a proxy for sample size, when the effective sample size for anything resampled to monthly cadence is much smaller.
+**How to avoid:** Report effective monthly sample size explicitly (months with ≥N articles of coverage) before running any backtest, and apply the same small-sample discipline the project already established in Phase 2 (`MIN_ML_ORIGINS=5` thin-sample exclusion, `suspiciously_strong/small_sample` flags in `02-07-PLAN.md`'s findings). If effective N is too small to run genuine walk-forward validation, say so explicitly and do not ship an adjustment based on it — this is the same "no un-backtested model ships" rule PROJECT.md already states.
+**Warning signs:** A backtest report that cites row counts from the CSV files (164, 119, 117) as if they were monthly sample sizes; "the sentiment-adjusted band looks better" conclusions drawn from fewer than ~12 genuinely independent monthly observations.
+**Phase to address:** Backtest/leakage-check phase.
 
 ---
 
-### Pitfall 3: Tab/nav retrofit breaks `on_mount` data loading or creates duplicate/stale loads per section
+### Pitfall 3: Look-ahead bias in the date-join between daily sentiment and monthly price entries
 
 **What goes wrong:**
-`index()` currently has a single `on_mount=[DashboardState.load_rows, DashboardState.load_markup_pct]` at the page/container level, and `DashboardState.rows` is the shared full-history source of truth read by `visible_rows`, `historical_chart_figure`, `forecast_results`, `summary_cards`, `_export_bytes`, etc. — i.e., every "section" (Summary/Forecast/Data Entry) depends on the SAME state that's currently loaded exactly once, at mount, for the whole page. If tabs are implemented as separate Reflex *pages* (separate routes, e.g. `/forecast`, `/data-entry`) rather than client-side show/hide of one page's sections, `on_mount` will fire independently per route, and naive per-route wiring can either (a) forget to load `load_markup_pct`/`load_rows` on a newly-added route, leaving that tab showing stale/empty state, or (b) reload on every tab switch, discarding in-progress edit/draft state (`editing_key`, `draft_rows`, `pending_delete`, CSV `import_stage`) since `load_rows()` reassigns `self.rows` but does NOT touch `draft_rows`/`editing_key` — however if a naive nav switch triggers a full state reset instead of a targeted reload, unsaved draft rows would silently vanish when switching from Data Entry to Summary and back.
-
-**Why it happens:**
-Reflex `on_mount` semantics differ between "conditionally rendered sections within one page" (mount fires once) and "separate routed pages" (mount fires on every navigation to that route). The existing codebase's single-page architecture means every prior phase assumed `self.rows`/`self.markup_pct` are loaded once and stay fresh via targeted mutations (`load_rows()` after every write). A tab/nav retrofit is the first time this assumption gets tested against navigation.
-
-**How to avoid:**
-- Prefer client-side section switching (single route, `rx.tabs` or conditional rendering driven by a `active_tab` state var) over multiple Reflex routes — this preserves the existing single `on_mount` and avoids re-triggering data loads or losing in-flight edit state on tab switch. This is the lower-risk option given the existing architecture.
-- If separate routes are used instead, each route's `on_mount` must call the same load list, AND draft/edit state (`editing_key`, `draft_rows`, `pending_delete`, `import_stage`) must be either preserved (since `DashboardState` is a single app-wide state class, it should persist across route navigation within the same session) or explicitly and intentionally reset — verify via `rx.State` scoping that state does not get discarded on route change.
-- Explicitly test: start an edit or an in-progress CSV import preview, switch tabs, switch back — draft/import state must survive.
-
-**Warning signs:**
-- New `rx.App().add_page(...)` calls with separate routes and separate `on_mount` lists that don't mirror `index()`'s.
-- Any test plan that doesn't include "switch tabs mid-edit" or "switch tabs mid-CSV-preview."
-
-**Phase to address:**
-Tab/nav phase — should explicitly decide (and document as a design decision) client-side sections vs. multi-route before implementation, given the state-persistence stakes above.
+Merging a daily/rolling sentiment feature onto a monthly price observation is a classic leakage point. Two concrete mechanisms exist in this data specifically: (1) `news_sentiment_raw.csv`'s `published_at` is UTC; Mongolia is UTC+8, so a headline timestamped late UTC-day is already the next local day — matching by the raw `date` column without a timezone-aware cutoff can pull in "tomorrow's" news for "today's" forecast origin. (2) Several `ml_features.csv`/`sentiment_market_panel.csv` columns (`sent_quantile_60d`, `rolling_corr_60d`, `*_rolling_mean_5/10/20d`) are windowed statistics — if the resample-to-monthly step naively averages a whole calendar month's sentiment (including days after the user's actual forecast-origin/data-entry date) into "this month's sentiment," the adjustment is trained on information that wouldn't have existed at forecast time.
+**Why it happens:** Point-in-time correctness across cadence mismatches (daily sentiment vs. monthly price entries, entered by the user at an irregular, "roughly monthly" cadence — not always month-end) is easy to get right for the *price* series (already solved via `backend_research/walk_forward.py`'s rolling-origin harness) but easy to re-break when a new, differently-cadenced feature is bolted on, because it requires its own cutoff logic rather than reusing the existing harness unmodified.
+**How to avoid:** Reuse `backend_research/walk_forward.py`'s existing rolling-origin harness (already has a `LeakageError` per STATE.md's Phase 02-01 decision) and extend it — do not write a parallel, separate merge path for sentiment. Define the sentiment cutoff as "all articles published strictly before the forecast-origin date, converted to the same reference timezone as price entry," and unit-test it the same way `test_walk_forward.py` already tests leakage.
+**Warning signs:** A new sentiment-merge function that doesn't import or extend `walk_forward.py`; any pandas `resample('M').mean()` call on sentiment without an explicit as-of cutoff parameter.
+**Phase to address:** Backtest/leakage-check phase.
 
 ---
 
-### Pitfall 4: Surfacing model name/MAPE creates a second source of truth that drifts from `forecast_all()`'s actual dispatch
+### Pitfall 4: Correlation-with-equities conflated with predictive signal for commodities/FX
 
 **What goes wrong:**
-`forecasting.py` currently encodes model identity and backtest accuracy ONLY as prose in docstrings and code comments — e.g. `forecast_hdan`'s docstring says "Model: SARIMAX(0,1,0)+exog, backtested mean 1-12 MAPE of 13.33%", `forecast_ppan`'s says "Direct-OLS VAR-system(h=1..12) ... backtested mean 1-12 MAPE of 23.80%", and the two Naive-model docstrings give 7.04% and 1.72%. None of this is a Python constant, let alone something `forecast_all()` returns. If the UI work is done by simply copy-pasting these strings into a new dict in `state.py` (mirroring the `SERIES_LABELS`-style "single source of truth" pattern the codebase already uses elsewhere), that copy becomes a SECOND, independently-editable copy of facts that already live in `forecasting.py` — any future change to `HDAN_SARIMAX_ORDER`, the PPAN VAR system members, or a re-backtest that changes MAPE will silently desync the UI from the actual dispatch logic, since nothing enforces the two stay equal.
-
-**Why it happens:**
-`forecasting.py`'s module docstring explicitly states model choices must not be re-derived/touched here (PROJECT.md constraint: "forecasting models must go through a research/backtest step... before being used"), which correctly discourages touching the *modeling* code, but doesn't by itself prevent someone from duplicating the *display strings* describing those models elsewhere. The path of least resistance — hand-typing "SARIMAX — 13.3% MAPE" into a UI string — looks safe because it doesn't touch modeling logic, but it does create drift risk on the *label*.
-
-**How to avoid:**
-- Add model-identity metadata (name string + backtest MAPE) as actual Python constants co-located with each model's implementation in `forecasting.py` (e.g. `HDAN_MODEL_NAME = "SARIMAX(0,1,0)+exog"`, `HDAN_BACKTEST_MAPE = 13.33`), then have `forecast_all()` (the "single dispatcher... orchestrating all four winning models," per its own docstring at line 488-489) include this metadata in its returned dict — OR expose a small `MODEL_METADATA` dict/function in `forecasting.py` keyed by the same series keys `forecast_all()` already dispatches on (`hdan`, `ppan`, `diesel_usd_ton`/`diesel_mnt`, `fx_rate`).
-- `state.py` should read this metadata from `forecasting.py` at the SAME call site as the existing `forecast_all(history, ...)` call in `forecast_results` (the codebase already enforces "Pitfall 2 guard — exactly one call site app-wide" for `forecast_all`; extend that discipline to model metadata) — never hand-copy the MAPE numbers into `state.py` or `app.py` as literals.
-- If MAPE constants must live separately from the docstrings (since docstrings aren't machine-readable), update the docstrings to reference the constant name rather than repeating the number, so there's exactly one numeric literal per model.
-
-**Warning signs:**
-- A new dict/constant in `state.py` (not `forecasting.py`) containing model names or MAPE percentages as literals.
-- Any PR that changes a MAPE number in only one of `forecasting.py`'s docstrings or the new UI-facing constant.
-
-**Phase to address:**
-Model-metadata-surfacing phase — should require the metadata constants to be added to `forecasting.py` (not `state.py`) as its first task, then consumed via `forecast_all()`'s existing single-call-site pattern.
+The archive dataset's own internal validation (`rolling_corr_60d`) measures correlation between sentiment and *SPY*, and even for its intended purpose, correlation ≠ next-day prediction (could be contemporaneous, not lead-lag). If this correlation is cited as evidence sentiment "works" and then applied to HDAN/PPAN/Diesel/FX without its own out-of-sample backtest, that's conflating a different domain's correlation with this domain's predictive validity. Compounding this: the project's own existing research already found FX_rate shows **no significant relationship (p<0.10) with any other series in the causality matrix**, including Brent-linked drivers (`backend_research/REPORT.md`, "Cross-series causality" section) — a strong prior that a generic equity-sentiment score is unlikely to move FX_rate either, and any backtest result suggesting otherwise deserves extra scrutiny before being trusted.
+**Why it happens:** "The dataset shows sentiment correlates with market moves" is an easy, plausible-sounding justification to reach for once the data is already loaded, especially under time pressure to ship a "provenance" story for the UI.
+**How to avoid:** Require the same walk-forward, held-out MAPE/coverage comparison used for every other model family in this project (Phase 2 precedent) before any sentiment adjustment ships — "with sentiment" vs. "without sentiment" on the actual target series, not a borrowed equities correlation number.
+**Warning signs:** A PR or research note that cites `rolling_corr_60d` or any SPY-related metric as justification for shipping the AN/Diesel/FX adjustment.
+**Phase to address:** Backtest/leakage-check phase.
 
 ---
 
-### Pitfall 5: Plotly legend/margin fix breaks the "Forecast start" `add_vline` annotation or the chart's `aria_label`
+### Pitfall 5: Sentiment adjustment silently destabilizes an already-calibrated, backtested bull/bear spread
 
 **What goes wrong:**
-`forecast_chart_figure` in `state.py` currently: (a) sets `legend=dict(orientation="h")` with no explicit `x`/`y`/anchor, letting Plotly auto-place the horizontal legend (the likely source of the reported overlap with axis labels since `margin=dict(l=40, r=16, t=16, b=40)` leaves very little top margin — `t=16` — for a legend that may render above the plot area); (b) adds a `Forecast start` vertical line via `figure.add_vline(..., annotation_text="Forecast start", annotation_position="top left")`, which is ALSO positioned relative to the plot area's top and will collide with whatever legend-repositioning fix is applied if both end up anchored near the top-left; (c) the containing `rx.box` around `rx.plotly(...)` carries `aria_label="Fan chart of forecast base value with expected range"` at the `rx.box` level, not on the Plotly figure itself — a naive fix that adds accessibility attributes directly to the `go.Figure()` layout (e.g. Plotly's own `layout.meta` or embedding ARIA via `config`) would be redundant/conflicting with the existing box-level `aria_label`, and if the fix mistakenly moves or removes the `rx.box` wrapper to restructure the chart, that `aria_label` (and `historical_chart`'s equivalent) is lost silently since nothing tests for it.
-
-**Why it happens:**
-Plotly's `t` margin, legend position, and `add_vline`'s annotation are three independent layout mechanisms that share the same visual real estate (top of the plot) without any of them being aware of the other's footprint — a common Plotly gotcha when increasing top margin for a legend without also checking whether an existing vline annotation is still positioned sensibly relative to it.
-
-**How to avoid:**
-- When repositioning the legend (e.g. moving to `legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1)` or moving it below the plot with `y=-0.2`), increase `margin.t` (or `margin.b` if moving legend below) to match, and re-check `add_vline`'s `annotation_position` doesn't now overlap the new legend location — consider changing `annotation_position` (e.g. to `"top"` without `"left"`, or `"bottom left"`) as part of the same change, not as an afterthought.
-- Do NOT touch the `aria_label` props on the wrapping `rx.box` in `historical_chart()`/`forecast_chart()` in `app.py` when editing figure layout in `state.py`'s `forecast_chart_figure`/`historical_chart_figure` — these are two different files/layers; a layout-only fix should only touch `state.py`.
-- Apply the exact same margin/legend treatment to BOTH `historical_chart_figure` and `forecast_chart_figure` if the fix is meant to be a general "chart polish" — right now both duplicate nearly identical layout blocks (margin, plot_bgcolor, font), so an inconsistent fix (legend/margin changed on one but not the other) would look like a regression on whichever chart wasn't touched, even if that chart didn't have the reported bug.
-- Preserve `hovermode="x unified"` and the existing `NEUTRAL_LINE`/`ACCENT`/`ACCENT_FILL`/`BORDER` color tokens from `theme.py` untouched — this pitfall is scoped to layout geometry (legend position, margins), not color; do not fold this work into the theme-toggle color rework (Pitfall 1) accidentally.
-
-**Warning signs:**
-- A diff that changes `margin` or `legend` in `state.py` without also touching `add_vline`'s `annotation_position`.
-- A diff that removes or edits `aria_label=` in `app.py`'s `historical_chart()`/`forecast_chart()`.
-- Only one of the two chart figures updated when both share near-identical layout code.
-
-**Phase to address:**
-Fan chart legend/axis-overlap phase — scope explicitly to `state.py` layout dict changes in both figure builders; include a manual check of the vline annotation position and a diff-review step confirming `aria_label` props in `app.py` are untouched.
+The existing bull/bear bands are a validated, backtested statistical spread (per-series MAPE/volatility, e.g. HDAN SARIMAX 13.33% MAPE, PPAN Direct-OLS VAR-system 23.8% MAPE per `.planning/STATE.md`'s Phase 02-07 decision). Sentiment scores in this dataset are noisy and occasionally extreme (single-headline days with `compound` as low as −0.94), and if the sentiment layer is applied as a direct multiplier/additive shift on the band without bounds, one volatile-news day can blow the band far outside anything the backtest calibrated for — undermining the very thing PROJECT.md says v1's bands already got right ("bull/bear = base ± a statistical spread ... not a fixed band").
+**Why it happens:** It's tempting to implement "sentiment adjustment" as a simple UI-layer scalar (e.g., `band_width *= (1 + k * sentiment_score)`) because it's easy to code and demo, without re-validating that the *combined* (statistical spread + sentiment) band is still well-calibrated (e.g., empirical coverage — how often the actual price falls inside the band — no worse than the unadjusted spread).
+**How to avoid:** Clip/cap sentiment's influence (e.g., a bounded multiplier, not an unbounded raw score pass-through), and explicitly backtest empirical coverage of the *combined* band against the unadjusted band's coverage — the adjustment should not be shipped if it makes the calibrated spread worse. Treat this as a new model requiring the same research/backtest gate as any other model family in this project, not a UI tweak exempt from that discipline (this is the specific way PROJECT.md's "no un-backtested model ships" rule could get silently bypassed — by relabeling a model as "just an adjustment").
+**Warning signs:** Sentiment-adjustment code that lives entirely in `rx.State`/UI code with no corresponding research/backtest artifact; a demo where one bad-news day makes the band visually much wider than any prior month without a stated cap.
+**Phase to address:** Backtest/leakage-check phase (methodology + cap), then UI phase (wire in the already-validated, bounded adjustment).
 
 ---
 
-### Pitfall 6: Draft-row date-validation fix regresses the windowing toggle or CSV-import's shared use of `editing_key`/`draft_rows`
+### Pitfall 6: "Live" sentiment provenance misleads a single-user, monthly-cadence app
 
 **What goes wrong:**
-The diagnosed root cause (PROJECT.md) is that the new-row date field "silently rejects invalid input with zero user-facing error feedback." Looking at the actual code: `_commit_draft_cell` DOES call `validate_date(...)` and DOES set `self.edit_error = error` on failure (lines 899-906) — so error state is technically being set. The likely real bug is in `app.py`'s `_editable_cell`: the error text is only rendered inside the `editor` vstack (`rx.cond(DashboardState.edit_error != "", rx.text(...)))`, which is only shown while `DashboardState.editing_key == key` is true. If the input's `on_blur=DashboardState.commit_edit` fires and `commit_edit` returns early after setting `edit_error` (validation failure keeps `editing_key` unchanged in `_commit_draft_cell` — it only clears `editing_key`/`draft_value` on the SUCCESS path), then the cell should stay in edit mode with the error visible... but `on_blur` firing means the browser has already moved focus away, and Radix/browser blur-triggered re-renders combined with `auto_focus=True` on the input can cause a race where the editor unmounts before the `rx.cond` re-render with the error text is visible, OR the `on_blur` fires and calls `commit_edit` which fails validation and returns, leaving `editing_key` set — but if the user's mouse/tab action was a genuine "click away" the input may already be visually gone from focus-loss styling even though `rx.cond` should still be showing it. This exact `editing_key`/`draft_value`/`edit_error` triad is shared identically between the ORIGINAL single-cell edit flow (v1 Phase 4), the windowing toggle's `cancel_edit()` call inside `toggle_show_all_history` (v1.2 Phase 7), and indirectly by CSV import which bypasses this flow entirely but shares `self.rows`/`load_rows()` (v1.2 Phase 10). A fix that changes `commit_edit`/`_commit_draft_cell`'s control flow (e.g. adding a new state field for "date field has a pending error" separate from `edit_error`, or changing `on_blur` handling to not call `commit_edit`) risks: (a) `toggle_show_all_history`'s `self.cancel_edit()` call no longer clearing whatever new error-tracking field is added, leaving a stale error visible after the window toggle changes which rows are shown; (b) CSV import's `confirm_import()` / `handle_csv_upload()` writing directly to `PriceRow` via `session.add()` without going through `_commit_draft_cell` at all — if the date-validation fix consolidates validation logic assuming ALL new rows flow through `_commit_draft_cell`, CSV import's separate `parse_import_csv` validation path (in `csv_import.py`, not read here but referenced in `state.py`) will NOT pick up the fix, silently leaving two divergent date-validation implementations for two different entry methods.
+PROJECT.md's target feature explicitly wants "provenance (what's driving the adjustment) shown to the user." But this app is used by one person, roughly monthly (per STACK.md/PROJECT.md's stated usage pattern), with no background job scheduler (single Reflex process, no Celery/cron). If the sentiment score is fetched once and cached, then shown weeks later as if current, the user could make a procurement decision believing the adjustment reflects "today's news" when it's stale. Separately, NewsAPI's free tier only returns the **trailing 28 days** — there is no way to backfill sentiment for a gap month if the user skips a session, so a returning user's "provenance" display could silently have a hole (or worse, silently reuse the last cached score without flagging it as stale).
+**Why it happens:** "News/live-driven" framing in the milestone goal implies real-time freshness, but the app's actual usage cadence and architecture (single-process, occasional use, no scheduler) can't genuinely deliver that without extra plumbing that wasn't scoped.
+**How to avoid:** Show an explicit "sentiment as of [fetch date]" timestamp next to the adjustment (not just "live news says..."), and fetch fresh on each session load rather than caching indefinitely, given the low usage frequency makes per-session fetch cheap. Document explicitly that the trailing-28-day NewsAPI limitation means gaps longer than 28 days between sessions cannot be backfilled — degrade gracefully (fall back to unadjusted statistical spread with a visible note) rather than silently reusing a stale score.
+**Warning signs:** No timestamp visible next to the sentiment-driven scenario; a code path that reuses a cached sentiment value with no expiry/staleness check.
+**Phase to address:** UI/provenance phase.
 
-**Why it happens:**
-`editing_key`, `draft_value`, `edit_error`, `pending_delete`, and `draft_rows` form a small hand-rolled state machine with implicit invariants documented only in comments ("editing_key format...", "edit_error is a plain scalar... because editing_key already guarantees at most one cell is in edit mode"). Three prior phases have each added a new interaction that touches this machine (windowing's `cancel_edit()`+`cancel_pending_delete()` call inside `toggle_show_all_history`; CSV import's entirely separate `_staged_import_rows`/`import_stage` machine that deliberately does NOT reuse `edit_error` per the comment at line 172-178) — the invariants are easy to violate when adding a fourth interaction (better date-error UX) without re-reading all the comments describing why the scalar (not dict) `edit_error` design and the `""` empty-date sentinel matter.
+---
 
-**How to avoid:**
-- Before changing `commit_edit`/`_commit_draft_cell`, write out (in the plan) the full state-transition table for `editing_key`/`draft_value`/`edit_error`/`draft_rows`/`pending_delete` across: normal cell edit, draft-row date entry, draft-row non-date entry, Escape, blur, window toggle, and delete-arm — and verify the fix's new behavior is added as a new column/case in that table, not a parallel mechanism.
-- Reuse `edit_error` (the existing scalar) for the improved date-error display rather than introducing a new field — the existing design comment explicitly says a scalar is safe because only one cell can be in edit mode at a time; that invariant still holds for this fix.
-- If the actual bug is a blur/focus race (not a missing error-set call), the fix likely belongs in `app.py`'s `_editable_cell` (e.g. don't rely solely on `on_blur` to commit — consider keeping the editor open and only committing on Enter/explicit action while showing the error live via `update_draft`-triggered client-side validation, or ensure `on_blur` firing after a validation failure re-focuses the input rather than fully losing it), not necessarily in `state.py`'s validation logic itself, since `edit_error` IS already being set correctly server-side.
-- Explicitly regression-test after the fix: (1) toggle "show all history" while a draft row has an active date error — error and draft must both survive the toggle per the existing `draft_rows` untouched guarantee; (2) run a CSV import while a draft row is mid-entry with an error — the two flows are state-independent (`_staged_import_rows` vs `draft_rows`) but both call `load_rows()`, so confirm a CSV import commit doesn't clobber `self.rows` in a way that orphans an unrelated in-progress draft-row's displayed position; (3) verify `csv_import.py`'s own date validation (separate code path) either already has proper error surfacing or is explicitly out of scope for this fix (don't assume fixing `state.py`'s draft-row path also fixes CSV import's UX).
+### Pitfall 7: Re-running the same weekly VAR family with the same proxy inputs reproduces the same no-go
 
-**Warning signs:**
-- A new state field added for date-specific errors instead of reusing `edit_error`.
-- `toggle_show_all_history`'s `cancel_edit()`/`cancel_pending_delete()` calls not updated to also reset any new field.
-- No test/verification step covering "error + window toggle" or "error + CSV import" interaction, only the isolated draft-row-date-entry case.
-- Fix applied only in `state.py` when the root cause is actually a client-side blur/render-timing issue in `app.py`.
+**What goes wrong:**
+The prior spike (`.planning/quick/20260821-weekly-an-backtest/SUMMARY.md`) already found weekly-native VAR underperforms monthly VAR at the horizon-matched comparison (10.35%/16.01% vs. 9.49%/10.08% MAPE), and diagnosed *why*: the one-step weekly model's R² was only 0.03–0.04, meaning almost all of its apparent accuracy was persistence/naive, not real signal from the weekly driver variables (Middle East Ammonia, Black Sea/China Urea, gas benchmarks — proxies, not HDAN/PPAN's actual Mongolian domestic price drivers). If the v2.0 re-research spike re-fits VAR (or another autoregressive family) on the *same* proxy variables, it will very likely reproduce the same low-R² result, wasting the spike's budget without genuinely testing a new hypothesis.
+**Why it happens:** VAR is the project's known-good model family for the monthly case (it's the Phase 2 winner shape for HDAN), so there's a natural pull toward "try VAR again but weekly" as the default first move, without first asking whether the *input variables* — not the model family — were the actual bottleneck.
+**How to avoid:** Before refitting any model, run the equivalent of `backend_research/causality_screen.py` against candidate new weekly variables to check they actually lead/explain HDAN/PPAN at weekly granularity (not just correlate) — this project already has that harness; reuse it rather than jumping straight to VAR. Treat "same model family, different data" and "different model family, same data" as two genuinely different experiments, and don't call the spike complete unless at least the *data/variable* side has changed meaningfully from what the prior spike already ruled out.
+**Warning signs:** A new backtest script that imports the same `load_weekly_drivers()` predictor set from the prior spike unchanged; a re-research summary whose R² is still in the 0.03–0.06 range without commentary on why that's different this time.
+**Phase to address:** Weekly re-research spike phase (design step, before any backtest run).
 
-**Phase to address:**
-Data Entry rework phase — should explicitly include a state-transition audit of `editing_key`/`draft_value`/`edit_error`/`draft_rows`/`pending_delete` as a pre-implementation step, and regression checks against both the windowing toggle and CSV import flows as acceptance criteria, given three prior phases already share this machine.
+---
+
+### Pitfall 8: False confidence from a non-comparable backtest window or horizon
+
+**What goes wrong:**
+The prior weekly spike used a horizon-matched comparison (rolled 4-week-ahead weekly forecasts up against the monthly benchmark) specifically so the MAPE numbers were apples-to-apples. A re-attempt that evaluates 1-week-ahead weekly MAPE against the 1-month-ahead monthly benchmark (9.49%/10.08%), or that uses a single train/test split instead of the existing walk-forward harness (`walk_forward.py`, `run_var_vecm_wf.py`), can produce a misleadingly good number that doesn't reflect genuine improvement — especially since only ~5 more months of weekly data exist now (this spike is ~1.5 weeks after the prior one, per dates) than when the prior no-go was recorded, so there isn't much genuinely new data to shift the conclusion on its own.
+**Why it happens:** A smaller, more favorable-looking MAPE is an easy thing to declare victory on, especially under pressure to "unblock" a deferred feature; horizon mismatches and window-selection effects are subtle and easy to miss without deliberately cross-checking against the prior report's exact methodology.
+**How to avoid:** Any new weekly backtest must use the same walk-forward, horizon-matched methodology as the prior spike (same rollup-to-4-weeks-ahead comparison) so results are directly comparable to the existing 9.49%/10.08% monthly benchmark recorded in `.planning/STATE.md`. If the new spike's data window barely differs from the prior one (same source files, few extra weeks), say so explicitly rather than implying a fresh, independent result.
+**Warning signs:** A new report whose comparison table doesn't cite the prior spike's exact MAPE figures side-by-side; use of a single fixed holdout instead of rolling-origin validation.
+**Phase to address:** Weekly re-research spike phase.
+
+---
+
+### Pitfall 9: Partial weekly coverage creates an inconsistent, confusing UI if only some series clear the bar
+
+**What goes wrong:**
+No weekly Diesel/FX data exists at all (confirmed unchanged in both PROJECT.md and STATE.md), so even in the best case, only HDAN/PPAN could ever get weekly mode — Diesel-MNT (a derived series requiring both Diesel-USD *and* FX) can never be weekly-native. The existing UI was built around one global horizon/granularity picker across all four series simultaneously (per Phase 5's "Forecast UI, Scenario Chart" and the single `forecast_results` dict keyed by all series). If a future phase ships weekly mode for HDAN/PPAN only, naively reusing the current single-toggle UI would either (a) force Diesel/FX to silently stay monthly while the chart x-axis/labels imply weekly for everything, or (b) block weekly mode entirely behind "all series must support it," wasting a validated win on 2 of 4 series.
+**Why it happens:** The existing granularity/horizon selector is a single global control by design (simpler UI, matches the current all-monthly reality) — extending it to a mixed-granularity world isn't a natural fallout of the current component structure and is easy to bolt on incorrectly under time pressure.
+**How to avoid:** If any series clears the new backtest bar, design the granularity toggle as per-series-aware from the start (e.g., disable/gray weekly for Diesel/FX with an explicit "weekly data unavailable for this series" label, rather than silently degrading), and treat this as a UI/UX design decision requiring its own explicit spec — not an afterthought bolted onto the existing single-toggle component. This should only be built at all if the backtest bar is actually cleared (per Pitfall 7/8) — don't build the mixed-granularity UI speculatively ahead of a validated result.
+**Warning signs:** A UI mock or implementation that has one horizon dropdown silently changing behavior per-series without a visible label explaining why; Diesel-MNT chart lines that jump or look stale in weekly mode without explanation.
+**Phase to address:** UI phase (conditional — only if weekly re-research spike returns a go).
 
 ---
 
 ## Technical Debt Patterns
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
-|----------|-------------------|-----------------|------------------|
-| Toggling `appearance` via `rx.color_mode` without dual-tokenizing `theme.py` | Ships a visible toggle fast | Reintroduces the exact light-text-on-dark / dark-text-on-light illegibility bug v1.2 Phase 6 fixed | Never |
-| Hardcoding model name/MAPE strings directly in `app.py`/`state.py` instead of `forecasting.py` constants | Faster to ship the UI card | Silent drift from actual dispatch logic on next re-backtest | Never — PROJECT.md's "no un-backtested model ships" provenance rule implies label accuracy matters too |
-| Implementing tabs as separate Reflex routes instead of client-side section toggling | Feels more "standard web nav" (URLs per section) | Duplicates/complicates `on_mount` data loading and risks losing in-flight draft/edit state on navigation | Only if draft/edit state is proven (via test) to persist across routes in this Reflex version |
-| Adding a new state field for date-error display instead of reusing `edit_error` | Slightly clearer naming for the new feature | Breaks the documented "at most one cell in edit mode" scalar-safety invariant relied on elsewhere | Never without updating `toggle_show_all_history` and re-verifying the invariant |
+|----------|--------------------|-----------------|------------------|
+| Wiring `archive/` sentiment columns straight into a UI adjustment without a causality/backtest gate | Fast demo of "provenance" UI | Violates the project's own "no un-backtested model ships" rule; risks shipping noise as signal on a domain-mismatched dataset | Never |
+| Caching a single sentiment fetch indefinitely to avoid NewsAPI rate limits | Simple, no API-key management complexity | Silently stale "live" provenance shown to the user across sessions weeks apart | Only with an explicit staleness timestamp and a visible "last fetched" label — never silent |
+| Re-running the exact prior weekly VAR script with a slightly longer date range and calling it "re-research" | Cheap, fast to execute | Reproduces the already-diagnosed low-R² no-go, burns spike budget with no new information | Never — the milestone explicitly frames this as re-research, not a rerun |
+| Treating the 87MB `News_Category_Dataset_v3.json` as in-scope just because it's in `archive/` | Avoids a scoping conversation | Wastes engineering time trying to extract signal from a topically and temporally irrelevant dataset | Never, unless a concrete distinct use (e.g. training a separate classifier) is identified first |
+| Single train/test split for the weekly spike instead of reusing `walk_forward.py` | Faster to write | Not comparable to the existing walk-forward-validated 9.49%/10.08% benchmark; risk of a falsely favorable number | Never for the go/no-go decision itself; fine only for very early, throwaway exploration clearly labeled as such |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
 |-------------|-----------------|-------------------|
-| Radix `RadixThemesPlugin` + custom `theme.py` hex tokens | Assuming Radix's `appearance` toggle automatically re-colors custom hex literals | Dual-tokenize `theme.py` explicitly; Radix only re-colors its own component chrome, not raw hex values passed to `background=`/Plotly |
-| Plotly figures rendered via `rx.plotly` inside themed cards | Setting `plot_bgcolor`/`paper_bgcolor` to a fixed color instead of transparent, breaking the "inherit card surface" trick both charts currently rely on | Keep `rgba(0,0,0,0)` backgrounds; make `font.color` (currently `MUTED_TEXT`) mode-aware instead |
-| `forecast_all()` single-dispatcher pattern | Adding a second call site or a parallel metadata source for model name/MAPE outside `forecasting.py` | Extend `forecast_all()`'s return shape or add a co-located metadata accessor in `forecasting.py`, consumed from the existing single call site in `state.py`'s `forecast_results` |
+| NewsAPI (via `archive/README.md`'s documented free-tier limits) | Assuming historical backfill is available for any gap in the user's usage cadence | Free tier only returns the trailing 28 days; design the feature to degrade gracefully (visible "unavailable" state) for older gaps rather than assuming continuous coverage |
+| VADER sentiment scoring | Treating `compound` score magnitude as meaningful signal strength rather than a rough sentiment polarity heuristic | Use it as one weak input among several (article volume, source weighting, momentum), not a standalone predictive feature — and validate against the actual target series, not just report it |
+| Timezone handling between `published_at` (UTC) and Mongolia-local price-entry dates | Naive string-date join across the two, causing off-by-one-day leakage at merge boundaries | Convert explicitly to a consistent reference timezone with a documented as-of cutoff before merging, and unit-test the boundary case |
+| Reusing `backend_research/walk_forward.py` for a new, differently-cadenced feature (daily sentiment vs. monthly price) | Writing a parallel, ad hoc merge/backtest path that doesn't inherit the existing `LeakageError` guard | Extend the existing harness rather than duplicating merge logic outside it |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|-----------------|
-| Re-rendering both Plotly figures (`historical_chart_figure`, `forecast_chart_figure`) on every tab switch if tabs are implemented as always-mounted-but-hidden sections | Sluggish tab switching despite no new data | If using client-side tab visibility (recommended, Pitfall 3), consider `rx.cond` unmounting inactive sections rather than CSS-hiding them, OR accept the cost since dataset is small (single-user, monthly cadence) | Unlikely to matter at this app's scale (hundreds of rows), but worth a conscious choice, not an accident |
+| Loading the 87MB `News_Category_Dataset_v3.json` into memory in a single-process Reflex app "just in case" | Slow app startup, memory bloat on a single-user local deployment | Don't load it at all unless a concrete, scoped use is defined (see Pitfall 1) | Immediately noticeable on a modest local machine given the app's single-process, no-worker architecture |
+| Re-fetching/re-scoring sentiment on every page load without caching *within* a session | Redundant NewsAPI calls, possible rate-limit exhaustion during dev/testing | Cache within a session, refresh only on new session/explicit refresh, with a visible timestamp (ties to Pitfall 6) | Noticeable once NewsAPI daily quota is hit during iterative development/testing |
+
+## Security Mistakes
+
+| Mistake | Risk | Prevention |
+|---------|------|------------|
+| Hardcoding a NewsAPI (or equivalent) API key in source rather than environment config | Key leakage if the repo is ever shared/pushed publicly | Load from environment/`.env` (already how the project should be handling any external credentials — confirm no key lands in a committed file) |
+| Rendering raw article titles/URLs from `news_sentiment_raw.csv` (or a live fetch) directly into the UI without sanitization | XSS if headline text ever contains unexpected markup (low risk with Reflex's default escaping, but worth confirming for any `rx.html`/raw-HTML usage) | Stick to Reflex's default text rendering (auto-escaped); avoid `dangerously_set_inner_html`-style patterns for headline text |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-------------------|
-| Theme toggle with no persistence (resets to light every reload) | User has to re-toggle every session, defeating the point of PROJECT.md's "Persisted dark/light mode toggle" requirement | Store in `AppSetting` (same table/pattern as `markup_pct`), load via `on_mount` |
-| Tabs that reset scroll position or lose the currently-selected chart series (`selected_series`/`forecast_series`) on switch | Feels broken, loses user's place | Since these are already state vars independent of tab implementation, verify they're untouched by whatever tab-switching mechanism is chosen |
-| Fixing date-field errors by making failures louder without explaining the expected format | User still can't figure out valid input, just sees more red text | Error message + inline format hint (existing `validate_date` already returns an `error` string — verify it currently is descriptive; the CONTEXT block's diagnosis is "zero user-facing error feedback," so check its actual copy is human-readable, not just present) |
+| Showing a sentiment-driven adjustment with no explanation of *what* news domain it's drawn from (general financial/equity headlines, not AN/diesel/Mongolia-specific) | User may over-trust an adjustment that has no demonstrated connection to their actual commodities, undermining the "provenance" feature's whole purpose | Explicitly label the sentiment source and scope in the UI ("general market sentiment, not commodity-specific") so the user can calibrate trust appropriately |
+| Sentiment adjustment silently shifting the bull/bear band with no visible delta vs. the pre-sentiment statistical band | User can't tell whether/how much the adjustment mattered, undermining trust and debuggability | Show both the base statistical band and the sentiment-adjusted band (or at least a clear "+/− X% from sentiment" delta), consistent with the project's existing "model provenance" display precedent (Phase 13) |
+| Weekly mode available for only 2 of 4 series with no visual distinction | User assumes weekly mode "just works" for everything and gets confused by stale/mismatched Diesel-MNT figures | Per-series-aware granularity control with explicit unavailability messaging (see Pitfall 9) |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Theme toggle:** Often missing dark-mode colors for Plotly figure `font`/hover text — verify `historical_chart_figure`/`forecast_chart_figure` render legibly in dark mode, not just page chrome.
-- [ ] **Background fix:** Often verified only in light mode / only at container max-width — verify at narrow, container-max, and ultra-wide viewports in BOTH appearances.
-- [ ] **Tab/nav:** Often missing a check that in-progress edits/drafts/CSV-import-preview survive a tab switch — verify explicitly, don't assume.
-- [ ] **Model metadata surfacing:** Often implemented as a UI-layer literal copy — verify the displayed MAPE/model name traces back to a `forecasting.py` constant via `forecast_all()`, not a hand-typed string.
-- [ ] **Fan chart fix:** Often fixes legend overlap but leaves the "Forecast start" annotation now colliding with the relocated legend — verify visually with real data at multiple horizon lengths (short horizon = annotation near legend; long horizon = annotation far from legend).
-- [ ] **Data Entry rework:** Often fixes the reported symptom (silent rejection) without checking CSV import's separate validation path (`csv_import.py`) has the same UX quality — verify both entry methods, not just manual draft-row entry.
+- [ ] **Sentiment backtest:** Often missing a genuine causality/correlation check against the *actual* target series (HDAN/PPAN/Diesel/FX) rather than the archive's own SPY-focused validation — verify a fresh Granger/correlation screen was run against this project's series specifically.
+- [ ] **Sentiment backtest:** Often missing an explicit statement of effective monthly sample size (not raw CSV row count) — verify the report states how many months had real (multi-article) sentiment coverage.
+- [ ] **Sentiment leakage check:** Often missing a timezone-aware, as-of cutoff in the daily-to-monthly merge — verify the merge logic (not just the model) was unit-tested for leakage, reusing `walk_forward.py`'s existing guard.
+- [ ] **Sentiment UI:** Often missing a visible "as of [date]" timestamp on the sentiment-driven adjustment — verify staleness is never silently hidden from the user.
+- [ ] **Sentiment band calibration:** Often missing an empirical coverage check ("combined band still contains the actual price at least as often as the unadjusted band") — verify this was backtested, not just eyeballed.
+- [ ] **Weekly spike:** Often missing a side-by-side comparison table against the prior spike's exact figures (9.49%/10.08% monthly, 10.35%/16.01% prior weekly) — verify the new report cites and compares against these, not just its own numbers in isolation.
+- [ ] **Weekly spike:** Often missing confirmation that walk-forward (not a single split) validation was used — verify the harness matches the prior spike's methodology.
+- [ ] **Weekly UI (if shipped):** Often missing explicit per-series unavailability messaging for Diesel/FX — verify the UI never silently shows monthly data under a "weekly" label.
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|-----------------|------------------|
-| Theme toggle ships with un-tokenized `theme.py` | MEDIUM | Revert toggle to a state-only no-op (force `"light"`) while `theme.py` dual-tokenizing is completed as a follow-up; don't leave `appearance="inherit"` live in the interim |
-| Tabs implemented as routes lose draft state on switch | MEDIUM | Convert to client-side section toggling within the existing single `index()` page/route; low risk since `DashboardState` doesn't need to change, only `app.py`'s render structure |
-| Model metadata drifts (UI shows stale MAPE after a re-backtest) | LOW | Since metadata should be sourced from `forecasting.py` constants per Pitfall 4's prevention, a drift means the wiring was done wrong — fix by pointing the UI read back to the constant, not by manually correcting the displayed number |
-| Data Entry fix regresses windowing or CSV import | HIGH | Requires re-tracing the full `editing_key`/`draft_rows`/`pending_delete` state table (see Pitfall 6); recommend reverting to pre-fix behavior and re-implementing with the state-transition table written first, given three prior phases' worth of accumulated interaction surface |
+| Sentiment adjustment shipped without a real backtest, later found to be noise-driven | MEDIUM | Feature-flag/disable the sentiment layer, fall back to the existing pure-statistical band (already validated), then run the proper backtest before re-enabling — the existing bands are unaffected since the adjustment should be additive/layered, not a replacement |
+| Weekly mode shipped on a re-attempt that turns out to reuse the same flawed proxy variables (silent repeat of the no-go) | LOW–MEDIUM | Revert to monthly-only mode (prior, already-shipped behavior); re-run the spike with genuinely different candidate variables, using `causality_screen.py` first this time |
+| Discover mid-development that `News_Category_Dataset_v3.json` was accidentally load-bearing in a pipeline | LOW | Since it has no demonstrated connection to any shipped feature per this research, remove the dependency and re-verify the pipeline still produces the same output — should be a no-op if unused as expected |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
-|---------|-------------------|----------------|
-| OS-dark-mode reintroduction via `appearance="inherit"` | Theme toggle phase | Grep diff for `"inherit"`; manually test with OS set to dark while app toggle is set to light — page must stay light |
-| Black margins fix hardcodes one appearance | Theme toggle phase (combined with or immediately following background fix) | Test html/body background in both light and dark app-toggle states, at 3 viewport widths |
-| Tab/nav breaks `on_mount` or loses draft state | Tab/nav phase | Manual test: start draft row edit or CSV preview, switch tabs, switch back — state must persist |
-| Model metadata second source of truth | Model-metadata-surfacing phase | Code review: confirm displayed MAPE/name value traces to a `forecasting.py` constant referenced through `forecast_all()`, not a literal in `state.py`/`app.py` |
-| Fan chart legend fix collides with vline annotation or breaks `aria_label` | Fan chart fix phase | Visual check across short/long horizons; diff review confirming `aria_label` props in `app.py` untouched |
-| Data Entry date-fix regresses windowing/CSV-import | Data Entry rework phase | Full state-transition table written pre-implementation; regression test matrix covering windowing toggle + CSV import interaction with the fix |
+|---------|--------------------|----------------|
+| 1. Domain-mismatched sentiment data | Backtest/leakage-check phase | Written causality/correlation screen against HDAN/PPAN/Diesel/FX (not SPY) exists before any UI work starts |
+| 2. Small-N illusion from sparse coverage | Backtest/leakage-check phase | Report states effective monthly sample size and applies the project's existing thin-sample exclusion rule |
+| 3. Look-ahead bias in daily→monthly merge | Backtest/leakage-check phase | Merge logic extends `walk_forward.py`; leakage unit test exists for the sentiment merge specifically |
+| 4. Correlation/predictive-signal conflation | Backtest/leakage-check phase | Backtest report compares "with sentiment" vs "without" on the target series' own MAPE/coverage, not a borrowed SPY correlation |
+| 5. Sentiment destabilizing the calibrated spread | Backtest/leakage-check phase, then UI phase | Empirical coverage of combined band backtested and bounded/capped before UI wiring |
+| 6. Stale "live" provenance | UI/provenance phase | Visible as-of timestamp and graceful degradation on >28-day gaps confirmed in a live browser check |
+| 7. Repeating the same failed weekly model family | Weekly re-research spike phase (design step) | Spike design doc names what's *actually* different (variables, not just model family) vs. the prior no-go before any backtest is run |
+| 8. Non-comparable backtest window/horizon | Weekly re-research spike phase | New report's comparison table cites the prior spike's exact figures side-by-side, using the same walk-forward/horizon-matched methodology |
+| 9. Partial-coverage UI inconsistency | UI phase (conditional on a go decision) | Per-series granularity control with explicit unavailability messaging, human-verified in browser, only built if the backtest bar was actually cleared |
 
 ## Sources
 
-- `app/app/state.py` (read directly) — `editing_key`/`draft_rows`/`edit_error`/`show_all_history`/CSV import state machine, `forecast_results` single-call-site pattern, Plotly figure builders
-- `app/app/app.py` (read directly) — `index()`'s single `on_mount`, `_editable_cell`'s blur/error rendering, `aria_label` placement on `rx.box` wrappers
-- `app/app/theme.py` (read directly) — hardcoded hex color tokens with no dark-mode variants, comments documenting WCAG-contrast amendments (light-mode-specific)
-- `app/rxconfig.py` (read directly) — `RadixThemesPlugin(theme=rx.theme(appearance="light", ...))` pinning
-- `app/app/forecasting.py` (grepped directly) — model docstrings containing MAPE/model-name prose only, `forecast_all()` as documented single dispatcher (line 488-489)
-- `.planning/PROJECT.md` (read directly) — v1.3 milestone scope, v1.2 Phase 6's light-only pin as a deliberate prior bug fix, Data Entry root-cause diagnosis
+- Direct inspection of `archive/README.md`, `archive/news_sentiment_daily.csv`, `archive/sentiment_market_panel.csv`, `archive/ml_features.csv`, `archive/market_prices.csv`, `archive/news_sentiment_raw.csv`, `archive/News_Category_Dataset_v3.json` (this session, 2026-08-31) — HIGH confidence, primary source
+- `backend_research/REPORT.md` ("Cross-series causality" section — FX_rate shows no significant relationship with any driver) — HIGH confidence, project's own prior research
+- `.planning/quick/20260821-weekly-an-backtest/SUMMARY.md` (prior weekly VAR no-go result and its diagnosed root cause) — HIGH confidence, project's own prior research
+- `.planning/STATE.md` (Phase 02-07 model winners, MIN_ML_ORIGINS/suspiciously_strong small-sample precedent, weekly-mode blocker note) — HIGH confidence, project's own decision record
+- `.planning/PROJECT.md` (v2.0 milestone scope, "no un-backtested model ships" constraint, "single local user, roughly monthly use" pattern) — HIGH confidence, project's own scope document
+- General knowledge that the NewsAPI free tier restricts historical article access to a trailing ~28-30 day window, and that the "News Category Dataset" (Kaggle, Rishabh Misra) is a general HuffPost topic-classification corpus spanning roughly 2012–2022 — MEDIUM confidence (training-data knowledge, consistent with and corroborated by the in-repo `archive/README.md` wording and the sampled JSON contents, but not independently re-verified against NewsAPI's current live terms/pricing page in this session)
 
 ---
-*Pitfalls research for: Reflex dashboard v1.3 feature retrofit (theme, nav, model metadata, chart fix, data-entry rework)*
-*Researched: 2026-08-24*
+*Pitfalls research for: Sentiment scenario-adjustment layer + weekly-forecast re-research spike (Prediction Dashboard v2.0)*
+*Researched: 2026-08-31*

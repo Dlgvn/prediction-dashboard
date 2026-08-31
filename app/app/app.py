@@ -22,7 +22,6 @@ from app.theme import (
     RADIX_SIZE_LABEL,
     SPACE_LG,
     SPACE_MD,
-    SPACE_SM,
 )
 
 # Header labels in display order, paired with the PriceRow attribute they render.
@@ -42,6 +41,8 @@ def _editable_cell(row: PriceRow, attr: str, cell_style: dict | None = None) -> 
     """
     value = getattr(row, attr)
     key = row.date + ":" + attr
+    column_label = "Date" if attr == "date" else SERIES_LABELS[attr]
+    cell_aria_label = "Edit " + column_label + " for " + row.date
     # `edit_value` seeds start_edit's draft (unrounded — must round-trip
     # exactly on a no-op edit, or committing without changing anything would
     # silently truncate the stored precision). `shown_text` is display-only:
@@ -55,19 +56,30 @@ def _editable_cell(row: PriceRow, attr: str, cell_style: dict | None = None) -> 
         else rx.cond(value != None, round(value, 2), "")  # noqa: E711
     )
 
-    display = rx.text(
+    # A real <button> (Web Interface Guidelines: "<button> for actions, not
+    # <div onClick>") so the cell is keyboard-focusable and Enter/Space-
+    # activatable for free, instead of a non-interactive <p> with onClick.
+    # variant="ghost" strips the default button chrome so it still reads as
+    # plain table text.
+    display = rx.button(
         shown_text,
         on_click=DashboardState.start_edit(key, edit_value),
-        cursor="pointer",
+        aria_label=cell_aria_label,
+        variant="ghost",
+        color_scheme="gray",
+        type="button",
         size="2",
         font_family="'IBM Plex Mono', monospace",
+        font_weight="400",
+        justify_content="flex-start",
         # Blank cells (None values) render as empty text with no
         # intrinsic width, leaving nothing to click on — width="100%"
         # plus a minimum height keeps the whole cell clickable even
         # when shown_text is "".
         width="100%",
         min_height="1.5em",
-        display="block",
+        height="auto",
+        padding="0",
     )
 
     # Date column uses a native HTML5 date picker (D-01/DATA-10) so the user
@@ -82,17 +94,25 @@ def _editable_cell(row: PriceRow, attr: str, cell_style: dict | None = None) -> 
         on_blur=DashboardState.commit_edit,
         on_key_down=DashboardState.handle_key_down,
         auto_focus=True,
+        aria_label=cell_aria_label,
         size="1",
         border_color=rx.cond(DashboardState.edit_error != "", "red", None),
     )
     if attr == "date":
         input_kwargs["type"] = "date"
+    else:
+        input_kwargs["type"] = "number"
 
     editor = rx.vstack(
         rx.input(**input_kwargs),
         rx.cond(
             DashboardState.edit_error != "",
-            rx.text(DashboardState.edit_error, color_scheme="red", size="1"),
+            rx.text(
+                DashboardState.edit_error,
+                color_scheme="red",
+                size="1",
+                aria_live="polite",
+            ),
             rx.fragment(),
         ),
         spacing="1",
@@ -120,6 +140,7 @@ def _delete_cell(row: PriceRow) -> rx.Component:
         color_scheme="red",
         size="1",
         on_click=DashboardState.request_delete(row.date),
+        aria_label="Delete row for " + row.date,
         min_width="32px",
         min_height="32px",
     )
@@ -346,6 +367,7 @@ def export_button() -> rx.Component:
                     DashboardState.destructive_color,
                     DashboardState.muted_text,
                 ),
+                aria_live="polite",
             ),
             rx.fragment(),
         ),
@@ -638,6 +660,7 @@ def csv_import_control() -> rx.Component:
         padding=SPACE_MD,
         border=f"1px solid {DashboardState.destructive_color}",
         border_radius=CARD_RADIUS,
+        aria_live="polite",
     )
 
     preview_state = rx.box(
@@ -681,6 +704,7 @@ def csv_import_control() -> rx.Component:
         border=DashboardState.card_border,
         border_radius=CARD_RADIUS,
         padding=CARD_PADDING,
+        aria_live="polite",
     )
 
     done_state = rx.box(
@@ -698,6 +722,7 @@ def csv_import_control() -> rx.Component:
         border=DashboardState.card_border,
         border_radius=CARD_RADIUS,
         padding=CARD_PADDING,
+        aria_live="polite",
     )
 
     idle_state = rx.upload(
@@ -857,8 +882,17 @@ def index() -> rx.Component:
         # A <style> element rendered inside the component tree instead
         # gets the hook injected normally, and a <style> tag's CSS still
         # cascades globally regardless of where it sits in the DOM.
+        #
+        # color-scheme is set from the same Var (its value is literally
+        # "light"/"dark") so native browser chrome — scrollbars, and the
+        # native <input type="date"> picker popup added in Phase 15 —
+        # renders in the matching theme instead of always-light.
         rx.el.style(
-            "html, body { background: " + DashboardState.page_bg + "; }"
+            "html, body { background: "
+            + DashboardState.page_bg
+            + "; color-scheme: "
+            + DashboardState.theme_mode
+            + "; }"
         ),
         rx.hstack(
             rx.heading("Prediction Dashboard", size="9", as_="h1"),

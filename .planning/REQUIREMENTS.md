@@ -1,5 +1,43 @@
 # Requirements — Prediction Dashboard (Reflex forecasting app)
 
+## v2.0 Requirements
+
+### Sentiment Research (gated)
+
+- [ ] **SENT-01**: A causality/correlation screen runs against the app's actual
+      HDAN/PPAN/Diesel-USD/FX series (not equities), with the effective monthly sample
+      size explicitly reported, before any sentiment adjustment is considered valid
+- [ ] **SENT-02**: The sentiment backtest produces a documented, frozen go/no-go result
+      (mirroring the project's "no un-backtested model ships" discipline) — a "no-go" is a
+      valid, complete outcome for this requirement, not a blocker to closing it
+
+### Sentiment UI (conditional — only if SENT-01/SENT-02 return a go)
+
+- [ ] **SENT-03**: User sees a sentiment-adjusted bull/bear band on the existing fan chart,
+      visually distinguished from (e.g. dashed) and never mutating or replacing the
+      existing backtested statistical band
+- [ ] **SENT-04**: A provenance line near the chart shows the sentiment score's date range,
+      article count, and mean/weighted score, honestly labeled as "general market
+      sentiment" — never presented as commodity- or Mongolia-specific news
+- [ ] **SENT-05**: A staleness/coverage warning appears when the sentiment data doesn't
+      cover the requested period or is stale
+- [ ] **SENT-06**: User can view the top 3-5 headlines by absolute sentiment score behind a
+      given sentiment adjustment
+- [ ] **SENT-07**: A sample-size confidence flag appears on sentiment scores based on very
+      few articles
+- [ ] **SENT-08**: User can toggle between a statistical-only view and a
+      statistical+sentiment view of the scenario bands
+
+### Weekly Forecast Research (gated)
+
+- [ ] **WKLY-01**: A re-research backtest for weekly-cadence HDAN/PPAN forecasting tests
+      genuinely new candidate variables and/or model families — not a rerun of the prior
+      no-go combination (weekly VAR on the same Baltic AN/Ammonia/Urea/Natural Gas proxy
+      set) — using the same walk-forward, horizon-matched methodology as the prior spike
+- [ ] **WKLY-02**: The weekly re-research backtest produces a documented go/no-go result
+      compared explicitly against the prior spike's benchmark figures (9.49%/10.08%
+      monthly MAPE) — a "no-go" is a valid, complete outcome, not a blocker to closing it
+
 ## v1.3 Requirements
 
 ### Theming & Layout
@@ -113,21 +151,36 @@
 
 - [x] **EXPORT-01**: User can export the current stored price table to an `.xlsx` file
 
-## v2 Requirements (Deferred)
+## v2.1+ Requirements (Deferred)
 
-- Weekly forecast mode — blocked on resolving the AN-family vs. Diesel/FX weekly
-  data-cadence gap; the weekly source file (`AN price weekly.csv`) lacks HDAN/PPAN
-  directly and there is no weekly Diesel/FX data at all. Needs its own research pass to
-  either validate a Baltic AN → HDAN/PPAN proxy or scope weekly mode down to only the
-  series that actually have weekly data.
-- Live news/sentiment-driven bull/bear scenario adjustment — provider selection (news API
-  + LLM sentiment scoring vs. a dedicated market-data provider) is an open research
-  question, not decided. Ships as a fast-follow milestone after the core dashboard works.
+- Weekly forecast mode UI (toggle + per-series disabled states, unit relabeling) —
+  deferred to its own follow-on milestone regardless of WKLY-01/WKLY-02's outcome; research
+  flags this as substantial enough (new weekly-cadence table, per-series-aware dispatcher,
+  partial-coverage UX design) to warrant its own planning cycle rather than folding into
+  v2.0's research spike
+- Per-series weekly capability badge, weekly-specific MAPE display — depend on the deferred
+  weekly UI milestone shipping first
+- Sentiment trend mini-chart (sent_ema3/sent_ema10/sent_momentum) — add-after-validation
+  item once the point-in-time sentiment score display (SENT-03/04) is live and trusted
 - Automatic API data-fetch from external price sources — only relevant if/when the
   "connect to a data API" idea is picked up as its own milestone.
 
 ## Out of Scope
 
+- Live/auto-refreshing news polling for sentiment — mismatched with single-user,
+  roughly-monthly usage cadence; the archive dataset is batch-refreshed manually instead,
+  same pattern as the existing CSV bulk-import feature
+- SHAP or other formal explainability tooling for the sentiment adjustment — disproportionate
+  engineering for this scale; simple auditable provenance (SENT-04/06) covers the trust need
+- Full in-app article reader / news browser — feature bloat for an occasional-use
+  procurement tool; top-headline snippets with outbound links only (SENT-06)
+- Open-ended multi-granularity picker beyond Monthly/Weekly — no stated need beyond these two
+- Auto-interpolating synthetic weekly points for series without weekly source data
+  (Diesel/FX/Diesel-MNT) — manufactures false precision; these series stay explicitly
+  monthly-only regardless of any future weekly UI milestone
+- Sentiment adjustment silently widening/narrowing the existing backtested statistical
+  bull/bear band — violates the documented `forecasting.py` invariant; must always be a
+  separate, additive band (SENT-03)
 - Multi-user accounts / authentication — single local user matches the existing Excel
   workbook's actual usage pattern; no value for one person on one machine.
 - Configurable/pluggable model selection in the UI (user picking ARIMA vs. VAR vs. ML from
@@ -187,6 +240,17 @@
 | NAV-01 | Phase 14 | Complete |
 | DATA-09 | Phase 15 | Complete |
 | DATA-10 | Phase 15 | Complete |
+| SENT-01 | Phase 16 | Pending |
+| SENT-02 | Phase 16 | Pending |
+| SENT-03 | Phase 18 | Pending |
+| SENT-04 | Phase 18 | Pending |
+| SENT-05 | Phase 18 | Pending |
+| SENT-06 | Phase 18 | Pending |
+| SENT-07 | Phase 18 | Pending |
+| SENT-08 | Phase 18 | Pending |
+| WKLY-01 | Phase 17 | Pending |
+| WKLY-02 | Phase 17 | Pending |
 
 ---
 *Requirements defined: 2026-08-21*
+*v2.0 requirements (SENT-01..08, WKLY-01..02) mapped to Phases 16-18: 2026-08-31*

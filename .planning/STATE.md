@@ -1,46 +1,43 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: dashboard-polish-data-entry-rework
-status: verifying
-stopped_at: Completed 15-02-PLAN.md
-last_updated: "2026-08-25T02:09:28.461Z"
-last_activity: 2026-08-25
+milestone: v2.0
+milestone_name: News/Sentiment Scenarios & Weekly Forecast Research
+status: executing
+stopped_at: Phase 16 context gathered
+last_updated: "2026-08-31T09:08:53.126Z"
+last_activity: 2026-08-31 -- Phase 16 planning complete
 progress:
-  total_phases: 15
-  completed_phases: 15
-  total_plans: 43
-  completed_plans: 43
-  percent: 100
+  total_phases: 18
+  completed_phases: 0
+  total_plans: 2
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-21)
+See: .planning/PROJECT.md (updated 2026-08-31)
 
 **Core value:** The user can enter a month's actuals, pick a forecast horizon (1-12 months),
 and see a chart with three price scenarios (bull/base/bear) for each of the four tracked
 series — without opening Excel.
 
-**Current focus:** v1.3 — real user feedback: fix the transparent html/body background bug
-(black margins on wide/dark-mode viewports), add a persisted dark/light toggle, add a tab/nav
-bar between page sections, show per-series model name + backtest accuracy near the forecast,
-fix the fan chart's overlapping axis label/legend, and deep-research a rework of Data Entry
-(diagnosed root cause: the new-row date field silently rejects invalid input with zero
-user-facing error, confirmed via live browser reproduction on 2026-08-24 — typed "08/25/2027"
-into a draft row's date cell, editor stayed open with the bad value, zero error text rendered
-anywhere on the page).
+**Current focus:** v2.0 — research whether a news/sentiment-driven adjustment to the
+bull/bear scenario bands is viable against the app's real HDAN/PPAN/Diesel-USD/FX series
+(Phase 16), re-research whether weekly-cadence HDAN/PPAN forecasting can clear a new
+backtest bar with genuinely new variables/model families (Phase 17, research-only — no
+weekly UI ships this milestone regardless of outcome), and only if Phase 16 returns a go,
+build an additive sentiment-adjusted band + provenance + toggle on the existing fan chart
+(Phase 18).
 
 ## Current Position
 
-Milestone: v1.3
-Phase: 15 of 15 (Data Entry Rework)
-Status: Phase 15 complete. Plan 01 (start_edit race-guard fix, state-transition table, D-03 audit) and Plan 02 (native date picker, human-verified DATA-09/DATA-10 flow + regressions) both done.
-Last activity: 2026-08-25
-
-Progress: [██████████] 100%
+Phase: 16 (Sentiment Data Sufficiency & Causality Research) — Not started
+Plan: —
+Status: Ready to execute
+Last activity: 2026-08-31 -- Phase 16 planning complete
 
 ## Performance Metrics
 
@@ -179,6 +176,8 @@ Recent decisions affecting current work:
 - [Phase 15-01]: start_edit guard only applies inside start_edit; Escape and window-toggle remain unconditional overrides
 - [Phase 15-02]: rx.input(type="date") confirmed via installed reflex_components_radix TextFieldRoot source to pass `type` straight through and fire on_change with the native control's raw value string; _editable_cell branches a single shared input_kwargs dict on attr == "date" so every other column stays byte-identical
 - [Phase 15-02]: Phase 15 complete — DATA-09 and DATA-10 both satisfied; human-verified live in browser: valid/duplicate date commit, error-survives-click-away (15-01 race fix), Escape recovery, in-place date edit, windowing-toggle-mid-error, and CSV-import-mid-draft-error, all passed with no corruption
+- [v2.0 roadmap]: Sentiment (Phase 16) and weekly (Phase 17) research spikes are independent, sequenced as parallel-eligible phases; Phase 18 (sentiment UI) is strictly gated on Phase 16 returning a "go" and will be dropped from the milestone (not built degraded) if Phase 16 returns "no-go"
+- [v2.0 roadmap]: No weekly UI phase exists in this milestone — WKLY-01/WKLY-02 close via Phase 17's research report alone; weekly UI is deferred to its own future milestone regardless of Phase 17's outcome, per REQUIREMENTS.md v2.1+ Deferred section
 
 ### Pending Todos
 
@@ -201,7 +200,8 @@ Recent decisions affecting current work:
   benchmarks). But the backtest (backend_research/REPORT.md, "Weekly cadence" section) is a
   no-go: weekly-native VAR rolled 4 weeks forward underperforms the existing monthly VAR
   (10.35%/16.01% vs 9.49%/10.08% MAPE), so the deferral stands. No weekly Diesel/FX data exists
-  at all, unchanged.
+  at all, unchanged. Phase 17 (v2.0) re-researches this with genuinely new candidates before any
+  future weekly-UI milestone can be considered.
 
 - Model family selection (ARIMA/SARIMAX/VAR vs. ML baseline) is genuinely open — Phase 2 must
   produce real backtest results, not a formality, before Phase 3 forecasting logic is built.
@@ -209,8 +209,15 @@ Recent decisions affecting current work:
 - Confidence-band methodology (backtest MAPE vs. model-native forecast SE) needs a concrete
   design decision during Phase 3 planning.
 
+- [v2.0] Sentiment relevance is genuinely unresolved going into Phase 16 — research (SUMMARY.md)
+  found the `archive/` sentiment dataset is a generic US-equity-market (SPY/QQQ/DIA/VIX) news
+  corpus with zero ammonium nitrate/diesel/Mongolia/tugrik content, and its dense daily coverage
+  is only ~2 months wide (a NewsAPI free-tier artifact), not the 6-year span its date range
+  implies. A "no-go" from Phase 16 is a likely, valid, and complete outcome — Phase 18 should not
+  be started speculatively ahead of that result.
+
 ## Session Continuity
 
-Last session: 2026-08-25T02:35:00.000Z
-Stopped at: Completed 15-02-PLAN.md
-Resume file: None
+Last session: 2026-08-31T04:59:10.539Z
+Stopped at: Phase 16 context gathered
+Resume file: .planning/phases/16-sentiment-data-sufficiency-causality-research/16-CONTEXT.md

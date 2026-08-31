@@ -1,126 +1,351 @@
-# Architecture Research: v1.3 Dashboard Polish & Data-Entry Rework
+# Architecture Research
 
-**Domain:** Integration architecture for 6 features into an existing single-state-class Reflex app
-**Researched:** 2026-08-24
-**Confidence:** HIGH (all findings grounded in direct reads of `app/app/state.py`, `app/app/app.py`, `app/app/forecasting.py`, `app/app/theme.py`, `app/app/validators.py`, `app/rxconfig.py`, and `.planning/STATE.md`'s recorded repro)
+**Domain:** Integrating a news/sentiment scenario-adjustment layer and a weekly-forecast research spike into an existing single-process Reflex forecasting dashboard
+**Researched:** 2026-08-31
+**Confidence:** HIGH (grounded in direct reads of `app/app/forecasting.py`, `app/app/state.py`, `app/app/models.py`, `app/app/app.py`, `app/app/seed.py`, `backend_research/REPORT.md`, `backend_research/REPORT-PHASE2.md`, `archive/README.md`) — MEDIUM on the sentiment data's actual predictive relevance, which is an open research question this document surfaces rather than resolves.
 
-## Existing System Overview
+## Standard Architecture
+
+### System Overview — current state (verified)
 
 ```
-┌───────────────────────────────────────────────────────────────────┐
-│ rxconfig.py — RadixThemesPlugin(theme=rx.theme(appearance="light"))│
-│ (hardcoded, no toggle mechanism today)                             │
-├───────────────────────────────────────────────────────────────────┤
-│ app/app/app.py — ALL render/component functions, composed in       │
-│ index() as one long rx.container: cards → forecast → historical →  │
-│ data entry, all on one scroll, one route ("/")                     │
-├───────────────────────────────────────────────────────────────────┤
-│ app/app/state.py — DashboardState(rx.State), the SOLE DB boundary  │
-│ (rx.session() appears only here). Holds ~20 state fields, computed │
-│ @rx.var chart/table/card builders, and every event handler.        │
-├───────────────────────────────────────────────────────────────────┤
-│ app/app/forecasting.py — Reflex-free. forecast_all() dispatches 4  │
-│ frozen, hardcoded models; MAPEs live only in docstrings/comments.  │
-├───────────────────────────────────────────────────────────────────┤
-│ app/app/theme.py — dependency-free design-token constants (colors, │
-│ spacing, typography). No dark-mode variants exist yet.             │
-├───────────────────────────────────────────────────────────────────┤
-│ app/app/validators.py — pure validate_date/validate_numeric, no    │
-│ Reflex import, already correct and already returns error strings.  │
-└───────────────────────────────────────────────────────────────────┘
+┌───────────────────────────────────────────────────────────────────────┐
+│                         Reflex process (single)                       │
+├───────────────────────────────────────────────────────────────────────┤
+│  app/app/app.py                                                       │
+│    index() → rx.match(active_section, "summary"/"forecast"/           │
+│    "data_entry" → {historical_section, data_entry_section})           │
+│    Renders DashboardState vars/components; NEVER opens rx.session().  │
+├───────────────────────────────┬───────────────────────────────────────┤
+│  app/app/state.py (DashboardState — SOLE rx.session() call site)      │
+│    - load_rows / commit_edit / request_delete / confirm_import        │
+│    - forecast_results (@rx.var) → single call site for forecast_all() │
+│    - _history_df() → PriceRow rows → plain pd.DataFrame (16 cols)     │
+│    - SERIES_ATTRS / SERIES_LABELS / FORECAST_SERIES_LABELS = single   │
+│      sources of truth for the 16-series schema + 5-series forecast    │
+│      dispatch                                                         │
+├───────────────────────────────┬───────────────────────────────────────┤
+│  app/app/forecasting.py (ZERO reflex import — pure pandas/numpy)      │
+│    forecast_all(history, horizon, markup_pct) → single dispatcher     │
+│      → forecast_hdan (SARIMAX+exog, frozen GARCH sigma spread)        │
+│      → forecast_ppan_var_system (Direct-OLS VAR-system, ARIMA-SE      │
+│        spread)                                                        │
+│      → forecast_diesel_usd / forecast_fx (Naive, ARIMA-SE spread)     │
+│      → diesel_mnt_forecast (derived: diesel_usd × fx × markup)        │
+│    MODEL_INFO = frozen {series: (model_name, mape_pct)} provenance    │
+│    All model choices hard-coded from backend_research/ backtest       │
+│    output — MODEL_INFO/HDAN_SARIMAX_ORDER/etc. are never re-derived   │
+│    at runtime (D-06/D-08 "no un-backtested model ships").             │
+├───────────────────────────────┬───────────────────────────────────────┤
+│  app/app/models.py (rx.Model/SQLModel — SQLite)                       │
+│    PriceRow: one row per MONTH, wide 16-series schema, date unique    │
+│    AppSetting: key/value (markup_pct)                                 │
+├───────────────────────────────┴───────────────────────────────────────┤
+│  app/app/seed.py — standalone offline script (NOT wired into app      │
+│  startup, opens its OWN sqlmodel session) that bulk-loads CSVs into   │
+│  PriceRow. This is the app's one pre-existing exception to "state.py  │
+│  is the sole session boundary" — an established, deliberate pattern   │
+│  ("never wired into app startup — standalone script").                │
+└───────────────────────────────────────────────────────────────────────┘
+
+Offline/out-of-band, NOT part of the running app:
+  backend_research/  — walk-forward backtest harness (walk_forward.py,
+    run_*_candidates.py, results/*.json, REPORT.md/REPORT-PHASE2.md).
+    This is where EVERY winning model in forecasting.py was proven before
+    being hard-coded. New models (sentiment adjustment, weekly cadence)
+    must go through an equivalent step here BEFORE touching app/.
+
+  archive/  — NOT yet wired to anything. Contains US-equity-market news/
+    sentiment data (see Pitfall below), not commodity-specific sentiment.
 ```
 
-Single Reflex process, single `DashboardState` class, single page/route. This pattern holds for all six v1.3 features — none of them require a new state class, a new DB table (except theme persistence), or a second route (nav bar is same-page section switching, not multi-route).
+### Component Responsibilities (existing, verified by file read)
 
-## (a) Date-cell error-rendering bug — root-cause diagnosis
+| Component | File | Responsibility | Reflex-coupled? |
+|-----------|------|-----------------|------------------|
+| `forecasting.py` | `app/app/forecasting.py` | Pure forecast math: 4 hard-coded per-series models + derived diesel_mnt + frozen `MODEL_INFO` provenance constant | No — zero `import reflex`, unit-tested directly (`tests/test_forecasting.py`) |
+| `models.py` | `app/app/models.py` | SQLite schema: `PriceRow` (monthly wide table), `AppSetting` (k/v) | Yes (`rx.Model`) but only imported, never queried outside state.py |
+| `state.py` | `app/app/state.py` | Sole DB read/write boundary (`rx.session()`); computed vars (`forecast_results`, `summary_cards`, chart figures); event handlers for edit/delete/import | Yes — this is the Reflex boundary |
+| `app.py` | `app/app/app.py` | Component tree, `rx.match(active_section, ...)` tab switching | Yes — pure rendering |
+| `seed.py` | `app/app/seed.py` | Standalone, manually-run, offline CSV → `PriceRow` bulk loader with its own session | Yes (imports `rx.Model` via `app.models`) but architecturally exempt from the "state.py only" rule because it never runs inside the live app process |
+| `backend_research/` | `backend_research/*.py` | Offline walk-forward backtest harness that produced every constant now frozen in `forecasting.py` | No |
 
-**Code path traced:** `_editable_cell` (app.py:41-81) is the ONE function used for both `visible_rows` and `draft_rows` (app.py:117-130, `data_table()`) — there is no structural difference between the draft-row editor and the persisted-row editor. Both render the identical `rx.vstack(rx.input(...), rx.cond(edit_error != "", rx.text(edit_error), rx.fragment()))` block, gated by the same `rx.cond(DashboardState.editing_key == key, editor, display)`.
+## Recommended Project Structure — additions for v2.0
 
-**Key/state-machine trace for a draft row's date cell**, confirmed by reading `add_row`, `start_edit`, `commit_edit`, `_commit_draft_cell`, and `validate_date`:
-1. `add_row()` sets `draft_rows = [PriceRow(date="")]`, `editing_key = ""` — the draft's date cell renders as **display mode** (empty text), not already in edit mode. User must click it first.
-2. Clicking calls `start_edit(key, display_value)` where `key = row.date + ":" + attr` → `":date"` for the draft's date column (draft `date == ""`). This matches `_commit_draft_cell`'s own `editing_key.split(":", 1)` → `("", "date")` routing in `commit_edit()`. **This routing is correct — no key mismatch found.**
-3. User types (`update_draft` fires per keystroke, `draft_value` updates — no validation, no DB touch, as intended).
-4. Commit is triggered ONLY by `on_blur=DashboardState.commit_edit` or `on_key_down` Enter (`handle_key_down`). There is **no on_change/live validation** — this is the load-bearing fact.
-5. On commit, `commit_edit()` → `row_date == ""` → `_commit_draft_cell("date")` → `validate_date(self.draft_value, ...)`. For `"08/25/2027"`, `date.fromisoformat()` raises `ValueError` → returns `(False, "", DATE_INVALID_ERROR)`. `_commit_draft_cell` sets `self.edit_error = error` and returns — **it does not touch `editing_key`, `draft_value`, or `draft_rows`.**
-6. On the next render, `editing_key` is still `":date"`, so the editor still renders (correct), and `edit_error` is now `"Enter a valid date."` — the `rx.cond(DashboardState.edit_error != "", rx.text(...), ...)` block should render this text.
+```
+backend_research/
+├── sentiment/                      # NEW — research/backtest phase for the
+│   │                                 sentiment-adjustment feature. Mirrors
+│   │                                 the existing run_*_candidates.py /
+│   │                                 walk_forward.py pattern.
+│   ├── sentiment_data_loader.py    # NEW — loads archive/*.csv, aligns
+│   │                                 sentiment dates to PriceRow's monthly
+│   │                                 cadence (resample/aggregate daily→
+│   │                                 monthly, mirroring data_loader.py's
+│   │                                 existing resample patterns)
+│   ├── run_sentiment_backtest.py   # NEW — tests whether a sentiment
+│   │                                 signal, added as an adjustment to the
+│   │                                 EXISTING base/bull/bear bands, reduces
+│   │                                 error or improves interval coverage
+│   │                                 vs. the current statistical-spread-only
+│   │                                 baseline (same walk_forward.py harness)
+│   └── results/sentiment_backtest.json   # NEW — frozen output, mirrors
+│                                            results/wf_*.json convention
+├── run_weekly_candidates.py        # EXISTS — extend, don't replace, per
+│                                      REPORT.md's own "before revisiting
+│                                      this" follow-ups (SARIMAX/ETS at
+│                                      weekly cadence; Baltic AN dedup check)
+└── results/weekly_candidates.json  # EXISTS — append new weekly-SARIMAX
+                                       results here on the same schema
 
-**Reading the code in isolation, the error-rendering wiring is structurally correct** — `edit_error` is set, and the same component that renders it for existing rows renders it for draft rows too. This rules out "draft rows use a different/broken editor" as the root cause; `_editable_cell` is shared, single-source code.
+app/app/
+├── forecasting.py                  # MODIFY (additive only) — add
+│                                      MODEL_INFO-style frozen provenance
+│                                      constant for the sentiment adjustment
+│                                      once backtested; existing 4 model
+│                                      functions untouched
+├── sentiment.py                    # NEW — pure Python, mirrors
+│                                      forecasting.py's zero-Reflex-import
+│                                      contract exactly. Composes with (does
+│                                      NOT replace) the existing
+│                                      base/bull/bear dict shape.
+├── models.py                       # MODIFY (additive) — new
+│                                      SentimentDaily/SentimentMonthly
+│                                      rx.Model table (see Data Flow below)
+├── seed_sentiment.py                # NEW — standalone offline loader for
+│                                      archive/*.csv → new sentiment table,
+│                                      following seed.py's exact precedent
+│                                      (own session, "never wired into app
+│                                      startup")
+├── state.py                        # MODIFY (additive) — new computed
+│                                      var(s) that call sentiment.py
+│                                      functions against forecast_results'
+│                                      existing output; NO changes to
+│                                      forecast_results itself (composition,
+│                                      not replacement — see Pattern 1)
+└── app.py                          # MODIFY (additive) — render the
+                                       sentiment-adjusted band + provenance
+                                       text in forecast_section()
 
-**The actual, evidence-grounded root cause (per STATE.md's confirmed live-browser repro) is a UX/trigger problem, not a broken render:** `commit_edit()` only fires on `on_blur` or Enter keydown. If a user types an invalid date and **does not blur the field or press Enter** (e.g. types, then looks at the screen, or the browser's blur event doesn't fire the way they expect), `commit_edit()` is never invoked, `edit_error` is never set, and nothing renders — because nothing ran, not because rendering is broken. This matches "value stays in the input, zero error shown anywhere" exactly: the input still shows the typed value (never touched) and no validation ever ran. Compounding factors that make this easy to hit in practice:
-- No format hint anywhere near the input (raw ISO-only text field, `date.fromisoformat()` is strict — rejects `08/25/2027`, `2027-8-25`, `Aug 25 2027`, anything but `YYYY-MM-DD`).
-- The error text, when it DOES render, is small (`size="1"`) red text below a narrow table-cell input — easy to miss in a dense 17-column table, especially if the user's eye is elsewhere or the row scrolled.
-- `edit_error` is a single scalar (by design, per the code comment) — if the user moves to a different cell before blur/Enter fully registers, or if focus shifts unexpectedly, the error can be set-then-immediately-cleared by the next `start_edit` call (`start_edit` resets `edit_error = ""` unconditionally), making a genuinely-set error invisible if another cell-focus event races it.
+app/alembic/versions/
+└── <new>_add_sentiment_table.py    # NEW — via `reflex db migrate`, per
+                                       models.py's existing SQLModel
+                                       convention; do NOT hand-write SQL
+```
 
-**Verdict:** No code defect in the render conditional itself — `_commit_draft_cell` and `_editable_cell` are wired correctly and consistently for both draft and persisted rows. The bug is behavioral: validation is blur/Enter-gated with no live feedback, no format affordance, and an easily-missed/racily-cleared error message, on a strict ISO-only text input. **This is exactly what the milestone's "deep-research a rework of Data Entry" note is asking for** — fix direction should not be "find the broken cond," it should be (1) add on_change/live or explicit inline validation feedback, (2) replace or augment the raw text input with a real date picker (removes the format-guessing problem entirely), (3) make the error impossible to miss (persistent banner or stronger inline treatment, not just small red text that can be raced away by a subsequent `start_edit`).
+### Structure Rationale
 
-## (b) New state fields / components needed
+- **`backend_research/sentiment/`** as a subfolder (not new top-level files) — keeps the sentiment backtest visually and organizationally subordinate to the existing `backend_research/` harness it depends on (`walk_forward.py`, `model_harness.py`), the same way `run_weekly_candidates.py`'s weekly section reused the existing harness rather than forking a parallel one.
+- **`app/app/sentiment.py` as a sibling to `forecasting.py`, not a submodule of it** — the project's zero-Reflex-import contract (D-08) is a per-file property enforced by `tests/test_forecasting.py`-style import assertions; a new file makes it trivial to write an equivalent `tests/test_sentiment.py` that asserts `sentiment.py` never imports `reflex`, without touching the existing frozen file.
+- **`seed_sentiment.py` as its own file, not folded into `seed.py`** — `seed.py`'s docstring is explicit about its column mapping being scoped to the three price CSVs; sentiment data has a different cadence (daily) and a different target table, so keeping it separate avoids overloading one script's CLI argument contract (`python -m app.seed "<an data path>" "<an weekly path>" "<diesel path>"`).
 
-### Theme toggle (dark/light, persisted)
+## Architectural Patterns
 
-`rxconfig.py` currently hardcodes `rx.theme(appearance="light", ...)` at the plugin level — this is a **build-time** config, not a runtime toggle. To make it togglable at runtime you do NOT change `rxconfig.py`'s plugin (that only sets the initial/default); instead:
-- Add `theme_appearance: str = "light"` to `DashboardState` (or a small dedicated `ThemeState` — see Build Order note below on why a shared state field is simpler here given the single-state-class convention already established).
-- Reflex's Radix theme appearance is normally toggled via `rx.color_mode.button()`/`rx.color_mode_cond` or by binding the top-level `rx.theme`'s `appearance` prop to a state Var in `app.py` — this needs verifying against the installed Reflex 0.9.8 API (Context7/official docs) before implementation, since `rx.theme()` as used in `rxconfig.py` is the plugin-level default and the runtime override path is a different API surface (`rx.App(theme=...)` root wrapping, not the plugin). **Flag for phase-level research** — do not guess the exact Reflex 0.9.x runtime-appearance-toggle API without checking docs first.
-- Persistence: two realistic options — (1) `rx.Cookie`/`rx.LocalStorage`-backed state var (Reflex has built-in browser-persisted state vars — check exact API name for 0.9.8), which needs zero new DB table and survives only per-browser; or (2) a new `AppSetting` row (the `AppSetting` model already exists and is already used for `markup_pct` — `load_markup_pct` is the existing pattern to mirror) for persistence across devices/sessions server-side. Given this is a single-user app already using `AppSetting` for one persisted preference, **mirroring `markup_pct`'s `AppSetting` pattern is the lower-risk, consistent choice** over introducing a new browser-storage primitive.
-- New component: a toggle control (icon button or switch) placed in a header/nav area — new, small, e.g. `theme_toggle()` in app.py.
+### Pattern 1: Sentiment adjustment composes with, never replaces, the existing spread
 
-### html/body transparent background fix
+**What:** `sentiment.py` exports a pure function with a signature like `apply_sentiment_adjustment(scenario: dict, sentiment_signal: float, horizon: int) -> dict`, where `scenario` is exactly the `{"base": [...], "bull": [...], "bear": [...]}` shape every `forecast_*` function in `forecasting.py` already returns. It **takes an already-computed statistical scenario dict as input** and returns a new dict of the same shape — it never fits its own point forecast and never touches `base`.
 
-Not a state change — a component/CSS fix. `PAGE_BG` (theme.py) is currently only applied to the inner `rx.container` in `index()` (`background=PAGE_BG` on the container, app.py:719). The `html`/`body` elements are unstyled and transparent by default in Reflex's generated app shell, so anything outside the container's box (wide viewports, dark browser/OS chrome) shows through. Fix is to set a background at the true document root — via Reflex's global style mechanism (`rx.App(style=...)` global CSS, or a `rxconfig.py`-level style/stylesheet injection targeting `html, body`) rather than another per-component `background=` prop, since the bug is specifically that per-component props never reach `html`/`body`. **This interacts with the theme toggle**: once dark mode exists, this fix must set the background dynamically (light/dark token) rather than hardcoding `PAGE_BG`, or the same bug reappears in reverse for dark mode. Build these two together (see Build Order).
+**When to use:** Every call site that today reads `forecast_results[key]` (chart, table, summary cards) can optionally read a second, sentiment-adjusted dict instead — additive, not a replacement of the existing spread mechanism. This mirrors the exact discipline `_apply_garch_spread` / `_apply_se_spread` already use in `forecasting.py`: a small pure function that widens/shifts `bull`/`bear` around an untouched `base`.
 
-### Tab/nav bar (Summary / Forecast / Data Entry)
+**Trade-offs:** Pro — this cannot silently corrupt the already-backtested statistical bands (v1's core promise). Con — if a real, validated sentiment signal only naturally wants to shift `base` (e.g., "bearish news should shift the whole expected price down, not just widen bear"), that decision needs to be made explicit and named for the user, not layered in as a hidden implementation detail. Recommend v2 land the adjustment on `bull`/`bear` only first (the same choice the existing GARCH/SE spread pattern makes), and treat "should sentiment also tilt `base`" as an open question for the backtest to answer.
 
-- New state field: `active_section: str = "summary"` (or reuse a small literal enum of the three section keys) on `DashboardState`.
-- New component: `nav_bar()` — three buttons/tabs bound to `DashboardState.set_active_section(section)` (new setter event handler, trivial, mirrors `select_series`'s pattern).
-- Render change in `index()`: today `index()` unconditionally composes `forecast_summary_cards()`, `forecast_section()`, `historical_section()`, `data_entry_section()` in sequence. Two implementation options: (1) conditional rendering — wrap each section in `rx.cond(DashboardState.active_section == "...", section_fn(), rx.fragment())`, hiding non-active sections from the DOM; or (2) scroll-anchor navigation — keep all sections rendered (cheap here since data volume is small and nothing lazy-loads) and have nav buttons `rx.el.a(href="#section-id")` / JS scroll-into-view. Given `forecast_results` and other `@rx.var`s are computed reactively regardless of visibility, **conditional rendering (option 1) has a real benefit**: it avoids rendering (though not recomputing) the Plotly figures and tables for hidden sections, which matters given the app already had a documented performance problem at scale (STATE.md's "2,950 editable cells" hang). Recommend option 1.
+**Example (illustrative, matches `_apply_se_spread`'s existing shape discipline):**
+```python
+# app/app/sentiment.py — mirrors forecasting.py's zero-Reflex-import contract
+def apply_sentiment_adjustment(
+    scenario: dict, sentiment_signal: float, horizon: int
+) -> dict:
+    """Tilt bull/bear (never base) by a backtested sentiment multiplier.
 
-### Per-series model name + backtest accuracy display
+    `scenario` is the exact {"base": [...], "bull": [...], "bear": [...]}
+    shape every forecast_* function in forecasting.py returns. This
+    function never re-fits a point forecast and never mutates `base` —
+    it composes with the statistical spread, per D-0X (sentiment is v2's
+    Scenario-planning/Delphi-style mechanism REQUIREMENTS.md already
+    reserved, explicitly deferred from Phase 2's backtestable-methods
+    scope in REPORT.md).
+    """
+    ...
+```
 
-Purely additive — see (c) below for the data-flow change; the UI-facing new component is small: a caption/badge component (e.g. `_model_badge(label, mape)`) placed near each forecast summary card and/or the forecast chart/table headers, following the existing `_summary_card`/`_freshness_chip` "foreach over a list of flat string dicts" pattern already used twice in app.py (state.py's `summary_cards` and `freshness_chips`) — the codebase already has an established idiom for exactly this shape of data, so this feature should copy that idiom rather than invent a new one.
+### Pattern 2: Sentiment data storage stays a separate table at its native cadence, never merged into `PriceRow`
 
-### Fan chart legend/axis-label overlap
+**What:** `PriceRow` is a wide table with exactly one row per tracked **month** (`date` unique, `SERIES_ATTRS` = 16 price columns). Sentiment data in `archive/` is **daily** (`news_sentiment_daily.csv`, `sentiment_market_panel.csv`) and covers a different, broader set of columns (VADER compound scores, EMAs, momentum, market-panel returns) that have nothing to do with commodity prices. Do not add sentiment columns to `PriceRow` — instead add a new table, e.g. `SentimentDaily` (or pre-aggregated `SentimentMonthly` if the backtest settles on monthly-only granularity), following `models.py`'s existing `rx.Model, table=True` + `sqlmodel.Field` convention, with its own `reflex db migrate` revision.
 
-Not a state change — a `forecast_chart_figure` (state.py:607-730) Plotly `update_layout` tuning fix. Current layout sets `legend=dict(orientation="h")` with default position and an `add_vline` annotation ("Forecast start") using `annotation_position="top left"` — these two are the likely overlap source (horizontal legend at top colliding with the top-left vline annotation, and/or the y-axis title colliding with tick labels at the given margins `margin=dict(l=40, r=16, t=16, b=40)`). Fix is purely a layout-property change (legend `y`/`yanchor` offset, or moving the vline annotation position, or increasing top margin) — no state/component structural change needed, low risk, isolated to one `@rx.var`.
+**When to use:** Any time ingested data has a different natural cadence or schema shape than the existing 16-series monthly contract. This is the same reasoning `AppSetting` already applies for `markup_pct` (D-04: "global markup lives on `AppSetting`, NOT as a per-row column on `PriceRow`") — cadence/shape mismatches get their own table, not a bolt-on column.
 
-## (c) Data flow: surfacing forecasting.py's hardcoded model names into the UI
+**Trade-offs:** Pro — keeps `SERIES_ATTRS`/`SERIES_LABELS` (the 16-series single source of truth `state.py`, `seed.py`, and export code all share) completely unperturbed; zero risk of an accidental column-count drift bug. Con — `state.py`'s `_history_df()` builder (which currently just does `{attr: getattr(row, attr) for attr in SERIES_ATTRS}`) needs a second, parallel builder for sentiment history, joined by date at the point `sentiment.py` is called, not baked into the existing DataFrame.
 
-**Current state:** Model names and MAPEs (HDAN SARIMAX(0,1,0)+exog 13.33%, PPAN Direct-OLS VAR-system 23.80%, Diesel-USD Naive 7.04%, FX Naive 1.72%) exist **only as free-text in docstrings/comments** inside `forecasting.py` (e.g. lines 245-246, 299, 386, 404) — there is zero machine-readable structure for this today. `forecast_all()`'s return contract is strictly the 5-key `{hdan, ppan, diesel_usd_ton, fx_rate, diesel_mnt}` dict of row-lists (D-07's locked contract, explicitly documented as `{"month", "base", "bull", "bear"}` per row) — no model-identity field flows through it, and per D-08 `forecasting.py` must stay Reflex-free.
+### Pattern 3: Weekly-cadence work stays entirely inside `backend_research/` until it clears a real backtest bar — zero `app/` changes during the spike
 
-**Required change, minimal and consistent with existing frozen-constants pattern:**
-1. Add a new frozen dict in `forecasting.py` alongside the other frozen constants (`HDAN_SARIMAX_ORDER`, etc.) — e.g. `MODEL_INFO: dict[str, dict[str, str | float]]` keyed by the same 5 series keys used everywhere else (`hdan`, `ppan`, `diesel_usd_ton`, `fx_rate`, `diesel_mnt`), each holding `{"name": "SARIMAX(0,1,0)+exog", "mape": 13.33}` transcribed from the same provenance already cited in the docstrings (`02-MODEL-DECISIONS.md`). This keeps forecasting.py's "no Reflex" and "frozen constants only" constraints intact — it's just another named constant, not new logic. `diesel_mnt` has no own model (derived) — decide whether to synthesize a composite label ("Derived: Diesel-USD × FX") or omit it from the badge display; omitting is simpler and matches how `FRESHNESS_SERIES` already excludes `diesel_mnt` for the same "derived, no own date" reason (state.py:97) — **reuse that same exclusion precedent**.
-2. In `state.py`, add one new `@rx.var` (e.g. `model_info_chips`) that maps `MODEL_INFO` into the same "list of flat string dicts" shape `summary_cards`/`freshness_chips` already use — this is a pure read of a new forecasting.py constant, no new DB access, no new computation, near-zero risk. It does not need to depend on `forecast_results` at all (model identity is static, not data-dependent), so it doesn't even need to be `@rx.var` if it's truly static — could be a plain module-level constant transformation, but `@rx.var` keeps it consistent with the existing chip-rendering idiom and lets it use `SERIES_LABELS`/`FORECAST_SERIES_LABELS` for display names.
-3. In `app.py`, add the small badge component described in (b) and place it near `forecast_summary_cards()`/`forecast_chart()`.
+**What:** Per `PROJECT.md`'s explicit v2 key decision ("v2 weekly-forecast-mode work is a research spike... not a committed build") and the "no un-backtested model ships to the dashboard" constraint, the weekly spike should extend `backend_research/run_weekly_candidates.py` (which already has `load_an_weekly()`, `load_weekly_drivers()`, `merged_weekly()` and a working weekly-vs-monthly horizon-matched evaluation methodology per `REPORT.md`'s "Weekly cadence" section) — not touch `forecasting.py`/`state.py`/`models.py` at all.
 
-This is a low-risk, additive, one-way data flow: `forecasting.py` (new constant) → `state.py` (new thin `@rx.var`) → `app.py` (new small component). No existing function signature changes, no changes to `forecast_all()`'s locked return contract.
+**When to use:** For this milestone specifically. `REPORT.md`'s own prior no-go finding names two concrete untried follow-ups: (a) test SARIMAX/exponential-smoothing at weekly cadence (only VAR/OLS were tried before), (b) resolve whether `AN price weekly.csv`'s own Baltic AN series duplicates `AN Data.csv`'s. Do both before touching app code.
 
-## (d) Suggested build order
+**Trade-offs:** Pro — a failed or inconclusive weekly backtest costs nothing in app-layer complexity or migration risk. Con — if the spike DOES clear the bar, the schema/dispatcher changes required are substantial (see below), so budget that as a distinct follow-on scope, not a small addition to this milestone.
 
-Ordered by dependency and risk, not by feature-list order:
+## Data Flow
 
-1. **html/body background fix** — zero dependencies, isolated CSS/global-style change, immediately fixes a visible bug. Do this FIRST but write it in a way that anticipates step 2 (don't hardcode `PAGE_BG` directly into the global style if theme toggle is coming right after — parameterize or revisit).
-2. **Theme toggle (persisted dark/light)** — do this second specifically because it invalidates/extends step 1's fix (a hardcoded light background at the html/body level will just reintroduce a mismatch in dark mode) and because it's the highest-unknown-risk item (needs Reflex 0.9.8 API verification for runtime appearance toggling — Context7/official docs lookup required before implementation, not assumption). Sequencing these two together avoids doing the background fix twice.
-3. **Fan chart legend/axis overlap** — isolated, low-risk, single-file (`state.py`) Plotly layout change. No dependency on anything else; can technically run in parallel with 1-2 but is listed here because it's trivial and unblocks visual QA of the chart work bundled with item 4.
-4. **Per-series model name + accuracy display** — additive, low-risk, no dependency on nav/theme work. Natural pairing with item 3 since both touch the forecast-chart/summary-card visual area.
-5. **Tab/nav bar** — depends conceptually on knowing final section boundaries, but not on 1-4 technically; do after the visual/theme work so the nav doesn't need to be re-tested against a still-changing background/theme. This is the biggest structural `app.py` change (conditional rendering wrapping every existing section), so isolate it to reduce blast radius from the smaller fixes above.
-6. **Data Entry rework (deep-research + fix)** — last, and deliberately separated from the other five: PROJECT.md explicitly calls for a "deep-research pass" before rework, this is the only item requiring genuine UX/product decisions (date-picker vs. inline-validation vs. banner), and per (a) above the fix is behavioral/UX (not a quick conditional-render bug fix), so it warrants its own dedicated research + phase rather than being bundled with the smaller polish items. Do this after nav bar so the reworked Data Entry section lands cleanly inside the new section-switching structure rather than needing to be re-integrated into it afterward.
+### Sentiment feature: archive CSVs → adjustment value (new)
 
-## Anti-Patterns to Avoid
+```
+archive/news_sentiment_daily.csv        (date, weighted_compound, sent_ema3,
+archive/sentiment_market_panel.csv       sent_ema10, sent_momentum, article_count,
+archive/ml_features.csv                  + SPY/QQQ/DIA/VIX-derived columns)
+        │
+        ▼  (OFFLINE — backend_research/sentiment/sentiment_data_loader.py)
+Resample/aggregate daily sentiment → monthly, aligned to PriceRow's date
+grid (same cadence problem seed.py's D-06b "average, don't take-last"
+convention already solved for AN/weekly-driver CSVs — reuse that pattern)
+        │
+        ▼  (OFFLINE — backend_research/sentiment/run_sentiment_backtest.py,
+             same walk_forward.py harness as every existing model)
+Backtest: does a sentiment-derived adjustment measurably improve interval
+coverage or reduce error vs. the CURRENT statistical-spread-only baseline,
+for HDAN/PPAN/Diesel-USD/FX specifically? Frozen result → results/
+sentiment_backtest.json + a REPORT-SENTIMENT.md (mirrors REPORT.md format)
+        │
+        ▼  GATE: only proceed past this point if the backtest shows a real,
+             honestly-reported improvement (mirrors the Phase 2 "leakage
+             red flag" discipline already applied to HDAN/PPAN/Diesel/FX)
+        │
+        ▼  (ONE-TIME/PERIODIC — app/app/seed_sentiment.py, own session,
+             mirrors seed.py precedent, never wired into app startup)
+archive CSVs → new SentimentDaily/SentimentMonthly rx.Model table (SQLite)
+        │
+        ▼  (RUNTIME — app/app/state.py, the sole live rx.session() site)
+DashboardState reads SentimentDaily/Monthly rows the same way load_rows()
+reads PriceRow, converts to a plain DataFrame/scalar (mirrors _history_df())
+        │
+        ▼  (RUNTIME — app/app/sentiment.py, zero-Reflex pure function,
+             called from a NEW state.py computed var, e.g.
+             sentiment_adjusted_forecast_results, that wraps the EXISTING
+             forecast_results output — never re-invokes forecast_all)
+apply_sentiment_adjustment(scenario_dict, sentiment_signal, horizon)
+  → same {"base","bull","bear"} shape, bull/bear tilted
+        │
+        ▼  (RUNTIME — app/app/app.py, forecast_section())
+Rendered as an additional band/toggle on the existing forecast_chart_figure,
+plus a provenance line (mirrors summary_cards' existing MODEL_INFO-sourced
+"Model" line) naming what's driving the adjustment
+```
 
-### Anti-Pattern: Introducing a second state class for the toggle/nav additions
-**What people might do:** Create `ThemeState`/`NavState` as separate `rx.State` classes since the additions feel "unrelated" to DashboardState's data-entry/forecast concerns.
-**Why it's wrong:** The codebase has a single, explicit, documented convention — "DashboardState is the only place in the app that opens an rx.session() or touches the ORM" (state.py's own module docstring) — and every existing feature, however unrelated in domain (CSV import, export, forecasting, editing), was added as more fields on the same class. Splitting now breaks that established pattern for no functional benefit at this app's scale and complicates cross-state coordination (e.g. nav needing to cancel in-progress edits, mirroring what `toggle_show_all_history` already does for `show_all_history`/`cancel_edit`).
-**Instead:** Add `theme_appearance`, `active_section`, and their setters as more fields/methods on `DashboardState`, exactly like `show_all_history`, `selected_series`, `import_stage`, etc. were added.
+### Weekly spike: data → go/no-go decision (research-only, no runtime flow yet)
 
-### Anti-Pattern: Fixing the date-cell bug by only changing the render conditional
-**What people might do:** Assume `rx.cond(DashboardState.edit_error != "", ...)` itself is broken and "fix" it by restructuring the cond, without addressing that `commit_edit` is blur/Enter-gated with no format hint.
-**Why it's wrong:** Per (a) above, the cond and the state wiring are already correct on inspection — restructuring it without changing when/how validation triggers won't change user-observed behavior, since the underlying issue is that validation may simply never run for a user who doesn't blur/Enter, or whose error gets raced away by the next `start_edit` call resetting `edit_error = ""`.
-**Instead:** Treat this as the UX-rework item it's scoped as in PROJECT.md — add a real date input affordance (format hint or native date picker) and/or live validation, and make `start_edit`'s unconditional `edit_error = ""` reset not clobber a genuinely-pending error from a race with a near-simultaneous blur/commit — this needs the deep-research pass called for in the milestone goal, not a one-line render fix.
+```
+AN Data.csv (native weekly, HDAN/PPAN)  ─┐
+AN price weekly.csv (weekly drivers)     ├─► backend_research/run_weekly_candidates.py
+                                          │     (EXTEND: add SARIMAX/ETS candidates,
+                                          │      dedupe Baltic AN source)
+                                          ▼
+                              results/weekly_candidates.json
+                                          │
+                                          ▼  GATE: horizon-matched (4-week-ahead)
+                                             MAPE must beat the existing monthly
+                                             VAR's 9.49%/10.08%, per REPORT.md's
+                                             own comparison methodology
+                                          │
+                        ┌─────────────────┴─────────────────┐
+                        ▼ NO-GO (prior result)               ▼ GO (hypothetical)
+              Spike ends here. Zero app/         Second, SEPARATE milestone:
+              changes. Update PROJECT.md          new PriceRowWeekly table,
+              Key Decisions with the new           cadence-aware forecast_all_weekly()
+              result and rationale.                dispatcher, cadence toggle in
+                                                     state.py/app.py — scoped only to
+                                                     HDAN/PPAN (no weekly Diesel/FX
+                                                     data exists at all, confirmed
+                                                     unchanged in REPORT.md).
+```
+
+## Anti-Patterns
+
+### Anti-Pattern 1: Assuming `archive/`'s sentiment data is already about the right market
+
+**What people do:** Treat `PROJECT.md`'s Key Decision ("v2 news/sentiment scenario feature builds on the existing `archive/` dataset... rather than researching a provider from scratch") as license to skip validating relevance, and wire `weighted_compound`/`sent_momentum` straight into a scenario adjustment for HDAN/PPAN/Diesel/FX.
+
+**Why it's wrong:** Verified by reading `archive/README.md` and the CSVs directly: this dataset is **US equity-market sentiment** — VADER scores on NewsAPI headlines about `markets/policy/volatility/inflation/earnings/recession/growth`, correlated against **SPY/QQQ/DIA/VIX**, explicitly designed as a next-day S&P-500-return predictor (`spy_return_next1d` is literally the regression target in `ml_features.csv`). It contains zero fertilizer/ammonium-nitrate/urea/diesel/crude/Mongolian-tögrög-specific content. There is no established or backtested reason to believe US equity-market fear/greed sentiment moves HDAN/PPAN/Diesel/USD-MNT prices, and the tracked series are already known (per `REPORT-PHASE2.md`'s causality screen) to respond to specific fundamentals (urea/ammonia/Baltic AN/gas benchmarks/Brent/Urals), not broad market risk appetite.
+
+**Do this instead:** Treat this as the sentiment feature's central open research question, not a solved input. In `backend_research/sentiment/`, explicitly test whether `weighted_compound`/`vix_regime`/`sent_momentum` (as a generic "risk-off" proxy) has ANY measurable relationship to HDAN/PPAN/Diesel-USD/FX via the same causality-screen methodology `REPORT-PHASE2.md` already used for fundamental predictors (Granger/lag p-value screen). If it clears no bar (plausible, given the domain mismatch), report that honestly — the "no un-backtested model ships" rule applies here just as strictly as it did to the ML baselines that were rejected in Phase 2. Do not silently swap in different, more-relevant data sources without telling the user that the originally-scoped `archive/` dataset didn't pan out.
+
+### Anti-Pattern 2: Widening the sentiment adjustment's scope to touch `base`, `forecast_all`'s dispatcher, or `MODEL_INFO` directly
+
+**What people do:** Once a sentiment signal is validated, it's tempting to fold it directly into `forecast_hdan`/`forecast_ppan_var_system`/etc. as a new exogenous predictor, or to have it silently overwrite `MODEL_INFO`'s backtested MAPE numbers with a "new, improved" figure.
+
+**Why it's wrong:** `forecast_all`'s docstring is explicit that D-06 forbids caching/refitting drift and that `MODEL_INFO`'s values are "transcribed verbatim from the forecast_* docstrings... themselves sourced from `02-MODEL-DECISIONS.md`" — i.e., every number there traces to one specific, already-completed backtest. Silently changing what `base` means, or overwriting those provenance numbers with different-methodology sentiment-adjusted figures, breaks the "displayed model line is honest about what actually produced this number" contract the whole app currently guarantees (VIS-05).
+
+**Do this instead:** Keep sentiment strictly a post-hoc, clearly-labeled adjustment layer (Pattern 1) with its OWN frozen provenance constant (mirroring `MODEL_INFO`'s shape but named separately, e.g. `SENTIMENT_ADJUSTMENT_INFO`), rendered as an additional, explicitly-labeled line/toggle — never merged into or overwriting the existing four models' identity.
+
+### Anti-Pattern 3: Pre-building the weekly UI/schema before the spike's backtest gate passes
+
+**What people do:** Start adding a `cadence` toggle to `state.py`, a `PriceRowWeekly` table, or a weekly branch in `forecast_all` "so it's ready" while the research spike is still running.
+
+**Why it's wrong:** `PROJECT.md`'s Key Decisions table is explicit that this is "a research spike (re-research before shipping), not a committed build" — the prior backtest was a documented no-go (10.35%/16.01% weekly-rolled MAPE vs. 9.49%/10.08% monthly-native), and even the two named follow-up experiments (SARIMAX/ETS at weekly cadence, Baltic-AN-source dedup) are unproven. Building schema/UI first inverts the project's own "research/backtest step before any model touches the UI" rule and risks a second unused table (`PriceRowWeekly`) sitting alongside `PriceRow` if the spike is another no-go.
+
+**Do this instead:** Everything for this milestone stays inside `backend_research/run_weekly_candidates.py` and `results/weekly_candidates.json`. Only after a documented GO decision should a second, separate planning cycle scope the `PriceRowWeekly` table / dispatcher / UI work — and even then, note structurally that weekly mode can only ever cover HDAN/PPAN (no weekly Diesel/FX data exists at all, confirmed unchanged in `REPORT.md`), which breaks the existing "all 4 series forecast together" assumption baked into `forecast_all`'s single dispatcher, `SUMMARY_CARD_SERIES` (4 cards), and `FORECAST_SERIES_LABELS` (5 keys) — that's a UX decision to surface explicitly to the user before any weekly UI ships, not something to paper over.
+
+## Integration Points
+
+### Sentiment feature
+
+| File | New or Modified | What changes |
+|------|------------------|---------------|
+| `backend_research/sentiment/sentiment_data_loader.py` | NEW | Loads/aligns `archive/*.csv` to monthly cadence |
+| `backend_research/sentiment/run_sentiment_backtest.py` | NEW | Backtests adjustment value using existing `walk_forward.py` harness |
+| `backend_research/sentiment/results/sentiment_backtest.json` | NEW | Frozen backtest output (source of truth for any constant later hard-coded into `app/`) |
+| `app/app/sentiment.py` | NEW | Pure, zero-Reflex adjustment function(s) + `SENTIMENT_ADJUSTMENT_INFO` provenance constant — gated on the backtest above existing |
+| `app/app/models.py` | MODIFY (additive) | New `SentimentDaily`/`SentimentMonthly` `rx.Model` table |
+| `app/alembic/versions/` | NEW | Migration for the new table, via `reflex db migrate` |
+| `app/app/seed_sentiment.py` | NEW | Standalone offline loader, mirrors `seed.py`'s own-session/never-wired-into-startup pattern |
+| `app/app/state.py` | MODIFY (additive) | New computed var wrapping `forecast_results` + `sentiment.py`; new `load_sentiment_data()` read method alongside `load_rows()`; NO changes to existing `forecast_results`, `SERIES_ATTRS`, or `_history_df()` |
+| `app/app/app.py` | MODIFY (additive) | New provenance line/toggle in `forecast_section()`, mirrors the existing `MODEL_INFO`-sourced model line in `summary_cards` |
+| `app/app/forecasting.py` | UNTOUCHED | No changes — sentiment composes on the outside of `forecast_all`'s output, per Pattern 1 |
+
+### Weekly research spike (this milestone)
+
+| File | New or Modified | What changes |
+|------|------------------|---------------|
+| `backend_research/run_weekly_candidates.py` | MODIFY (extend) | Add SARIMAX/ETS weekly candidates per `REPORT.md`'s own named follow-up |
+| `backend_research/results/weekly_candidates.json` | MODIFY (append) | New candidate results, same schema |
+| `backend_research/REPORT.md` (or a new `REPORT-WEEKLY-2.md`) | MODIFY/NEW | Updated go/no-go recommendation |
+| `app/app/forecasting.py`, `app/app/state.py`, `app/app/models.py`, `app/app/app.py` | UNTOUCHED | Zero changes during the spike, per Pattern 3 and Anti-Pattern 3 |
+
+## Scaling Considerations
+
+Not meaningfully applicable at this project's stated scale (single local user, occasional/roughly-monthly use — confirmed in `PROJECT.md`'s Context section). The relevant "scaling" axis for this milestone is data-volume/backtest-rigor, not concurrent users:
+
+| Concern | This milestone | If ever multi-user/cloud (explicitly out of scope) |
+|---------|-----------------|------------------------------------------------------|
+| Sentiment table size | `news_sentiment_daily.csv` is 164 rows, `sentiment_market_panel.csv` 119 rows — trivial for SQLite | N/A |
+| Backtest compute | Walk-forward re-fitting on ~200-row monthly series is seconds-scale, matches existing `backend_research/` runtime | N/A |
+| Weekly cadence row count | `AN Data.csv` native-weekly rows (~7-day spacing) roughly 4x monthly row count — still trivial for SQLite/pandas | N/A |
+
+## Integration Points — External Services
+
+| Service | Integration Pattern | Notes |
+|---------|---------------------|-------|
+| None (this milestone) | `archive/` is a static, already-downloaded CSV snapshot (NewsAPI + yfinance, per `archive/README.md`), not a live API | Live news/API ingestion is explicitly out of scope per `PROJECT.md` ("Automatic API data-fetch from external price sources... is a future milestone, not v1") — this milestone works from the static archive only |
+
+### Internal Boundaries
+
+| Boundary | Communication | Notes |
+|----------|---------------|-------|
+| `sentiment.py` ↔ `forecasting.py` | `sentiment.py` imports `forecasting.py`'s output SHAPE convention only (the `{"base","bull","bear"}` dict) — no import of `forecasting.py`'s internals, no reverse dependency | Keeps `forecasting.py` frozen/untouched, satisfies Pattern 1 |
+| `sentiment.py` ↔ `state.py` | `state.py` calls `sentiment.py` functions the same way it calls `forecast_all` — plain function call, plain DataFrame/dict in, plain dict out | Mirrors the existing `forecasting.py` ↔ `state.py` boundary exactly (D-08's zero-Reflex-in-forecasting.py contract) |
+| `backend_research/sentiment/` ↔ `app/app/sentiment.py` | One-way, offline → frozen constant. Backtest code is NEVER imported by `app/` (mirrors `forecasting.py`'s existing relationship to `backend_research/`) | `arch`-style "SUS flag was a false positive but still isolated to research" precedent (see STATE.md) — keep research-only deps (if any, e.g. a VADER re-score) out of `app/requirements.txt` |
+| `seed_sentiment.py` ↔ SQLite | Own `sqlmodel`/`rx.Model` session, run manually, never during app boot | Mirrors `seed.py`'s exact precedent — the one pre-existing exception to "state.py is the sole session boundary," not a new violation |
 
 ## Sources
 
-- `app/app/state.py`, `app/app/app.py`, `app/app/forecasting.py`, `app/app/theme.py`, `app/app/validators.py`, `app/rxconfig.py` — read in full, HIGH confidence, this milestone's ground truth.
-- `.planning/STATE.md` (lines 28-34, 157-178) and `.planning/PROJECT.md` (lines 113-123) — recorded live-browser repro details (exact typed input `"08/25/2027"`, exact observed symptom) and prior confirmed bugs (light-appearance pin history, transparent html/body via `getComputedStyle`) — HIGH confidence, first-party project records.
-- Reflex 0.9.8's exact runtime dark-mode-toggle API and global `html`/`body` style-injection mechanism were **not verified against Context7/official docs in this pass** — flagged explicitly in (b) and (d) item 2 as needing a docs lookup before implementation; do not assume `rx.color_mode`/`toggle_color_mode` API shape without checking the installed 0.9.8 version's docs first.
+- `app/app/forecasting.py` (read in full) — HIGH confidence, current source of truth for all model/provenance/spread logic
+- `app/app/state.py` (read in full) — HIGH confidence, current source of truth for the DB boundary, computed vars, and dispatch pattern
+- `app/app/models.py`, `app/app/seed.py` (read) — HIGH confidence, schema and offline-ingestion precedent
+- `app/app/app.py` (partial read, `forecast_section`/`historical_section`/tab-match structure) — HIGH confidence on the tab-switching pattern new UI must slot into
+- `.planning/PROJECT.md` — HIGH confidence, authoritative milestone scope/constraints/key-decisions source
+- `backend_research/REPORT.md` (Weekly cadence section, full text) — HIGH confidence, verified prior weekly no-go backtest numbers (10.35%/16.01% vs. 9.49%/10.08% MAPE) and the two named follow-up experiments
+- `backend_research/REPORT-PHASE2.md` — HIGH confidence, verified the causality-screen methodology to reuse for sentiment relevance testing, and confirmed sentiment/Delphi-style methods were explicitly out of Phase 2's backtestable scope ("This is the mechanism REQUIREMENTS.md already reserves for v2's live news/sentiment-driven bull/bear adjustment")
+- `archive/README.md` + direct CSV header/row inspection (`news_sentiment_daily.csv`, `sentiment_market_panel.csv`, `ml_features.csv`, `market_prices.csv`) — HIGH confidence finding: this dataset is US-equity-market (SPY/QQQ/DIA/VIX) sentiment, not commodity/FX-specific — the single most important finding for scoping the sentiment research phase correctly
+- `.planning/STATE.md` (tail) — HIGH confidence, confirmed no sentiment/weekly implementation has started yet in this milestone, and confirmed the `arch` package precedent for isolating research-only dependencies
 
 ---
-*Architecture research for: v1.3 Dashboard Polish & Data-Entry Rework*
-*Researched: 2026-08-24*
+*Architecture research for: Prediction Dashboard v2.0 (News/Sentiment Scenarios & Weekly Forecast Research)*
+*Researched: 2026-08-31*

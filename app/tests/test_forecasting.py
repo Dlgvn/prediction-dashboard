@@ -6,6 +6,7 @@ import pytest
 
 from app.forecasting import (
     ARIMA_SE_ORDER,
+    DIESEL_LITERS_PER_TON,
     HDAN_GARCH_SIGMA_PCT,
     HDAN_PREDICTORS,
     MODEL_INFO,
@@ -337,16 +338,24 @@ def test_diesel_mnt_forecast_zero_markup_is_plain_product():
     result = diesel_mnt_forecast(diesel_fc, fx_fc, markup_pct=0.0)
     assert set(result.keys()) == {"base", "bull", "bear"}
     for i in range(2):
-        assert result["base"][i] == pytest.approx(diesel_fc["base"][i] * fx_fc["base"][i])
-        assert result["bull"][i] == pytest.approx(diesel_fc["bull"][i] * fx_fc["bull"][i])
-        assert result["bear"][i] == pytest.approx(diesel_fc["bear"][i] * fx_fc["bear"][i])
+        assert result["base"][i] == pytest.approx(
+            diesel_fc["base"][i] * fx_fc["base"][i] / DIESEL_LITERS_PER_TON
+        )
+        assert result["bull"][i] == pytest.approx(
+            diesel_fc["bull"][i] * fx_fc["bull"][i] / DIESEL_LITERS_PER_TON
+        )
+        assert result["bear"][i] == pytest.approx(
+            diesel_fc["bear"][i] * fx_fc["bear"][i] / DIESEL_LITERS_PER_TON
+        )
 
 
 def test_diesel_mnt_forecast_applies_markup():
     diesel_fc = {"base": [10.0], "bull": [12.0], "bear": [8.0]}
     fx_fc = {"base": [3000.0], "bull": [3100.0], "bear": [2900.0]}
     result = diesel_mnt_forecast(diesel_fc, fx_fc, markup_pct=5.0)
-    assert result["base"][0] == pytest.approx(10.0 * 3000.0 * 1.05)
+    assert result["base"][0] == pytest.approx(
+        10.0 * 3000.0 * 1.05 / DIESEL_LITERS_PER_TON
+    )
 
 
 def test_forecast_all_shape_and_keys(synthetic_history):
@@ -375,6 +384,7 @@ def test_forecast_all_diesel_mnt_agrees_with_diesel_usd_and_fx(synthetic_history
             result["diesel_usd_ton"][i]["base"]
             * result["fx_rate"][i]["base"]
             * 1.05
+            / DIESEL_LITERS_PER_TON
         )
         assert result["diesel_mnt"][i]["base"] == pytest.approx(expected)
 
@@ -441,7 +451,8 @@ def test_forecast_all_shape(synthetic_history):
 
 
 def test_diesel_mnt_derivation(synthetic_history):
-    """FCST-03: Diesel-MNT is computed as Diesel-USD x FX x (1 + markup_pct/100)
+    """FCST-03: Diesel-MNT is computed as
+    Diesel-USD x FX x (1 + markup_pct/100) / DIESEL_LITERS_PER_TON
     per horizon step, never modeled independently."""
     result = forecast_all(synthetic_history, horizon=12, markup_pct=5.0)
     for i in range(12):
@@ -450,6 +461,7 @@ def test_diesel_mnt_derivation(synthetic_history):
                 result["diesel_usd_ton"][i][edge]
                 * result["fx_rate"][i][edge]
                 * 1.05
+                / DIESEL_LITERS_PER_TON
             )
             assert result["diesel_mnt"][i][edge] == pytest.approx(expected)
 
@@ -538,7 +550,7 @@ def test_model_info_fx_rate():
 def test_model_info_diesel_mnt_has_no_mape():
     """D-01: Diesel MNT is derived, has no independent backtest MAPE."""
     name, mape = MODEL_INFO["diesel_mnt"]
-    assert name == "Derived (Diesel USD × FX)"
+    assert name == "Derived (Diesel USD × FX ÷ 1,136 L)"
     assert mape is None
 
 
