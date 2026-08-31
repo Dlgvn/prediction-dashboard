@@ -50,9 +50,6 @@ tracked series — without opening Excel.
 
 - File-upload UI for bulk CSV import — v1 is manual in-app entry only; may return in a
   future milestone if the "connect to a data API" idea gets picked up
-- Live news/sentiment-driven bull/bear scenario adjustment — explicitly deferred to v2;
-  provider selection (news API + LLM scoring vs. a dedicated market-data provider) is an
-  open research question, not decided yet
 - Multi-user authentication — single local user, matching how the existing Excel
   workbook is used
 - Automatic API data-fetch from external price sources — user's "might connect an API in
@@ -102,25 +99,26 @@ tracked series — without opening Excel.
 |----------|-----------|---------|
 | Reflex + SQLite single-process monolith (not split FastAPI service, not Postgres) | Matches single-user, occasional-use scale; simplest to run/deploy | — Pending |
 | Fresh model design/research rather than porting the Excel workbook's exact coefficients | User explicitly chose this during brainstorming over reusing the workbook's VAR/AR models | — Pending |
-| v1 scenarios = base ± statistical spread; live news/sentiment integration deferred to v2 | Keeps v1 scope shippable; news-provider selection is still an open research question | — Pending |
 | No file-upload UI in v1 — manual in-app entry + Excel export instead | User explicitly requested this during brainstorming, reversing an earlier upload-first draft | — Pending |
+| v2 weekly-forecast-mode work is a research spike (re-research before shipping), not a committed build | v1.2-era backtest was a no-go: weekly-native VAR underperformed monthly (10.35%/16.01% vs 9.49%/10.08% MAPE) and no weekly Diesel/FX data exists at all — must clear a new backtest bar before any weekly UI ships | — Pending |
+| v2 news/sentiment scenario feature builds on the existing `archive/` dataset (news_sentiment_daily.csv, sentiment_market_panel.csv, ml_features.csv, raw news dump) rather than researching a provider from scratch | User confirmed this data was prepared for this purpose | — Pending |
 
 ## Milestone History
 
 ### v1.2 Data Entry Fix & Forecast Enrichment (complete)
 Fixed the Data Entry table's usability at real data scale (12-month default window + "show all history" toggle), added historical high/low + YoY context to summary cards, added a Forecast sheet to Excel export, and added CSV bulk import with preview/confirm and duplicate-date skipping.
 
-## Current Milestone: v1.3 Dashboard Polish & Data-Entry Rework
+### v1.3 Dashboard Polish & Data-Entry Rework (complete)
+Fixed the transparent html/body background bug (black margins on wide/dark-mode viewports), added a persisted dark/light toggle, added a tab/nav bar between page sections, showed per-series model name + backtest accuracy near the forecast, fixed the fan chart's overlapping axis label/legend, and reworked Data Entry to root-cause and fix the silent-validation bug (native date picker + click-away race fix).
 
-**Goal:** Fix real user-reported UX defects (full-width layout bug, chart label overlap) and add requested navigation/theming/transparency features, informed by a deep-research pass into a better data-entry method.
+## Current Milestone: v2.0 News/Sentiment Scenarios & Weekly Forecast Research
+
+**Goal:** Add live news/sentiment-driven bull/bear scenario adjustment on top of the existing statistical-spread scenarios, and resolve whether weekly-granularity forecasting can clear a real backtest bar before building any weekly UI.
 
 **Target features:**
-- Fix the transparent `html`/`body` background bug causing black margins outside the content area on wide viewports / dark-mode browsers
-- Persisted dark/light mode toggle
-- Tab/nav bar to switch between page sections (Summary / Forecast / Data Entry) instead of one long scroll
-- Per-series model name + backtest accuracy shown near the forecast (e.g. "SARIMAX — 13.3% MAPE")
-- Fix the fan chart's overlapping axis label and legend
-- Deep-research and rework the Data Entry method — root cause already diagnosed: the new-row date field silently rejects invalid input with zero user-facing error feedback, which is very likely why users report being unable to add new data at all
+- Research and backtest a news/sentiment-driven adjustment to the bull/bear scenario bands, built on the `archive/` dataset (news_sentiment_daily.csv, sentiment_market_panel.csv, ml_features.csv, raw news dump)
+- Surface the sentiment-adjusted scenarios in the existing forecast chart/UI, with provenance (what's driving the adjustment) shown to the user
+- Re-research weekly-granularity forecasting as a spike: try new approaches/data for HDAN/PPAN (which have real weekly data) and confirm whether Diesel/FX remain permanently monthly-only; only proceed to a shipped weekly UI mode if a new backtest actually beats the prior no-go result
 
 ## Evolution
 
@@ -140,4 +138,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-24 at start of v1.3 milestone*
+*Last updated: 2026-08-31 at start of v2.0 milestone*

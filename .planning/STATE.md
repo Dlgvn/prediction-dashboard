@@ -1,17 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v1.3
-milestone_name: dashboard-polish-data-entry-rework
-status: verifying
-stopped_at: Completed 15-02-PLAN.md
-last_updated: "2026-08-25T02:09:28.461Z"
-last_activity: 2026-08-25
+milestone: v2.0
+milestone_name: News/Sentiment Scenarios & Weekly Forecast Research
+status: planning
+last_updated: "2026-08-31T02:57:30.143Z"
+last_activity: 2026-08-31
 progress:
-  total_phases: 15
-  completed_phases: 15
-  total_plans: 43
-  completed_plans: 43
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
@@ -35,12 +34,10 @@ anywhere on the page).
 
 ## Current Position
 
-Milestone: v1.3
-Phase: 15 of 15 (Data Entry Rework)
-Status: Phase 15 complete. Plan 01 (start_edit race-guard fix, state-transition table, D-03 audit) and Plan 02 (native date picker, human-verified DATA-09/DATA-10 flow + regressions) both done.
-Last activity: 2026-08-25
-
-Progress: [██████████] 100%
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-08-31 — Milestone v2.0 started
 
 ## Performance Metrics
 
