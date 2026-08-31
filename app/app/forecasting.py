@@ -102,8 +102,15 @@ MODEL_INFO: dict[str, tuple[str, float | None]] = {
     "ppan": ("Direct-OLS VAR", 23.80),
     "diesel_usd_ton": ("Naive", 7.04),
     "fx_rate": ("Naive", 1.72),
-    "diesel_mnt": ("Derived (Diesel USD × FX)", None),
+    "diesel_mnt": ("Derived (Diesel USD × FX ÷ 1,136 L)", None),
 }
+
+# Single source of truth for the diesel tons->liters conversion used to
+# express diesel_mnt as a per-liter purchasing price (user-provided figure,
+# not a generic density constant). Both diesel_mnt_forecast below and
+# state.py's _actual_series_for divide by this — never hand-type 1136
+# elsewhere.
+DIESEL_LITERS_PER_TON: float = 1136.0
 
 # Orders used by `_forecast_predictor` to project an exogenous predictor
 # forward when it is needed as SARIMAX exog input (not a winning-model
@@ -479,15 +486,16 @@ def _apply_se_spread(base, se) -> dict:
 
 
 def diesel_mnt_forecast(diesel_usd_fc: dict, fx_fc: dict, markup_pct: float) -> dict:
-    """Derive Diesel-MNT from ALREADY-COMPUTED Diesel-USD and FX forecasts.
+    """Derive Diesel-MNT/L from ALREADY-COMPUTED Diesel-USD and FX forecasts.
 
     Diesel-MNT (FCST-03) is never independently modeled -- it is always
-    `diesel_usd * fx * (1 + markup_pct / 100)`. This function takes the two
-    columnar forecast dicts as arguments and must NEVER call
-    `forecast_diesel_usd` or `forecast_fx` itself; that constraint is what
-    structurally prevents a double-refit (Pitfall 5) and guarantees the
-    displayed Diesel-USD/FX values agree exactly with the values used to
-    derive Diesel-MNT.
+    `diesel_usd * fx * (1 + markup_pct / 100) / DIESEL_LITERS_PER_TON`,
+    expressed per liter rather than per ton (user-provided conversion
+    factor). This function takes the two columnar forecast dicts as
+    arguments and must NEVER call `forecast_diesel_usd` or `forecast_fx`
+    itself; that constraint is what structurally prevents a double-refit
+    (Pitfall 5) and guarantees the displayed Diesel-USD/FX values agree
+    exactly with the values used to derive Diesel-MNT.
 
     Per planner decision P-01 (03-04-PLAN.md), bull/bear are combined at
     matching scenario edges: `bull = diesel_usd.bull * fx.bull * multiplier`,
@@ -500,7 +508,7 @@ def diesel_mnt_forecast(diesel_usd_fc: dict, fx_fc: dict, markup_pct: float) -> 
     philosophy; variance-propagation-in-quadrature was explicitly rejected
     for v1 as unrequired precision.
     """
-    multiplier = 1 + markup_pct / 100.0
+    multiplier = (1 + markup_pct / 100.0) / DIESEL_LITERS_PER_TON
     diesel_base = np.asarray(diesel_usd_fc["base"], dtype=float)
     diesel_bull = np.asarray(diesel_usd_fc["bull"], dtype=float)
     diesel_bear = np.asarray(diesel_usd_fc["bear"], dtype=float)

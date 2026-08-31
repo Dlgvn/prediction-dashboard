@@ -16,6 +16,7 @@ import reflex as rx
 
 from app.csv_import import parse_import_csv
 from app.forecasting import (
+    DIESEL_LITERS_PER_TON,
     MAX_HORIZON,
     MODEL_INFO,
     InsufficientHistoryError,
@@ -85,7 +86,7 @@ FORECAST_SERIES_LABELS: dict[str, str] = {
     "hdan": "HDAN",
     "ppan": "PPAN",
     "diesel_usd_ton": "Diesel USD/t",
-    "diesel_mnt": "Diesel MNT",
+    "diesel_mnt": "Diesel MNT/L",
     "fx_rate": "FX Rate",
 }
 
@@ -719,7 +720,8 @@ class DashboardState(rx.State):
         """Full-history (date, value) pairs for a series key, skipping None.
 
         This is the SOLE derivation site for diesel_mnt (PITFALLS.md
-        Pitfall 6): diesel_usd_ton * fx_rate * (1 + markup_pct/100). Always
+        Pitfall 6): diesel_usd_ton * fx_rate * (1 + markup_pct/100) /
+        DIESEL_LITERS_PER_TON, expressed per liter (not per ton). Always
         iterates self.rows (never visible_rows) in existing date-ascending
         order, so every caller (_latest_actual_for, forecast_chart_figure,
         summary_cards high/low and YoY) shares one formula and one
@@ -730,7 +732,12 @@ class DashboardState(rx.State):
             if key == "diesel_mnt":
                 if row.diesel_usd_ton is None or row.fx_rate is None:
                     continue
-                value = row.diesel_usd_ton * row.fx_rate * (1 + self.markup_pct / 100.0)
+                value = (
+                    row.diesel_usd_ton
+                    * row.fx_rate
+                    * (1 + self.markup_pct / 100.0)
+                    / DIESEL_LITERS_PER_TON
+                )
             else:
                 value = getattr(row, key)
                 if value is None:

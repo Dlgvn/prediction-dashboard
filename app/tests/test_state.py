@@ -9,6 +9,7 @@ import pandas as pd
 from app import state as state_module
 from app import theme
 from app import validators
+from app.forecasting import DIESEL_LITERS_PER_TON
 from app.models import PriceRow
 from app.state import (
     FORECAST_SERIES_LABELS,
@@ -1653,7 +1654,7 @@ def test_actual_series_for_diesel_mnt_applies_markup(session, monkeypatch):
 
     series = state._actual_series_for("diesel_mnt")
 
-    assert series == [("2025-01-01", 330.0)]
+    assert series == [("2025-01-01", 330.0 / DIESEL_LITERS_PER_TON)]
 
 
 def test_actual_series_for_diesel_mnt_skips_partial_rows(session, monkeypatch):
@@ -1687,7 +1688,9 @@ def test_latest_actual_for_diesel_mnt_regression_parity(session, monkeypatch):
         PriceRow(date="2025-02-01", diesel_usd_ton=110.0, fx_rate=3.1),
     ]
 
-    assert state._latest_actual_for("diesel_mnt") == 110.0 * 3.1 * 1.05
+    assert state._latest_actual_for("diesel_mnt") == (
+        110.0 * 3.1 * 1.05 / DIESEL_LITERS_PER_TON
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1731,8 +1734,10 @@ def test_summary_cards_hilo_diesel_mnt_uses_markup_derivation(session, monkeypat
 
     cards = {c["series_key"]: c for c in state.summary_cards}
 
-    # 100*3*1.1=330, 200*3*1.1=660
-    assert cards["diesel_mnt"]["hilo_text"] == "660.00 / 330.00"
+    # 100*3*1.1=330, 200*3*1.1=660, both divided by DIESEL_LITERS_PER_TON
+    low = 330.0 / DIESEL_LITERS_PER_TON
+    high = 660.0 / DIESEL_LITERS_PER_TON
+    assert cards["diesel_mnt"]["hilo_text"] == f"{high:,.2f} / {low:,.2f}"
 
 
 def test_summary_cards_hilo_empty_when_no_actuals(session, monkeypatch):
@@ -2441,7 +2446,7 @@ def test_summary_cards_diesel_mnt_model_text_has_no_percentage(
 
     cards = {c["series_key"]: c for c in state.summary_cards}
 
-    assert cards["diesel_mnt"]["model_text"] == "Derived (Diesel USD × FX)"
+    assert cards["diesel_mnt"]["model_text"] == "Derived (Diesel USD × FX ÷ 1,136 L)"
     assert "%" not in cards["diesel_mnt"]["model_text"]
     assert "·" not in cards["diesel_mnt"]["model_text"]
 
