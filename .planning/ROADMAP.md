@@ -18,7 +18,7 @@
 - [x] **Phase 14: Tab/Nav Bar** - User switches between Summary/Forecast/Data Entry via tabs without losing in-progress state (completed 2026-08-25)
 - [x] **Phase 15: Data Entry Rework** - Date entry reliably accepts valid input with visible errors and no format memorization (completed 2026-08-25)
 - [x] **Phase 16: Sentiment Data Sufficiency & Causality Research** - A documented go/no-go on whether a sentiment-driven scenario adjustment is viable against the app's real series
-- [ ] **Phase 17: Weekly Forecast Re-Research Spike** - A documented go/no-go on new weekly-cadence candidates for HDAN/PPAN, compared against the prior no-go benchmark
+- [x] **Phase 17: Weekly Forecast Re-Research Spike** - A documented go/no-go on new weekly-cadence candidates for HDAN/PPAN, compared against the prior no-go benchmark (completed 2026-09-01)
 - [ ] **Phase 18: Sentiment-Adjusted Scenario UI (conditional on Phase 16 go)** - User sees an additive, honestly-labeled sentiment band on the fan chart with provenance and a toggle
 
 ## Phase Details
@@ -381,7 +381,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 17-02-PLAN.md — Run weekly-cadence SARIMAX/ExponentialSmoothing candidates via the shared walk-forward harness, freeze `results/weekly_sarimax_ets.json` and generate `REPORT-WEEKLY.md` with the go/no-go comparison against the 9.49%/10.08% benchmark (wave 2)
+- [x] 17-02-PLAN.md — Run weekly-cadence SARIMAX/ExponentialSmoothing candidates via the shared walk-forward harness, freeze `results/weekly_sarimax_ets.json` and generate `REPORT-WEEKLY.md` with the go/no-go comparison against the 9.49%/10.08% benchmark (wave 2)
 
 ### Phase 18: Sentiment-Adjusted Scenario UI (conditional on Phase 16 go)
 
@@ -419,7 +419,7 @@ Plans:
 | 14. Tab/Nav Bar | 2/2 | Complete   | 2026-08-25 |
 | 15. Data Entry Rework | 2/2 | Complete   | 2026-08-25 |
 | 16. Sentiment Data Sufficiency & Causality Research | 0/0 | Not started | - |
-| 17. Weekly Forecast Re-Research Spike | 0/0 | Not started | - |
+| 17. Weekly Forecast Re-Research Spike | 2/2 | Complete   | 2026-09-01 |
 | 18. Sentiment-Adjusted Scenario UI (conditional) | 0/0 | Not started | - |
 
 ---

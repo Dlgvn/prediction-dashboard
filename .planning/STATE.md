@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: News/Sentiment Scenarios & Weekly Forecast Research
 status: executing
-stopped_at: Completed 17-01-PLAN.md
-last_updated: "2026-09-01T02:58:17.000Z"
-last_activity: 2026-09-01 -- Phase 17 Plan 01 (data loader path fix + Baltic-AN dedup) complete
+stopped_at: Completed 17-02-PLAN.md
+last_updated: "2026-09-01T03:15:00.000Z"
+last_activity: 2026-09-01 -- Phase 17 Plan 02 (weekly SARIMAX/ETS re-research, go verdict) complete -- Phase 17 done, WKLY-01/WKLY-02 closed
 progress:
   total_phases: 18
-  completed_phases: 1
-  total_plans: 3
-  completed_plans: 3
+  completed_phases: 2
+  total_plans: 5
+  completed_plans: 5
   percent: 100
 ---
 
@@ -34,10 +34,10 @@ build an additive sentiment-adjusted band + provenance + toggle on the existing 
 
 ## Current Position
 
-Phase: 17 (Weekly Forecast Re-Research Spike) — In progress
-Plan: 01 complete (data loader path fix + Baltic-AN dedup); Plan 02 next
-Status: data_loader.py now works on this Windows machine (repo-root-relative paths). Baltic-AN dedup resolved: duplicate (corr=0.983, MAPE=2.70%, n=206) — AN Data.csv's Baltic AN column is the preferred single exogenous predictor. Verdict frozen to backend_research/results/baltic_an_dedup.json for Plan 02's SARIMAX+exog driver-set variant.
-Last activity: 2026-09-01 -- Phase 17 Plan 01 (data loader path fix + Baltic-AN dedup) complete
+Phase: 17 (Weekly Forecast Re-Research Spike) — Complete
+Plan: 01 complete (data loader path fix + Baltic-AN dedup); 02 complete (weekly SARIMAX/ETS backtests + go/no-go report). Phase 17 fully done; next up is Phase 18, gated on Phase 16's SENT-01/02 result (no-go) — per STATE.md decision, Phase 18 is dropped from the v2.0 milestone rather than built. v2.0 milestone is therefore effectively complete pending final wrap-up.
+Status: Weekly-cadence SARIMAX/ETS/SARIMAX+exog(BalticAN) candidates backtested via walk_forward_backtest (MIN_TRAIN=104, HORIZON=5) for HDAN/PPAN. All 6 candidates beat the fixed monthly VAR benchmark (9.49%/10.08%) at h=4: overall verdict GO. Frozen to backend_research/results/weekly_sarimax_ets.json; documented in backend_research/REPORT-WEEKLY.md (byte-identical across reruns). WKLY-01/WKLY-02 closed. No app/ code changed; no weekly UI ships this milestone despite the go verdict, per the phase's explicit research-only scope.
+Last activity: 2026-09-01 -- Phase 17 Plan 02 (weekly SARIMAX/ETS re-research) complete -- Phase 17 done
 
 ## Performance Metrics
 
@@ -104,6 +104,7 @@ Last activity: 2026-09-01 -- Phase 17 Plan 01 (data loader path fix + Baltic-AN 
 | Phase 16-sentiment-data-sufficiency-causality-research P01 | 35min | 2 tasks | 2 files |
 | Phase 16-sentiment-data-sufficiency-causality-research P02 | 50min | 3 tasks | 4 files |
 | Phase 17-weekly-forecast-re-research-spike P01 | 12min | 2 tasks | 4 files |
+| Phase 17-weekly-forecast-re-research-spike P02 | 20min | 3 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -186,6 +187,7 @@ Recent decisions affecting current work:
 - [Phase 16-02]: Sentiment causality screen returned "no-go" for all four series (HDAN/PPAN/Diesel-USD/FX rate) — effective monthly overlap (14/14/19/20) never reaches MIN_GRANGER_N=24, imported unchanged from causality_screen.py. Phase 16 complete; SENT-01/SENT-02 closed. Phase 18 (sentiment UI) is dropped from the v2.0 milestone per its "go"-gated dependency, not built in a degraded form.
 - [Phase 17-01]: backend_research/data_loader.py's three CSV path constants patched to repo-root-relative `_REPO_ROOT = Path(__file__).resolve().parent.parent` (mirroring db_loader.py's DB_PATH pattern), fixing a live FileNotFoundError on this Windows machine; parsing/cleaning logic untouched.
 - [Phase 17-01]: Baltic-AN dedup verdict: DUPLICATE (corr=0.983, MAPE=2.70%, n=206 over the AN Data.csv-bounded overlap window) — AN Data.csv's "Baltic AN" column is the preferred single exogenous predictor; BalticAN_wk should not be added as a separate driver. Verdict computed by verdict_from_stats(corr > 0.9 and mape < 10.0 => duplicate) and frozen to backend_research/results/baltic_an_dedup.json for Plan 02's SARIMAX+exog driver-set variant to consume.
+- [Phase 17-02]: Weekly SARIMAX(0,1,0), ETS-HoltDamped, and SARIMAX+BalticAN(exog,duplicate) all backtested at weekly cadence (MIN_TRAIN_WEEKLY=104, HORIZON_WEEKLY=5, n_origins=102) for HDAN/PPAN via the shared walk_forward_backtest harness — every one of the 6 candidates beats the fixed monthly VAR benchmark (9.49%/10.08%) at h=4 (HDAN best 7.25%, PPAN best 6.96%). Overall verdict: GO. Phase 17 complete — WKLY-01/WKLY-02 closed. No app/ code changed; no weekly UI ships this milestone per the phase's explicit research-only scope (deferred to its own future milestone per REQUIREMENTS.md v2.1+).
 
 ### Pending Todos
 
@@ -226,6 +228,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-01T02:58:17.000Z
-Stopped at: Completed 17-01-PLAN.md
-Resume file: .planning/phases/17-weekly-forecast-re-research-spike/17-01-SUMMARY.md
+Last session: 2026-09-01T03:15:00.000Z
+Stopped at: Completed 17-02-PLAN.md
+Resume file: .planning/phases/17-weekly-forecast-re-research-spike/17-02-SUMMARY.md

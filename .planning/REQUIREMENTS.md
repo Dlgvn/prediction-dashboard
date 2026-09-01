@@ -30,11 +30,11 @@
 
 ### Weekly Forecast Research (gated)
 
-- [ ] **WKLY-01**: A re-research backtest for weekly-cadence HDAN/PPAN forecasting tests
+- [x] **WKLY-01**: A re-research backtest for weekly-cadence HDAN/PPAN forecasting tests
       genuinely new candidate variables and/or model families — not a rerun of the prior
       no-go combination (weekly VAR on the same Baltic AN/Ammonia/Urea/Natural Gas proxy
       set) — using the same walk-forward, horizon-matched methodology as the prior spike
-- [ ] **WKLY-02**: The weekly re-research backtest produces a documented go/no-go result
+- [x] **WKLY-02**: The weekly re-research backtest produces a documented go/no-go result
       compared explicitly against the prior spike's benchmark figures (9.49%/10.08%
       monthly MAPE) — a "no-go" is a valid, complete outcome, not a blocker to closing it
 
@@ -248,8 +248,8 @@
 | SENT-06 | Phase 18 | Pending |
 | SENT-07 | Phase 18 | Pending |
 | SENT-08 | Phase 18 | Pending |
-| WKLY-01 | Phase 17 | Pending |
-| WKLY-02 | Phase 17 | Pending |
+| WKLY-01 | Phase 17 | Complete |
+| WKLY-02 | Phase 17 | Complete |
 
 ---
 *Requirements defined: 2026-08-21*
