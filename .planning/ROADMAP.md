@@ -20,7 +20,7 @@
 - [x] **Phase 16: Sentiment Data Sufficiency & Causality Research** - A documented go/no-go on whether a sentiment-driven scenario adjustment is viable against the app's real series (completed 2026-09-01, no-go)
 - [x] **Phase 17: Weekly Forecast Re-Research Spike** - A documented go/no-go on new weekly-cadence candidates for HDAN/PPAN, compared against the prior no-go benchmark (completed 2026-09-01, go — no UI shipped, out of scope this milestone)
 - ~~Phase 18: Sentiment-Adjusted Scenario UI~~ — dropped, Phase 16 returned no-go (see [v2.0 archive](milestones/v2.0-ROADMAP.md))
-- [ ] **Phase 19: Weekly Schema & Ingestion** - Genuine weekly-cadence historical data for HDAN, PPAN, and FX rate is persisted separately from the monthly table
+- [x] **Phase 19: Weekly Schema & Ingestion** - Genuine weekly-cadence historical data for HDAN, PPAN, and FX rate is persisted separately from the monthly table
 - [ ] **Phase 20: FX Weekly Backtest** - A backtested weekly FX forecasting model exists with a documented, frozen go/no-go verdict against the monthly benchmark
 - [ ] **Phase 21: Weekly Forecasting Module** - `forecast_all_weekly` and per-series weekly forecast functions exist, unit-testable in isolation from the UI
 - [ ] **Phase 22: Weekly Granularity Toggle & UI** - User can toggle Monthly/Weekly, see weekly forecasts for HDAN/PPAN/FX with correct provenance and dates, and see Diesel honestly marked monthly-only
@@ -367,7 +367,7 @@ Full detail: [.planning/milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md).
 Plans:
 
 - [x] 19-01-PLAN.md — WeeklyPriceRow schema + Alembic migration (wave 1)
-- [ ] 19-02-PLAN.md — seed_weekly.py native AN/FX parsing, tolerance merge_asof, idempotent upsert (wave 2)
+- [x] 19-02-PLAN.md — seed_weekly.py native AN/FX parsing, tolerance merge_asof, idempotent upsert (wave 2)
 
 ### Phase 20: FX Weekly Backtest
 
