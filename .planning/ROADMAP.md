@@ -377,7 +377,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 17-01-PLAN.md — Patch data_loader.py to repo-root-relative paths and resolve the Baltic-AN dedup question with a frozen verdict (wave 1)
+- [x] 17-01-PLAN.md — Patch data_loader.py to repo-root-relative paths and resolve the Baltic-AN dedup question with a frozen verdict (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

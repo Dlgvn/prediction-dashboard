@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: News/Sentiment Scenarios & Weekly Forecast Research
 status: executing
-stopped_at: Completed 16-02-PLAN.md
-last_updated: "2026-09-01T00:00:00.000Z"
-last_activity: 2026-09-01 -- Phase 16 Plan 02 (sentiment causality screen) complete -- Phase 16 complete, no-go
+stopped_at: Completed 17-01-PLAN.md
+last_updated: "2026-09-01T02:58:17.000Z"
+last_activity: 2026-09-01 -- Phase 17 Plan 01 (data loader path fix + Baltic-AN dedup) complete
 progress:
   total_phases: 18
   completed_phases: 1
-  total_plans: 2
-  completed_plans: 2
+  total_plans: 3
+  completed_plans: 3
   percent: 100
 ---
 
@@ -34,10 +34,10 @@ build an additive sentiment-adjusted band + provenance + toggle on the existing 
 
 ## Current Position
 
-Phase: 16 (Sentiment Data Sufficiency & Causality Research) — Complete (no-go)
-Plan: none (Phase 16 done; Phase 17 next)
-Status: Both plans complete. Screen ran against real HDAN/PPAN/Diesel-USD/FX data; all four series returned "no-go" (effective monthly N 14/14/19/20, all below MIN_GRANGER_N=24). SENT-01/SENT-02 closed. Phase 18 (sentiment UI) is dropped per its "go"-gated dependency on Phase 16.
-Last activity: 2026-09-01 -- Phase 16 Plan 02 (sentiment causality screen) complete -- Phase 16 complete
+Phase: 17 (Weekly Forecast Re-Research Spike) — In progress
+Plan: 01 complete (data loader path fix + Baltic-AN dedup); Plan 02 next
+Status: data_loader.py now works on this Windows machine (repo-root-relative paths). Baltic-AN dedup resolved: duplicate (corr=0.983, MAPE=2.70%, n=206) — AN Data.csv's Baltic AN column is the preferred single exogenous predictor. Verdict frozen to backend_research/results/baltic_an_dedup.json for Plan 02's SARIMAX+exog driver-set variant.
+Last activity: 2026-09-01 -- Phase 17 Plan 01 (data loader path fix + Baltic-AN dedup) complete
 
 ## Performance Metrics
 
@@ -103,6 +103,7 @@ Last activity: 2026-09-01 -- Phase 16 Plan 02 (sentiment causality screen) compl
 | Phase 15 P02 | 25min | 2 tasks | 2 files |
 | Phase 16-sentiment-data-sufficiency-causality-research P01 | 35min | 2 tasks | 2 files |
 | Phase 16-sentiment-data-sufficiency-causality-research P02 | 50min | 3 tasks | 4 files |
+| Phase 17-weekly-forecast-re-research-spike P01 | 12min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -183,6 +184,8 @@ Recent decisions affecting current work:
 - [Phase 16-01]: weighted_compound/sent_ema3/sent_ema10/sent_momentum rebuilt from raw article timestamps corrected to Mongolia-local (UTC+8), never resampled from archive/news_sentiment_daily.csv (date-only, UTC-day-bucketed, cannot be corrected after the fact); vix_regime_code bucketed on ml_features.csv's own US-trading-day calendar with no MN_OFFSET shift
 - [Phase 16-01]: merge_lagged() reindexes the gappy predictor onto the dense target index by calendar label before shifting, includes y_lag1 in its dropna so its row count equals causality_screen.granger_ftest()'s true effective n, and raises walk_forward.LeakageError (reused, not a parallel exception class) on lag<1 or non-monthly indexes
 - [Phase 16-02]: Sentiment causality screen returned "no-go" for all four series (HDAN/PPAN/Diesel-USD/FX rate) — effective monthly overlap (14/14/19/20) never reaches MIN_GRANGER_N=24, imported unchanged from causality_screen.py. Phase 16 complete; SENT-01/SENT-02 closed. Phase 18 (sentiment UI) is dropped from the v2.0 milestone per its "go"-gated dependency, not built in a degraded form.
+- [Phase 17-01]: backend_research/data_loader.py's three CSV path constants patched to repo-root-relative `_REPO_ROOT = Path(__file__).resolve().parent.parent` (mirroring db_loader.py's DB_PATH pattern), fixing a live FileNotFoundError on this Windows machine; parsing/cleaning logic untouched.
+- [Phase 17-01]: Baltic-AN dedup verdict: DUPLICATE (corr=0.983, MAPE=2.70%, n=206 over the AN Data.csv-bounded overlap window) — AN Data.csv's "Baltic AN" column is the preferred single exogenous predictor; BalticAN_wk should not be added as a separate driver. Verdict computed by verdict_from_stats(corr > 0.9 and mape < 10.0 => duplicate) and frozen to backend_research/results/baltic_an_dedup.json for Plan 02's SARIMAX+exog driver-set variant to consume.
 
 ### Pending Todos
 
@@ -223,6 +226,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-01T00:00:00.000Z
-Stopped at: Completed 16-02-PLAN.md (Phase 16 complete, no-go)
-Resume file: .planning/phases/16-sentiment-data-sufficiency-causality-research/16-02-SUMMARY.md
+Last session: 2026-09-01T02:58:17.000Z
+Stopped at: Completed 17-01-PLAN.md
+Resume file: .planning/phases/17-weekly-forecast-re-research-spike/17-01-SUMMARY.md
