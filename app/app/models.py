@@ -1,4 +1,5 @@
-"""Database schema: wide monthly price table plus global app settings.
+"""Database schema: wide monthly price table, weekly price table, plus global app
+settings.
 
 Field list and column order follow the D-05b/D-05c-corrected 16-series
 contract (see 01-01-PLAN.md <interfaces>). D-05b retires the single
@@ -40,6 +41,23 @@ class PriceRow(rx.Model, table=True):
     urals: Optional[float] = None
     fx_rate: Optional[float] = None
     brent: Optional[float] = None
+
+
+class WeeklyPriceRow(rx.Model, table=True):
+    """One row per genuine weekly observation (Phase 19). Never derived/resampled
+    from PriceRow -- sourced natively from AN Data.csv's weekly rows and FX Data.csv's
+    Weekly column. No diesel columns: no weekly diesel source data exists (by design,
+    not omission -- see 19-CONTEXT.md)."""
+
+    date: str = sqlmodel.Field(unique=True, index=True)
+
+    # sourced from AN Data.csv (native weekly rows, no resampling)
+    hdan: Optional[float] = None
+    ppan: Optional[float] = None
+    baltic_an: Optional[float] = None
+
+    # sourced from FX Data.csv's Weekly column
+    fx_rate: Optional[float] = None
 
 
 class AppSetting(rx.Model, table=True):
