@@ -1,0 +1,602 @@
+[
+  {
+    "target": "hdan",
+    "predictor": "weighted_compound",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 14,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "hdan",
+    "predictor": "weighted_compound",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 13,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "hdan",
+    "predictor": "weighted_compound",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 12,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "hdan",
+    "predictor": "sent_ema3",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 14,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "hdan",
+    "predictor": "sent_ema3",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 13,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "hdan",
+    "predictor": "sent_ema3",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 12,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "hdan",
+    "predictor": "sent_ema10",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 14,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "hdan",
+    "predictor": "sent_ema10",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 13,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "hdan",
+    "predictor": "sent_ema10",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 12,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "hdan",
+    "predictor": "sent_momentum",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 14,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "hdan",
+    "predictor": "sent_momentum",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 13,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "hdan",
+    "predictor": "sent_momentum",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 12,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "hdan",
+    "predictor": "vix_regime_code",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 14,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "hdan",
+    "predictor": "vix_regime_code",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 13,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "hdan",
+    "predictor": "vix_regime_code",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 12,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "ppan",
+    "predictor": "weighted_compound",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 14,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "ppan",
+    "predictor": "weighted_compound",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 13,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "ppan",
+    "predictor": "weighted_compound",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 12,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "ppan",
+    "predictor": "sent_ema3",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 14,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "ppan",
+    "predictor": "sent_ema3",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 13,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "ppan",
+    "predictor": "sent_ema3",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 12,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "ppan",
+    "predictor": "sent_ema10",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 14,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "ppan",
+    "predictor": "sent_ema10",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 13,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "ppan",
+    "predictor": "sent_ema10",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 12,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "ppan",
+    "predictor": "sent_momentum",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 14,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "ppan",
+    "predictor": "sent_momentum",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 13,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "ppan",
+    "predictor": "sent_momentum",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 12,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "ppan",
+    "predictor": "vix_regime_code",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 14,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "ppan",
+    "predictor": "vix_regime_code",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 13,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "ppan",
+    "predictor": "vix_regime_code",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 12,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "weighted_compound",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 19,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "weighted_compound",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 18,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "weighted_compound",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 17,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "sent_ema3",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 19,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "sent_ema3",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 18,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "sent_ema3",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 17,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "sent_ema10",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 19,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "sent_ema10",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 18,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "sent_ema10",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 17,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "sent_momentum",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 19,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "sent_momentum",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 18,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "sent_momentum",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 17,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "vix_regime_code",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 19,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "vix_regime_code",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 18,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "diesel_usd_ton",
+    "predictor": "vix_regime_code",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 17,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "weighted_compound",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 19,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "weighted_compound",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 18,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "weighted_compound",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 17,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "sent_ema3",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 19,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "sent_ema3",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 18,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "sent_ema3",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 17,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "sent_ema10",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 19,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "sent_ema10",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 18,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "sent_ema10",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 17,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "sent_momentum",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 19,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "sent_momentum",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 18,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "sent_momentum",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 17,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "vix_regime_code",
+    "lag": 1,
+    "F": null,
+    "p": null,
+    "n": 19,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "vix_regime_code",
+    "lag": 2,
+    "F": null,
+    "p": null,
+    "n": 18,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  },
+  {
+    "target": "fx_rate",
+    "predictor": "vix_regime_code",
+    "lag": 3,
+    "F": null,
+    "p": null,
+    "n": 17,
+    "tier": "ns",
+    "note": "insufficient overlap"
+  }
+]
