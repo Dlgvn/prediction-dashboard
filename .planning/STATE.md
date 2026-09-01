@@ -2,12 +2,12 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Weekly Forecast UI
-status: defining_requirements
-stopped_at: Milestone v2.1 started
-last_updated: "2026-09-01T05:00:00.000Z"
-last_activity: 2026-09-01 -- Milestone v2.1 (Weekly Forecast UI) started. FX Data.csv's Weekly column identified as a real weekly FX data source (865 rows, 2010-01-04..2026-07-27, perfect 7-day cadence). Defining requirements/roadmap next.
+status: ready_to_plan
+stopped_at: Roadmap created — ready to plan Phase 19
+last_updated: "2026-09-01T05:30:00.000Z"
+last_activity: 2026-09-01 -- ROADMAP.md created for v2.1 (Phases 19-22): Weekly Schema & Ingestion, FX Weekly Backtest, Weekly Forecasting Module, Weekly Granularity Toggle & UI. All 8 WKUI requirements mapped, 100% coverage. Next: /gsd-plan-phase 19.
 progress:
-  total_phases: 0
+  total_phases: 4
   completed_phases: 0
   total_plans: 0
   completed_plans: 0
@@ -25,19 +25,18 @@ and see a chart with three price scenarios (bull/base/bear) for each of the four
 series — without opening Excel.
 
 **Current focus:** v2.1 — ship weekly-cadence forecasting for HDAN, PPAN, and FX rate on the
-dashboard. Requires a new research phase first (backtest weekly FX forecasting against
-`FX Data.csv`'s Weekly column — a genuine weekly source, not previously used), then a
-weekly-cadence forecast UI (granularity toggle) built on top of Phase 17's already-validated
-HDAN/PPAN weekly models plus the new FX weekly model. Diesel-USD/Diesel-MNT remain
-monthly-only (no weekly source exists for them). Forecast-viewing only — no weekly data
-entry this milestone.
+dashboard. Roadmap is now in place: Phase 19 (weekly schema + ingestion) and Phase 20 (FX
+weekly backtest) can run in parallel (no shared state), Phase 21 (weekly forecasting module)
+depends on both, and Phase 22 (granularity toggle + UI) depends on Phase 21. Diesel-USD/
+Diesel-MNT remain monthly-only (no weekly source exists for them). Forecast-viewing only —
+no weekly data entry this milestone.
 
 ## Current Position
 
-Phase: Not started (defining requirements)
+Phase: 19 - Weekly Schema & Ingestion (not started, ready to plan)
 Plan: —
-Status: Defining requirements
-Last activity: 2026-09-01 — Milestone v2.1 started
+Status: Roadmap approved, ready for /gsd-plan-phase 19
+Last activity: 2026-09-01 — ROADMAP.md, STATE.md, REQUIREMENTS.md traceability written for v2.1 (Phases 19-22)
 
 ## Performance Metrics
 
@@ -188,6 +187,8 @@ Recent decisions affecting current work:
 - [Phase 17-01]: backend_research/data_loader.py's three CSV path constants patched to repo-root-relative `_REPO_ROOT = Path(__file__).resolve().parent.parent` (mirroring db_loader.py's DB_PATH pattern), fixing a live FileNotFoundError on this Windows machine; parsing/cleaning logic untouched.
 - [Phase 17-01]: Baltic-AN dedup verdict: DUPLICATE (corr=0.983, MAPE=2.70%, n=206 over the AN Data.csv-bounded overlap window) — AN Data.csv's "Baltic AN" column is the preferred single exogenous predictor; BalticAN_wk should not be added as a separate driver. Verdict computed by verdict_from_stats(corr > 0.9 and mape < 10.0 => duplicate) and frozen to backend_research/results/baltic_an_dedup.json for Plan 02's SARIMAX+exog driver-set variant to consume.
 - [Phase 17-02]: Weekly SARIMAX(0,1,0), ETS-HoltDamped, and SARIMAX+BalticAN(exog,duplicate) all backtested at weekly cadence (MIN_TRAIN_WEEKLY=104, HORIZON_WEEKLY=5, n_origins=102) for HDAN/PPAN via the shared walk_forward_backtest harness — every one of the 6 candidates beats the fixed monthly VAR benchmark (9.49%/10.08%) at h=4 (HDAN best 7.25%, PPAN best 6.96%). Overall verdict: GO. Phase 17 complete — WKLY-01/WKLY-02 closed. No app/ code changed; no weekly UI ships this milestone per the phase's explicit research-only scope (deferred to its own future milestone per REQUIREMENTS.md v2.1+).
+- [v2.1 roadmap]: Phases 19 (weekly schema+ingestion) and 20 (FX weekly backtest) are parallel-eligible (no shared state); Phase 21 (weekly forecasting module) depends on both; Phase 22 (granularity toggle + UI) depends on Phase 21 only. All 8 WKUI requirements mapped 1:1 to phases, 100% coverage, no orphans.
+- [v2.1 roadmap]: Phase 20's FX weekly backtest verdict is a hard gate on Phase 22's FX scope — if "no-go", FX stays monthly-only in the toggle UI and only HDAN/PPAN ship weekly-capable, mirroring the project's established "no un-backtested model ships" / honest-no-go precedent from Phase 16.
 
 ### Pending Todos
 
@@ -211,7 +212,8 @@ Recent decisions affecting current work:
   no-go: weekly-native VAR rolled 4 weeks forward underperforms the existing monthly VAR
   (10.35%/16.01% vs 9.49%/10.08% MAPE), so the deferral stands. No weekly Diesel/FX data exists
   at all, unchanged. Phase 17 (v2.0) re-researches this with genuinely new candidates before any
-  future weekly-UI milestone can be considered.
+  future weekly-UI milestone can be considered. RESOLVED 2026-09-01: Phase 17 returned "go" for
+  HDAN/PPAN, unblocking this v2.1 milestone; FX weekly viability is still open, gated on Phase 20.
 
 - Model family selection (ARIMA/SARIMAX/VAR vs. ML baseline) is genuinely open — Phase 2 must
   produce real backtest results, not a formality, before Phase 3 forecasting logic is built.
@@ -226,8 +228,17 @@ Recent decisions affecting current work:
   Phase 18 (sentiment UI) is dropped from the v2.0 milestone rather than built speculatively
   or in a degraded form.
 
+- [v2.1] OPEN: FX weekly model viability is genuinely unresolved going into Phase 20 — unlike
+  HDAN/PPAN (already validated in Phase 17), no weekly FX backtest has run yet. Phase 22's UI
+  scope for FX is contingent on Phase 20's verdict.
+
+- [v2.1] OPEN: Two new UI decisions flagged by research with no existing precedent in this
+  codebase to copy verbatim, to be resolved during Phase 22 planning: (1) the "honest
+  degradation" UX pattern for Diesel cards in Weekly mode, and (2) the AN (Friday-based) vs FX
+  (Monday-based) week-ending date-labeling convention shown to the user.
+
 ## Session Continuity
 
-Last session: 2026-09-01T03:15:00.000Z
-Stopped at: Completed 17-02-PLAN.md
-Resume file: .planning/phases/17-weekly-forecast-re-research-spike/17-02-SUMMARY.md
+Last session: 2026-09-01T05:30:00.000Z
+Stopped at: ROADMAP.md, STATE.md, and REQUIREMENTS.md traceability written for v2.1 (Phases 19-22)
+Resume file: .planning/ROADMAP.md

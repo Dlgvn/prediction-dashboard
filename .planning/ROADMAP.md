@@ -20,6 +20,10 @@
 - [x] **Phase 16: Sentiment Data Sufficiency & Causality Research** - A documented go/no-go on whether a sentiment-driven scenario adjustment is viable against the app's real series (completed 2026-09-01, no-go)
 - [x] **Phase 17: Weekly Forecast Re-Research Spike** - A documented go/no-go on new weekly-cadence candidates for HDAN/PPAN, compared against the prior no-go benchmark (completed 2026-09-01, go — no UI shipped, out of scope this milestone)
 - ~~Phase 18: Sentiment-Adjusted Scenario UI~~ — dropped, Phase 16 returned no-go (see [v2.0 archive](milestones/v2.0-ROADMAP.md))
+- [ ] **Phase 19: Weekly Schema & Ingestion** - Genuine weekly-cadence historical data for HDAN, PPAN, and FX rate is persisted separately from the monthly table
+- [ ] **Phase 20: FX Weekly Backtest** - A backtested weekly FX forecasting model exists with a documented, frozen go/no-go verdict against the monthly benchmark
+- [ ] **Phase 21: Weekly Forecasting Module** - `forecast_all_weekly` and per-series weekly forecast functions exist, unit-testable in isolation from the UI
+- [ ] **Phase 22: Weekly Granularity Toggle & UI** - User can toggle Monthly/Weekly, see weekly forecasts for HDAN/PPAN/FX with correct provenance and dates, and see Diesel honestly marked monthly-only
 
 ## Phase Details
 
@@ -343,6 +347,70 @@ Plans:
 Phases 16-17 shipped 2026-09-01 (Phase 18 dropped — gated on Phase 16's "go", not met).
 Full detail: [.planning/milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md).
 
+## Milestone v2.1 Weekly Forecast UI
+
+### Phase 19: Weekly Schema & Ingestion
+
+**Goal**: Genuine weekly-cadence historical data for HDAN, PPAN, and FX rate exists in SQLite, sourced natively from `AN Data.csv` and `FX Data.csv`'s Weekly column, persisted separately from the existing monthly `PriceRow` table — never resampled or interpolated from monthly data.
+**Depends on**: Nothing new (builds on Phase 1's data layer; zero risk to the existing monthly path)
+**Requirements**: WKUI-01
+**Success Criteria** (what must be TRUE):
+
+  1. A `WeeklyPriceRow` table (or equivalent) exists, distinct from the monthly `PriceRow` table, storing HDAN/PPAN/Baltic AN/FX at true weekly grain
+  2. Weekly HDAN/PPAN rows are parsed directly from `AN Data.csv`'s native weekly cadence, not derived from the monthly table
+  3. Weekly FX rows are parsed from `FX Data.csv`'s Weekly column (865 rows, 2010-01-04 to 2026-07-27) using positional column slicing that correctly isolates the Weekly cadence from the file's Daily/Monthly columns
+  4. AN-family (Friday-based) and FX (Monday-based) weekly rows are joined/aligned via a tolerance-based join (e.g. `merge_asof`), not naive row alignment, so no silent date misalignment is introduced
+  5. Row counts and date ranges after seeding match the source CSVs (spot-checkable against the known 865-row/2010-01-04..2026-07-27 FX range)
+
+**Plans**: TBD
+
+### Phase 20: FX Weekly Backtest
+
+**Goal**: A backtested weekly-cadence FX forecasting model exists, with a documented, frozen go/no-go verdict against the existing monthly FX benchmark (1.72% MAPE, AR(1)/Naive) — a "no-go" is a complete, valid outcome, not a blocker.
+**Depends on**: Nothing new (uses the existing `walk_forward_backtest` harness; can run in parallel with Phase 19 — no shared state)
+**Requirements**: WKUI-02
+**Success Criteria** (what must be TRUE):
+
+  1. A dedicated FX weekly backtest script exists (not a clone of the HDAN/PPAN weekly runner) with its own examined `MIN_TRAIN_WEEKLY` and benchmark constants for FX
+  2. At least SARIMAX and ETS weekly candidates for FX have been walk-forward backtested using the shared harness
+  3. A frozen results artifact (e.g. `results/weekly_fx.json`) records each candidate's backtested MAPE
+  4. A documented go/no-go verdict exists, comparing the best weekly FX candidate against the 1.72% MAPE monthly benchmark
+  5. If the verdict is "no-go", FX weekly forecasting is explicitly excluded from Phase 22's UI scope rather than shipped un-backtested
+
+**Plans**: TBD
+
+### Phase 21: Weekly Forecasting Module
+
+**Goal**: A forecasting module exists that produces weekly base/bull/bear forecasts for HDAN, PPAN, and (if Phase 20 is a "go") FX, using frozen, transcribed model constants — fully unit-testable in isolation from the UI, mirroring the existing monthly `forecasting.py` pattern.
+**Depends on**: Phase 19 (weekly data), Phase 20 (FX model spec/verdict)
+**Requirements**: None directly (infrastructure phase — unblocks Phase 22's UI; validated indirectly via WKUI-06/WKUI-07 in Phase 22)
+**Success Criteria** (what must be TRUE):
+
+  1. `forecast_weekly_hdan`/`forecast_weekly_ppan` functions exist using Phase 17's frozen SARIMAX/ETS constants, transcribed (not re-derived via runtime search)
+  2. A `forecast_weekly_fx` function exists using Phase 20's frozen winning constants, present only if Phase 20 returned "go"
+  3. A `forecast_all_weekly` dispatcher and a `WEEKLY_MODEL_INFO` constant (model name + MAPE per weekly series) exist, analogous to the monthly module's `MODEL_INFO`
+  4. All weekly forecasting functions are callable and unit-testable with no dependency on Reflex state or the UI layer
+
+**Plans**: TBD
+
+### Phase 22: Weekly Granularity Toggle & UI
+
+**Goal**: The user can toggle the dashboard between Monthly and Weekly forecast granularity, see correctly-dated, correctly-attributed weekly forecasts for HDAN/PPAN/FX, and see Diesel-USD/Diesel-MNT honestly marked monthly-only rather than hidden or faked.
+**Depends on**: Phase 21
+**Requirements**: WKUI-03, WKUI-04, WKUI-05, WKUI-06, WKUI-07, WKUI-08
+**Success Criteria** (what must be TRUE):
+
+  1. A single global Monthly/Weekly toggle drives both the Forecast tab chart and Summary cards together — not independent per-series toggles
+  2. The selected granularity is still active after reloading the page or returning in a new visit
+  3. When Weekly is selected, Diesel-USD and Diesel-MNT cards show an explicit, always-visible "monthly only" disabled/muted state — never hidden, never showing fabricated weekly data
+  4. When Weekly is selected, the horizon control is denominated in weeks (not a relabeled month slider), capped to the range actually covered by the weekly backtest(s)
+  5. When Weekly is selected, each weekly-capable series' summary card shows the correct weekly model name and its backtested MAPE, not a stale monthly figure
+  6. Weekly forecast chart/table dates show real week-ending dates, not relabeled monthly tick marks
+
+**Plans**: TBD
+
+**UI hint**: yes
+
 ## Progress
 
 | Phase | Plans Complete | Status | Completed |
@@ -365,6 +433,10 @@ Full detail: [.planning/milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md).
 | 16. Sentiment Data Sufficiency & Causality Research | 2/2 | Complete   | 2026-09-01 |
 | 17. Weekly Forecast Re-Research Spike | 2/2 | Complete   | 2026-09-01 |
 | 18. Sentiment-Adjusted Scenario UI | — | Dropped (Phase 16 no-go) | - |
+| 19. Weekly Schema & Ingestion | 0/? | Not started | - |
+| 20. FX Weekly Backtest | 0/? | Not started | - |
+| 21. Weekly Forecasting Module | 0/? | Not started | - |
+| 22. Weekly Granularity Toggle & UI | 0/? | Not started | - |
 
 ---
 *Roadmap created: 2026-08-21*
@@ -372,4 +444,5 @@ Full detail: [.planning/milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md).
 *v1.3 phases (11-15) added: 2026-08-24*
 *v2.0 phases (16-18) added: 2026-08-31*
 *v2.0 archived: 2026-09-01 — see .planning/milestones/v2.0-ROADMAP.md*
+*v2.1 phases (19-22) added: 2026-09-01*
 *Granularity: coarse*

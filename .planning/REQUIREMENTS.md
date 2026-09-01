@@ -79,15 +79,16 @@ section, carried forward unchanged.)
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WKUI-01 | TBD | Pending |
-| WKUI-02 | TBD | Pending |
-| WKUI-03 | TBD | Pending |
-| WKUI-04 | TBD | Pending |
-| WKUI-05 | TBD | Pending |
-| WKUI-06 | TBD | Pending |
-| WKUI-07 | TBD | Pending |
-| WKUI-08 | TBD | Pending |
+| WKUI-01 | Phase 19 | Pending |
+| WKUI-02 | Phase 20 | Pending |
+| WKUI-03 | Phase 22 | Pending |
+| WKUI-04 | Phase 22 | Pending |
+| WKUI-05 | Phase 22 | Pending |
+| WKUI-06 | Phase 22 | Pending |
+| WKUI-07 | Phase 22 | Pending |
+| WKUI-08 | Phase 22 | Pending |
 
 ---
 *Requirements defined: 2026-08-21 (v1 baseline); v2.1 requirements added: 2026-09-01*
 *Shipped milestones' requirements (v1 through v2.0) archived in `.planning/milestones/`.*
+*v2.1 traceability mapped to Phases 19-22: 2026-09-01*
