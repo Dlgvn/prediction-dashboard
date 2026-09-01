@@ -4,7 +4,7 @@
 
 ### Weekly Data Foundation
 
-- [ ] **WKUI-01**: The app has genuine weekly-cadence historical data for HDAN, PPAN, and
+- [x] **WKUI-01**: The app has genuine weekly-cadence historical data for HDAN, PPAN, and
       FX rate — sourced from `AN Data.csv` (native weekly) and `FX Data.csv`'s Weekly
       column, never resampled/interpolated from monthly data — persisted separately from
       the existing monthly `PriceRow` table
@@ -79,7 +79,7 @@ section, carried forward unchanged.)
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| WKUI-01 | Phase 19 | Pending |
+| WKUI-01 | Phase 19 | Complete |
 | WKUI-02 | Phase 20 | Pending |
 | WKUI-03 | Phase 22 | Pending |
 | WKUI-04 | Phase 22 | Pending |

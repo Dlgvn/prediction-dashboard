@@ -366,7 +366,7 @@ Full detail: [.planning/milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md).
 
 Plans:
 
-- [ ] 19-01-PLAN.md — WeeklyPriceRow schema + Alembic migration (wave 1)
+- [x] 19-01-PLAN.md — WeeklyPriceRow schema + Alembic migration (wave 1)
 - [ ] 19-02-PLAN.md — seed_weekly.py native AN/FX parsing, tolerance merge_asof, idempotent upsert (wave 2)
 
 ### Phase 20: FX Weekly Backtest
@@ -442,7 +442,7 @@ Plans:
 | 16. Sentiment Data Sufficiency & Causality Research | 2/2 | Complete   | 2026-09-01 |
 | 17. Weekly Forecast Re-Research Spike | 2/2 | Complete   | 2026-09-01 |
 | 18. Sentiment-Adjusted Scenario UI | — | Dropped (Phase 16 no-go) | - |
-| 19. Weekly Schema & Ingestion | 0/2 | Not started | - |
+| 19. Weekly Schema & Ingestion | 1/2 | In Progress|  |
 | 20. FX Weekly Backtest | 0/1 | Not started | - |
 | 21. Weekly Forecasting Module | 0/? | Not started | - |
 | 22. Weekly Granularity Toggle & UI | 0/? | Not started | - |
