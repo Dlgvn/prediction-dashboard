@@ -1,0 +1,32 @@
+[
+  {
+    "series": "FX",
+    "model": "SARIMAX(0, 1, 1)",
+    "family": "sarimax",
+    "driver_variant": "univariate",
+    "mape_h4": 0.8908766518867002,
+    "mape_h5": 1.0645592578756498,
+    "benchmark_mape": 1.72,
+    "beats_benchmark_h4": true,
+    "n_origins": 761,
+    "failed_origins": 0,
+    "min_train": 104,
+    "horizon": 5,
+    "notes": "order selected by AIC=795.866025993085 on first 104-obs window, seasonal=None; MIN_TRAIN_WEEKLY=104 examined for FX's 865-row history (expanding-window burn-in, not a length-proportional fraction -- see module-level comment)."
+  },
+  {
+    "series": "FX",
+    "model": "ETS-HoltDamped",
+    "family": "ets",
+    "driver_variant": "univariate",
+    "mape_h4": 0.8592741661596994,
+    "mape_h5": 1.0178206321486103,
+    "benchmark_mape": 1.72,
+    "beats_benchmark_h4": true,
+    "n_origins": 761,
+    "failed_origins": 0,
+    "min_train": 104,
+    "horizon": 5,
+    "notes": "trend=add, seasonal=None, damped_trend=True; MIN_TRAIN_WEEKLY=104 examined for FX's 865-row history (see module-level comment)."
+  }
+]
