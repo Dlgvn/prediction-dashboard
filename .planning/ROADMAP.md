@@ -355,7 +355,7 @@ Plans:
 Plans:
 **Wave 1**
 
-- [ ] 16-01-PLAN.md — Monthly sentiment predictor loader (UTC+8-corrected) and leakage-guarded merge helper with tests (wave 1)
+- [x] 16-01-PLAN.md — Monthly sentiment predictor loader (UTC+8-corrected) and leakage-guarded merge helper with tests (wave 1)
 
 **Wave 2** *(blocked on Wave 1 completion)*
 

@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: News/Sentiment Scenarios & Weekly Forecast Research
 status: executing
-stopped_at: Phase 16 context gathered
-last_updated: "2026-08-31T09:08:53.126Z"
-last_activity: 2026-08-31 -- Phase 16 planning complete
+stopped_at: Completed 16-01-PLAN.md
+last_updated: "2026-09-01T00:00:00.000Z"
+last_activity: 2026-09-01 -- Phase 16 Plan 01 (sentiment data loader) complete
 progress:
   total_phases: 18
   completed_phases: 0
   total_plans: 2
-  completed_plans: 0
-  percent: 0
+  completed_plans: 1
+  percent: 50
 ---
 
 # Project State
@@ -34,10 +34,10 @@ build an additive sentiment-adjusted band + provenance + toggle on the existing 
 
 ## Current Position
 
-Phase: 16 (Sentiment Data Sufficiency & Causality Research) — Not started
-Plan: —
-Status: Ready to execute
-Last activity: 2026-08-31 -- Phase 16 planning complete
+Phase: 16 (Sentiment Data Sufficiency & Causality Research) — In progress
+Plan: 16-02 (next)
+Status: Plan 01 complete, Plan 02 (causality screen) ready to execute
+Last activity: 2026-09-01 -- Phase 16 Plan 01 (sentiment data loader) complete
 
 ## Performance Metrics
 
@@ -101,6 +101,7 @@ Last activity: 2026-08-31 -- Phase 16 planning complete
 | Phase 14-tab-nav-bar P02 | 25min | 2 tasks | 2 files |
 | Phase 15 P01 | 15min | 1 tasks | 2 files |
 | Phase 15 P02 | 25min | 2 tasks | 2 files |
+| Phase 16-sentiment-data-sufficiency-causality-research P01 | 35min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -178,6 +179,8 @@ Recent decisions affecting current work:
 - [Phase 15-02]: Phase 15 complete — DATA-09 and DATA-10 both satisfied; human-verified live in browser: valid/duplicate date commit, error-survives-click-away (15-01 race fix), Escape recovery, in-place date edit, windowing-toggle-mid-error, and CSV-import-mid-draft-error, all passed with no corruption
 - [v2.0 roadmap]: Sentiment (Phase 16) and weekly (Phase 17) research spikes are independent, sequenced as parallel-eligible phases; Phase 18 (sentiment UI) is strictly gated on Phase 16 returning a "go" and will be dropped from the milestone (not built degraded) if Phase 16 returns "no-go"
 - [v2.0 roadmap]: No weekly UI phase exists in this milestone — WKLY-01/WKLY-02 close via Phase 17's research report alone; weekly UI is deferred to its own future milestone regardless of Phase 17's outcome, per REQUIREMENTS.md v2.1+ Deferred section
+- [Phase 16-01]: weighted_compound/sent_ema3/sent_ema10/sent_momentum rebuilt from raw article timestamps corrected to Mongolia-local (UTC+8), never resampled from archive/news_sentiment_daily.csv (date-only, UTC-day-bucketed, cannot be corrected after the fact); vix_regime_code bucketed on ml_features.csv's own US-trading-day calendar with no MN_OFFSET shift
+- [Phase 16-01]: merge_lagged() reindexes the gappy predictor onto the dense target index by calendar label before shifting, includes y_lag1 in its dropna so its row count equals causality_screen.granger_ftest()'s true effective n, and raises walk_forward.LeakageError (reused, not a parallel exception class) on lag<1 or non-monthly indexes
 
 ### Pending Todos
 
