@@ -21,7 +21,8 @@
 - [x] **Phase 17: Weekly Forecast Re-Research Spike** - A documented go/no-go on new weekly-cadence candidates for HDAN/PPAN, compared against the prior no-go benchmark (completed 2026-09-01, go — no UI shipped, out of scope this milestone)
 - ~~Phase 18: Sentiment-Adjusted Scenario UI~~ — dropped, Phase 16 returned no-go (see [v2.0 archive](milestones/v2.0-ROADMAP.md))
 - [x] **Phase 19: Weekly Schema & Ingestion** - Genuine weekly-cadence historical data for HDAN, PPAN, and FX rate is persisted separately from the monthly table
-- [x] **Phase 20: FX Weekly Backtest** - A backtested weekly FX forecasting model exists with a documented, frozen go/no-go verdict against the monthly benchmark (completed 2026-09-01)
+- [x] **Phase 20: FX Weekly Backtest** - A backtested weekly FX forecasting model exists with a documented, frozen go/no-go verdict against the monthly benchmark
+ (completed 2026-09-01)
 - [ ] **Phase 21: Weekly Forecasting Module** - `forecast_all_weekly` and per-series weekly forecast functions exist, unit-testable in isolation from the UI
 - [ ] **Phase 22: Weekly Granularity Toggle & UI** - User can toggle Monthly/Weekly, see weekly forecasts for HDAN/PPAN/FX with correct provenance and dates, and see Diesel honestly marked monthly-only
 
@@ -400,7 +401,12 @@ Plans:
   3. A `forecast_all_weekly` dispatcher and a `WEEKLY_MODEL_INFO` constant (model name + MAPE per weekly series) exist, analogous to the monthly module's `MODEL_INFO`
   4. All weekly forecasting functions are callable and unit-testable with no dependency on Reflex state or the UI layer
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+
+- [ ] 21-01-PLAN.md — forecast_weekly_hdan/forecast_weekly_ppan: shared SARIMAX(0,1,0)+BalticAN(unlagged exog) engine (wave 1)
+- [ ] 21-02-PLAN.md — forecast_weekly_fx (ETS-HoltDamped + simulate()-based spread), WEEKLY_MODEL_INFO, forecast_all_weekly dispatcher (wave 2)
 
 ### Phase 22: Weekly Granularity Toggle & UI
 
@@ -444,7 +450,7 @@ Plans:
 | 18. Sentiment-Adjusted Scenario UI | — | Dropped (Phase 16 no-go) | - |
 | 19. Weekly Schema & Ingestion | 1/2 | In Progress|  |
 | 20. FX Weekly Backtest | 1/1 | Complete   | 2026-09-01 |
-| 21. Weekly Forecasting Module | 0/? | Not started | - |
+| 21. Weekly Forecasting Module | 0/2 | Not started | - |
 | 22. Weekly Granularity Toggle & UI | 0/? | Not started | - |
 
 ---
