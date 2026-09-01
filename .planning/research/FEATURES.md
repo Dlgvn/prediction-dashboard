@@ -1,263 +1,156 @@
 # Feature Research
 
-**Domain:** Single-user commodity/FX forecasting dashboard — v2.0 additions (news/sentiment scenario adjustment, weekly-granularity mode)
-**Researched:** 2026-08-31
-**Confidence:** MEDIUM (data-reality findings are HIGH/verified; UX pattern findings are MEDIUM, drawn from general dashboard/fintech conventions rather than a direct competitor with this exact feature set)
+**Domain:** Mixed-cadence (weekly + monthly) financial/commodity forecast dashboard UI
+**Researched:** 2026-09-01
+**Confidence:** MEDIUM (project-specific reasoning HIGH; general mixed-cadence dashboard UX patterns MEDIUM — thin authoritative literature on this exact niche, corroborated by one Qlik community pattern and general dashboard-cadence guidance)
 
-## Critical Finding First: The `archive/` Dataset Is Not Commodity-Specific
+## Context
 
-Before any feature design: I directly inspected every file in `archive/` (not just the README). This
-materially changes what "sentiment-driven scenario adjustment" can honestly mean for this project.
+This is a narrow, well-scoped addition: a **granularity toggle** (Monthly/Weekly) on an existing, already-shipped Forecast tab and Summary cards. The backend work is done and validated (`backend_research/REPORT-WEEKLY.md`, go verdict, HDAN 7.25%/PPAN 6.96% weekly MAPE vs 9.49%/10.08% monthly benchmark; FX weekly source confirmed available via `FX Data.csv`'s Weekly column). This milestone is forecast-**viewing** only — no new weekly data-entry UI. Scope is deliberately small: 3 of 5 series (HDAN, PPAN, FX) get weekly; 2 (Diesel-USD, derived Diesel-MNT) stay monthly-only, permanently, because no weekly source data exists for them.
 
-- `archive/news_sentiment_raw.csv` (10,184 rows), `news_sentiment_daily.csv` (163 days,
-  2020-03-16 → 2026-08-22, **sparse** — only 163 distinct days have any sentiment computed at
-  all across a ~6-year span), `sentiment_market_panel.csv`, and `ml_features.csv` are a
-  **generic US-equity-market financial news sentiment dataset** (NewsAPI headlines scored with
-  VADER, correlated against SPY/QQQ/DIA/VIX). Its README states it's designed to "pair with"
-  a US Recession Probability Tracker and Global Inflation/AI-Layoffs datasets — this reads as a
-  public/Kaggle-style general-finance-education dataset, not something sourced for ammonium
-  nitrate, diesel, or Mongolian tugrik markets.
-- Grepping the full raw corpus: **zero** matches for "ammonium," "Mongolia," "tugrik," or word-
-  boundary "MNT." **Nine** matches for "diesel," all generic retail-fuel/inflation headlines
-  (e.g., US/India petrol price and CPI stories), not commodity-market or Mongolia-specific.
-  Topic buckets are `markets / policy / volatility / inflation / earnings / recession / growth`
-  — a macro/equity lens, not a fertilizer or Central-Asian-FX lens.
-- Practical consequence: this data can plausibly serve as a **general market risk-on/risk-off
-  proxy** (via `vix_regime`, `weighted_compound`, `sent_momentum`) that *might* correlate weakly
-  with globally-traded inputs like Brent crude (which already feeds the Diesel-USD model) or
-  general EM-FX risk appetite (relevant to USD/MNT) — but it cannot honestly be presented as
-  "news about ammonium nitrate prices" or "news about the tugrik." Any UI copy, tooltip, or
-  provenance panel must reflect this scope honestly, and the required research/backtest step
-  (PROJECT.md constraint: "no un-backtested model ships") must test whether this generic signal
-  has *any* measurable relationship to HDAN/PPAN/Diesel/FX at all before a sentiment-adjusted
-  scenario ships. This is the single biggest risk to the feature's credibility with the user.
-
-This finding shapes several Anti-Features and the MVP gate below — it is not a "nice to know,"
-it's a go/no-go input the roadmap should sequence *before* any sentiment UI work, mirroring how
-weekly mode is already correctly scoped as "research spike first, UI only if it clears a bar."
-
-## Existing UI Surface (for dependency mapping)
-
-Verified in `app/app/app.py` and `app/app/state.py` — the two new features must extend these,
-not duplicate them:
-
-- `forecast_chart()` — a single `rx.plotly` fan chart with a per-series `rx.select` dropdown
-  (`DashboardState.forecast_series_label`), one series shown at a time. This is where a
-  sentiment-adjusted band or a weekly-vs-monthly toggle would render.
-- `forecast_summary_cards()` / `_summary_card()` — per-series cards showing base value, bull/bear
-  range, and `model_name · X.X% typical error` (from a hardcoded `MODEL_INFO` map). This is the
-  established precedent for showing model provenance/confidence next to a number — reuse this
-  pattern for sentiment provenance and weekly-specific MAPE.
-- `forecast_table()` — read-only base/bull/bear table across the horizon, with an amber
-  `forecast_warning` banner pattern already used for graceful-degradation messaging (e.g.
-  insufficient history). Reuse this exact banner pattern for "sentiment unavailable" /
-  "weekly not supported for this series" states.
-- `freshness_chips_row()` — existing staleness-indicator chips for price data. Directly reusable
-  pattern for signaling sentiment-data staleness (the archive is a static export, last updated
-  2026-08-22, not a live feed).
-- `horizon_control()` — the existing 1-12 slider with live "N months/N month" label pluralization
-  in `app.py`. The weekly toggle should extend this control's unit label, not introduce a
-  separate/parallel control.
-- `forecasting.py` — bull/bear are currently produced by `_apply_se_spread()` /
-  `_apply_garch_spread()` as `base ± backtested statistical spread`, a documented invariant
-  ("no un-backtested model ships... never be silently improved back into an unbacktested model").
-  A sentiment adjustment must not mutate this existing band — see Anti-Features.
+General industry guidance on cadence toggles (from research) reinforces one core principle directly applicable here: **don't mix cadences within a single reading — pick the dominant tempo per view and be explicit about what's shown.** ("The classic mistake is mixing the modes on one screen... forces two reading speeds at once, and neither gets served well.") This directly informs the recommendation below on how to handle the 2 monthly-only series inside an otherwise weekly view, and on the horizon-units question.
 
 ## Feature Landscape
 
 ### Table Stakes (Users Expect These)
 
+Features users assume exist once a granularity toggle exists at all. Missing these makes the toggle feel broken or untrustworthy.
+
 | Feature | Why Expected | Complexity | Notes |
 |---------|--------------|------------|-------|
-| Sentiment-adjusted scenario shown in the *same* fan chart as base/bull/bear, not a separate page | Existing forecast_chart() is the single source of truth for scenarios; a second disconnected sentiment view would feel bolted-on | LOW-MED | Extend `forecast_chart_figure` builder in state.py; add a distinguishable line/band style (e.g. dashed) for the sentiment-adjusted variant |
-| Clear labeling that separates "statistical spread" bull/bear from "sentiment-adjusted" bull/bear | Users must never confuse a backtested band with a heuristic overlay — conflating them breaks the trust the MAPE-display precedent already established | LOW | Toggle/legend label change; mirrors existing `forecast_series_label` select pattern |
-| Basic provenance line (date range covered, article count, mean/weighted sentiment score) near the chart | Matches the existing MAPE-next-to-forecast precedent (`_summary_card`) — the app already trains users to expect "here's the number, here's how trustworthy it is" | LOW-MED | Reuse `_summary_card` styling; source fields directly available in `news_sentiment_daily.csv` (`article_count`, `weighted_compound`) |
-| Staleness/coverage warning when sentiment data doesn't cover the requested period, or is old | Archive is a static, non-live export (last row 2026-08-22); silently showing a stale score as current is misleading | LOW | Reuse `freshness_chips_row()` pattern verbatim |
-| Graceful empty state when no sentiment adjustment applies (e.g. backtest says "no signal" for a series) | Matches existing `forecast_table()`'s amber `forecast_warning` banner precedent for degraded states | LOW | Reuse existing banner component |
-| Weekly/Monthly control that defaults to Monthly and is always visible | Monthly is the validated, shipped mode; weekly must not silently become default before its own backtest clears | LOW | Extends `horizon_control()`; default `granularity="monthly"` |
-| Explicit per-series disabled state (not silent fallback) when a series doesn't support weekly | Diesel/FX have zero weekly source data (confirmed in PROJECT.md context) — silently falling back to monthly without telling the user is a trust-breaking surprise | LOW | Standard "disabled control + tooltip explaining why" pattern (verified as a common, accessible dashboard convention below) |
-| Unit relabeling when granularity changes (chart axis, table "Month" column header, horizon slider label) | A granularity toggle that changes the model but not the labels is a well-documented dashboard usability complaint (e.g. GA4 users flag exactly this inconsistency) | LOW-MED | Extend existing `"month"` / `" months"` string logic in `horizon_control()` and `forecast_table()` column header |
+| Monthly/Weekly toggle control on the Forecast tab, applying to both the fan chart and Summary cards together | A toggle that only half-applies (e.g., chart switches but cards don't) breaks the mental model that "granularity" is one dashboard-wide state, not two independent settings | LOW | Single `rx.State` var (e.g. `granularity: str = "monthly"`) read by both Forecast tab and Summary cards; existing tab-nav pattern (v1.3) already establishes cross-component shared state conventions to extend |
+| Toggle state persists for the session (and ideally across reloads, matching the existing dark/light persistence pattern) | User picked weekly once, expects it to stay weekly while navigating; re-picking every page load is friction the app has already trained users out of via the persisted theme toggle | LOW | Reuse the exact persistence mechanism already built for the dark/light toggle (v1.3) — same pattern, different key |
+| Explicit "monthly only" state for Diesel-USD and Diesel-MNT when Weekly is selected — never hidden, never silently showing stale/faked weekly-looking data | Silently dropping 2 of 5 cards when switching modes reads as a bug ("where did diesel go?"); faking a weekly number by resampling/interpolating monthly data would misrepresent model confidence the project has been explicit about maintaining (provenance/MAPE display is already a shipped feature) | LOW-MEDIUM | Render the card in a disabled/muted state with a clear label ("Monthly only — no weekly data source") rather than omitting it from the grid; keeps card count/layout stable across toggle switches |
+| Model provenance line (name + backtested MAPE) updates to reflect the currently-selected granularity's model, not a stale monthly figure shown under a weekly toggle | The provenance feature exists specifically for trust/transparency (v1.3 decision); showing monthly MAPE next to weekly forecast values would be actively misleading, worse than not having provenance at all | LOW | Provenance already reads from a per-series model-metadata source; add a granularity key to that lookup (e.g. `{HDAN: {monthly: {...}, weekly: {...}}}`) rather than a parallel code path |
+| Horizon control adapts its unit/range to the selected granularity (weeks when Weekly is selected, not a re-labeled month picker) | A "1-12" horizon slider that silently means "months" in one mode and "weeks" in another (without changing its label/scale) will produce forecasts 4x shorter or longer than the user intends when they don't notice the mode switch | LOW-MEDIUM | See dedicated discussion below (horizon expressed in weeks vs month-equivalent) — this is the one design question genuinely worth deciding deliberately, not just building |
+| Chart x-axis and fan-chart date labeling reflect true weekly dates (not monthly labels relabeled) when in Weekly mode | Users comparing the chart to real calendar weeks (e.g. "is that the forecast for the week of the 15th?") need real week-ending dates, not synthetic labels | LOW | Existing fan chart already takes a date-indexed series; feed it the weekly date index instead of monthly when in Weekly mode — no new charting capability needed, same Plotly component |
 
 ### Differentiators (Competitive Advantage)
 
+Not required for this milestone to feel complete, but add real value within the existing scope. None of these should block the core toggle ship.
+
 | Feature | Value Proposition | Complexity | Notes |
 |---------|-------------------|------------|-------|
-| Per-scenario "why" list — top 3-5 headlines by absolute sentiment score behind the adjustment | Concrete, auditable provenance beats a black-box "+2% because sentiment" — matches academic/industry pattern of source attribution being the key trust element in financial sentiment tools | MEDIUM | No LLM/summarization needed — just sort `news_sentiment_raw.csv` rows by `abs(compound)` for the window and list title+source+link. Keeps the "no live API, no new LLM dependency" scope this milestone implies |
-| Sample-size / confidence flag on the sentiment score (e.g. "low sample — 1 article" badge) | Prevents over-trusting a single-headline day; the daily file shows many days with `article_count == 1` | LOW | Simple threshold on `article_count`; mirrors the MAPE-as-trust-signal precedent |
-| Sentiment trend mini-chart (`sent_ema3`/`sent_ema10`/`sent_momentum`) alongside the price fan chart | Lets the user see sentiment *regime*, not just a point score — closer to how the app already frames statistical spread as a range, not a point | MEDIUM | New `rx.plotly` component reusing the existing charting pattern |
-| Explicit statistical-only vs statistical+sentiment view switch | Reassures the user the sentiment layer is additive/optional, not a silent replacement of the backtested model — directly supports the project's "no un-backtested model ships" trust posture | LOW-MED | Reuse the existing `rx.select`/toggle pattern already used for series selection |
-| Per-series weekly capability badge ("Weekly available" / "Monthly only") shown on the series selector and summary cards | Lets the user know before switching, rather than discovering via a disabled toggle later; especially useful since coverage will likely be partial (HDAN/PPAN candidate, Diesel/FX/Diesel-MNT confirmed monthly-only) | MEDIUM | New state field per series; small badge element added to existing `_summary_card` |
-| Weekly-specific MAPE shown distinctly from the monthly MAPE, if/when weekly passes backtest | Lets the user directly compare confidence between granularities using the exact display convention already established for monthly | LOW | Extends existing `MODEL_INFO`/`_summary_card` pattern with a second entry keyed by granularity |
+| Side-by-side accuracy callout when switching to Weekly ("Weekly model: 7.25% MAPE vs Monthly: 9.49% MAPE — weekly is more accurate for HDAN") | Directly answers the "why would I ever pick weekly over monthly" question with the exact number the backend research already produced; turns an obscure backtest result into a user-facing selling point for the new mode | LOW | Purely presentational — the numbers already exist in `REPORT-WEEKLY.md`/the model-metadata table; this is a copy/formatting decision, not new computation. Recommended: fold into the provenance line itself (see provenance section below) rather than a separate callout component, to avoid clutter |
+| Deep-link/URL query param for granularity (e.g. `?granularity=weekly`) so the toggle state is shareable/bookmarkable | Nice for a power user who always wants weekly HDAN pulled up; low cost given Reflex's routing supports this | LOW | Purely additive; skip if it doesn't fit Reflex's existing routing conventions cheaply — not worth introducing a new pattern just for this milestone |
+| Per-series granularity override within Weekly mode is explicitly NOT this — see anti-features. Listed here only to note what a "richer" version could look like if ever revisited | — | — | Deliberately not recommending for this milestone |
 
 ### Anti-Features (Commonly Requested, Often Problematic)
 
+Features that would seem like natural extensions of "add weekly mode" but should be avoided this milestone.
+
 | Feature | Why Requested | Why Problematic | Alternative |
 |---------|---------------|------------------|-------------|
-| Live/auto-refreshing news polling for sentiment | Feels more "real-time" and impressive | Mismatched with single-user, roughly-monthly usage cadence; adds a scheduler, API keys, rate-limit handling, and ongoing cost for a dashboard opened a few times a month — exactly the "real-time everything" trap the app has already avoided elsewhere (e.g. no live price API) | Batch-refresh the archive CSVs manually, following the same pattern as the existing CSV bulk-import feature for price data |
-| SHAP/attribution-style explainability UI for the sentiment adjustment | Sounds rigorous, aligns with "explainable AI" trend seen in academic literature | Overkill for a small, auditable statsmodels-based app; adding a black-box explainability layer on top of a heuristic sentiment overlay contradicts the project's own "no un-backtested model ships" simplicity ethos, and is disproportionate engineering for a single user | Simple, auditable transparency instead: article count, date range, mean/weighted score, and top headlines — no attribution plots |
-| Presenting the archive's generic US-equity sentiment as commodity-specific "AN/Diesel/MNT news" | Feature was scoped around this exact dataset, so it's tempting to imply direct relevance | **Verified false** — zero ammonium/Mongolia/tugrik/MNT mentions in 10,184 raw articles; this would actively mislead the user about what's driving a price band shift, undermining the tool's core trust proposition (procurement/budgeting decisions) | Label explicitly as a "general market risk sentiment" overlay (macro risk-on/risk-off proxy); gate the feature entirely on the required research/backtest step confirming *some* measurable relationship exists before shipping any UI |
-| In-app full article reader / news browser | Feels feature-rich, "why not show the whole article" | Bloomberg-terminal-style feature bloat for an occasional-use procurement tool; large UI surface for low marginal value | Top-3 headline snippets with outbound links only |
-| Sentiment silently widening/narrowing the *existing* backtested statistical bull/bear band | Simplest to implement — just adjust the existing spread number | Violates the documented invariant in `forecasting.py` that bull/bear = base ± backtested statistical spread; mixes an unvalidated heuristic into a validated number, making both harder to trust or debug | Sentiment adjustment must be a clearly separate, additive third band/line — never a mutation of the existing statistical band |
-| All-or-nothing weekly mode (blocked globally because 2 of 5 values can't support it) | Simpler binary toggle to build | Throws away real value — HDAN/PPAN have genuine weekly source data per PROJECT.md context even though Diesel/FX don't | Per-series/partial weekly availability, not a single global gate |
-| Auto-interpolating synthetic weekly points for Diesel/FX/Diesel-MNT to fake parity with HDAN/PPAN | Makes the UI "feel" consistent across all 5 tracked values | Manufactures false precision; an interpolated point is not a forecast and directly violates "no un-backtested model ships" | Explicitly gray out and label Diesel/FX/Diesel-MNT as monthly-only; no synthetic data |
-| Shipping weekly UI in parallel with the unresolved re-research backtest | Feels efficient to build UI and research simultaneously | Directly contradicts the Key Decision already logged in PROJECT.md: weekly mode is "a research spike... not a committed build" until it beats the prior no-go (10.35%/16.01% weekly VAR vs 9.49%/10.08% monthly MAPE) | Strict sequencing: backtest result first, UI only if/when it clears the bar |
-| Open-ended granularity picker (daily/weekly/biweekly/monthly/quarterly) | "More options" sounds more flexible | Over-engineered for a budgeting/procurement tool; PROJECT.md only ever specifies monthly (1-12) or weekly | Keep it a simple two-state Monthly/Weekly toggle |
+| Per-series granularity picker (e.g. HDAN weekly, PPAN monthly, FX weekly, mixed within one view) | Feels flexible — "let the user choose per card" | Reintroduces exactly the "two reading speeds on one screen" problem general dashboard-cadence guidance warns against; also multiplies state combinations (2^3 for the weekly-eligible series alone) for a single-user app where a global toggle already satisfies the actual need | One global Monthly/Weekly toggle affecting all cards at once; monthly-only series (Diesel-USD, Diesel-MNT) show their honest "monthly only" state regardless of the global toggle |
+| Faking/deriving a synthetic weekly Diesel-USD or Diesel-MNT forecast via naive interpolation of the monthly curve, to make the weekly view "feel complete" (all 5 cards populated) | Surface appeal: symmetric UI, no empty/disabled cards, "looks more finished" | Directly violates the project's core discipline established since v1 ("no un-backtested model ships to the dashboard") — an interpolated curve is not a backtested forecast and would carry a fabricated confidence implication; also, backend research explicitly found no weekly Diesel/FX proxy relationship worth trusting for Diesel in earlier spikes | Show the "monthly only" disabled/muted card state (table stakes above); if a weekly Diesel/FX data source is ever found, that's new backend research, not a UI workaround |
+| New weekly-cadence Data Entry UI/table for manually entering weekly actuals, added opportunistically since the Weekly toggle is already being built | Feels like the natural companion to a weekly forecast view ("if I can view weekly, I should be able to enter weekly") | Explicitly out of scope per the milestone definition; existing monthly Data Entry tab already works and weekly actuals ingestion is an unscoped, separately-sized problem (would need its own CSV/import research, validation rules, etc.) — scope creep risk is high and directly contradicts the stated milestone boundary | Leave Data Entry tab monthly-only this milestone, exactly as scoped; revisit as its own milestone if ever needed |
+| Auto-switching or defaulting to Weekly mode for HDAN/PPAN/FX because "it's more accurate" | Seems like doing the user a favor by defaulting to the objectively lower-MAPE model | Removes user agency/predictability — a returning user (matching this app's monthly, occasional-use pattern) expects the view they last used, not a silently different default state per series; also the "more accurate" framing is horizon-dependent (weekly MAPE is measured at h=4/5 weeks, not directly comparable to a 12-month monthly horizon pick) | Default to Monthly (matches existing shipped behavior, zero surprise for existing users), let the user opt into Weekly; use the persisted-toggle pattern (table stakes) so their choice sticks |
+| Independent weekly horizon slider range (e.g. 1-52 weeks) mirroring the monthly 1-12 range 1:1 | Symmetric-feeling UI parity with the existing monthly horizon control | Weekly models were only backtested out to h=4/5 weeks (~1 month) per `REPORT-WEEKLY.md` — extending the horizon control far beyond the validated range invites the user to request forecasts with no backtested accuracy basis, silently violating "no un-backtested model ships" | Cap the weekly horizon control at a validated range (see horizon-units discussion below); if a longer horizon is wanted later, that requires new backtesting first |
 
 ## Feature Dependencies
 
 ```
-Sentiment-adjusted scenario display
-    └──requires──> Sentiment/backtest research step
-                       (does the generic archive sentiment measurably relate to
-                        HDAN/PPAN/Diesel/FX at all? — currently unverified/unlikely
-                        to be commodity-specific; must be an honest go/no-go call,
-                        same posture as weekly mode)
+Weekly granularity toggle (Forecast tab + Summary cards)
+    └──requires──> Existing tab/shared-state pattern (v1.3 tab-nav + persisted dark/light toggle)
+    └──requires──> Weekly model metadata (model name, MAPE) per series, keyed by granularity
+                       └──requires──> backend_research/REPORT-WEEKLY.md validated weekly models (HDAN, PPAN)
+                       └──requires──> Weekly FX model (net-new this milestone; validated against FX Data.csv Weekly column)
+    └──requires──> Weekly-dated fan chart rendering
+                       └──requires──> Existing Plotly fan-chart component (v1 build) — reused, not rebuilt
 
-Sentiment provenance panel (headlines / date range / article count)
-    └──requires──> Sentiment-adjusted scenario display
-                       (nothing to show provenance for without an adjustment existing)
+"Monthly only" honest state for Diesel-USD / Diesel-MNT
+    └──requires──> Weekly granularity toggle (state to react to)
+    └──enhances──> User trust / provenance discipline (already established, v1.3)
 
-Sentiment trend mini-chart
-    └──enhances──> Sentiment-adjusted scenario display
+Provenance line granularity-awareness
+    └──requires──> Weekly granularity toggle
+    └──requires──> Weekly model metadata (see above)
+    └──enhances──> Weekly toggle's value proposition (shows *why* weekly might be picked)
 
-Weekly forecast mode UI (toggle + relabeled axes/table)
-    └──requires──> Weekly re-research backtest passing, per series
-                       (HDAN/PPAN = candidate; Diesel/FX = confirmed no-go on data
-                        availability per PROJECT.md)
-
-Per-series weekly capability badge
-    └──enhances──> Weekly forecast mode UI
-
-Diesel-MNT weekly value
-    └──requires──> Diesel-USD weekly AND FX weekly
-                       (derived series — diesel_mnt_forecast() multiplies the two
-                        inputs; inherits the weaker/no-go status of either one,
-                        so it cannot go weekly unless both underlying series do)
-
-Sentiment-adjusted band ──conflicts with──> mutating the existing statistical bull/bear band
-    (must render as a separate, additive line/band — never overwrite _apply_se_spread()/
-     _apply_garch_spread() output)
+Horizon control unit adaptation (weeks vs months)
+    └──requires──> Weekly granularity toggle
+    └──conflicts with──> Symmetric 1-12 unit range reuse (see anti-feature: capped range instead)
 ```
 
 ### Dependency Notes
 
-- **Sentiment display requires the research step:** Given the verified data mismatch (generic
-  US-equity sentiment vs. Mongolian fertilizer/diesel/FX markets), this is not a formality —
-  the backtest may well come back "no defensible signal," in which case this becomes a
-  research-only artifact rather than a shipped UI feature, exactly like weekly mode's prior
-  no-go.
-- **Diesel-MNT inherits its inputs' weekly status:** because it's computed as
-  `diesel_usd.bull * fx.bull * multiplier` (per `diesel_mnt_forecast()`), it cannot be "weekly"
-  unless both Diesel-USD and FX independently clear a weekly backtest — currently expected to
-  remain monthly-only regardless of HDAN/PPAN's outcome.
-- **Provenance conflicts with silent mutation:** the sentiment layer's credibility depends on
-  it being visibly separate from the backtested statistical band; combining them into one
-  number would make the existing MAPE trust signal meaningless (the MAPE describes the
-  statistical model only, not a heuristic sentiment tweak).
+- **Weekly toggle requires existing shared-state/persistence pattern:** the dark/light theme toggle (v1.3) already solved "one persisted UI-mode setting affecting multiple components" — this is the same shape of problem at a different key, not a new pattern to invent.
+- **Weekly toggle requires per-series weekly model metadata:** HDAN and PPAN are already validated (`REPORT-WEEKLY.md`, go verdict). FX weekly is *not yet backtested* — the milestone's own scope note flags a new FX weekly model as required work before the toggle can honestly include FX. This is a real sequencing dependency: the weekly-FX backtest must land before (or in the same phase as) the FX weekly card ships, not after.
+- **"Monthly only" state enhances (doesn't block) the toggle:** the toggle can ship its core 3-series behavior with Diesel-USD/Diesel-MNT cards simply always rendering in their existing monthly form, disabled-styled when Weekly is globally selected. This is a small additive layer on top of the toggle, not a separate feature with its own critical path.
+- **Horizon unit adaptation conflicts with naive range reuse:** don't let "just reuse the 1-12 slider" ship silently reinterpreted as weeks — this needs an explicit decision (see below), otherwise it's a a footgun disguised as reuse.
+
+## Design Decisions for This Milestone's Open Questions
+
+The prompt asked four specific design questions. Answering each directly, since they gate implementation choices more than a generic table-stakes/differentiator list does:
+
+### (a) Granularity toggle affecting Forecast tab + Summary cards
+**Recommendation: single global toggle, not per-card.** Table stakes as listed above. One `rx.State` boolean/enum drives both the Forecast tab's model selection/chart and the Summary cards' displayed values and provenance. This matches the general dashboard-cadence guidance found in research (pick one dominant tempo per screen) and avoids the combinatorial-state anti-feature (per-series granularity picker).
+
+### (b) Honest "monthly only" representation for Diesel-USD / Diesel-MNT
+**Recommendation: always-visible, disabled/muted card state with explicit label, never hidden and never faked.** This is table stakes, not optional polish — it's a direct extension of the project's existing "no un-backtested model ships" discipline (already enforced for sentiment in v2.0's Phase 16 no-go, correctly *not* shipped in degraded form). Concretely: keep both Diesel cards in the Summary grid at all times; when Weekly is selected, style them muted/disabled with a one-line explanation ("Monthly data only — no weekly source exists for Diesel-USD"), continuing to show their last-known *monthly* forecast value rather than blanking them, so the user isn't confused about whether the card broke. Grid layout stays stable (5 cards, always), which also avoids a layout-reflow bug class.
+
+### (c) Weekly horizon expressed in weeks vs. month-equivalent
+**Recommendation: weeks, not a converted month-ish range — but cap the range to match the validated backtest horizon (~4-5 weeks / roughly 1 month), not a full 1-52 mirror of the monthly 1-12 control.** Rationale: `REPORT-WEEKLY.md`'s validated results are h=4 (primary) and h=5 (sensitivity) — i.e., roughly one month out. Presenting a 12-week or 52-week horizon option would imply backtested confidence the project doesn't have yet, directly against the established "no un-backtested model ships" rule. Converting the horizon to a "month-ish" label (e.g., "~1 month (4 weeks)") is reasonable as a *secondary* clarifying label next to a weeks-denominated control, but the primary unit and stored value should be weeks — that's what the model backtest is actually indexed on, and it avoids a lossy/ambiguous unit conversion layer between the UI and the forecasting module. If/when a longer weekly horizon is backtested in a future milestone, the range can simply be extended — no redesign needed.
+
+### (d) Whether/how the provenance line changes for weekly mode
+**Recommendation: yes, it must change, and it should actively surface the accuracy delta as a value proposition, not just silently swap the number.** The provenance line already exists specifically to build trust via "which model, its backtested MAPE" (v1.3 decision) — showing a stale monthly MAPE under a weekly forecast would be a regression in the exact feature designed to prevent this kind of misrepresentation. Concretely:
+- Provenance line reads from a granularity-keyed model-metadata source (`{series: {monthly: {model, mape}, weekly: {model, mape}}}`), not a single flat lookup — this is a small backend/data-shape change, not a new UI capability.
+- Because weekly MAPE numbers are meaningfully *better* for HDAN (7.25% vs 9.49%) and PPAN (6.96% vs 10.08%), the provenance line is also the natural (and only necessary) place to fold in the differentiator listed above — e.g. "SARIMAX(0,1,0)+BalticAN — 7.25% MAPE (weekly; monthly model: 9.49%)" — rather than adding a separate comparison widget. This keeps the accuracy story in the one place users already look for it, without new UI real estate.
+- Do not claim "weekly is simply more accurate" as a blanket statement in copy — the comparison is horizon-matched (h=4/5 weeks ≈ 1 month) per the backtest methodology; if copy implies weekly beats monthly at all horizons, that overstates the validated claim. Keep the comparison framed as "at the ~1-month horizon" if any comparative language is used at all.
 
 ## MVP Definition
 
-### Launch With (v1 of this milestone) — gated on research
+### Launch With (this milestone)
 
-- [ ] **Sentiment:** backtest/research step first — determine whether the archive's generic
-      sentiment data has *any* measurable, defensible relationship to HDAN/PPAN/Diesel/FX.
-      No UI work starts until this returns a result.
-- [ ] **If sentiment research is a go:** a single additive sentiment-adjusted band/line on the
-      existing fan chart, clearly distinguished from the statistical band, with a basic
-      provenance line (article count, date range, mean/weighted score) honestly labeled as
-      "general market sentiment," not commodity-specific news.
-- [ ] **Weekly:** backtest/research step first, per series — HDAN/PPAN as the primary
-      candidates; confirm Diesel/FX remain no-go given the known absence of weekly source data.
-- [ ] **If weekly research is a go for any series:** a Monthly/Weekly toggle scoped to only the
-      series that pass, with explicit disabled+tooltip state for the ones that don't (Diesel,
-      FX, and derived Diesel-MNT expected to stay monthly-only).
+- [ ] Global Monthly/Weekly toggle on Forecast tab, shared state with Summary cards — core requested capability
+- [ ] Weekly-cadence fan chart + card values for HDAN, PPAN, FX (all three backed by validated/to-be-validated weekly models)
+- [ ] Weekly FX model research/backtest (net-new this milestone per PROJECT.md scope — FX Data.csv Weekly column)
+- [ ] "Monthly only" honest disabled-state cards for Diesel-USD and Diesel-MNT when Weekly selected
+- [ ] Granularity-aware provenance line (model name + MAPE) for all 5 series, including the weekly-vs-monthly MAPE contrast for HDAN/PPAN/FX
+- [ ] Weeks-denominated horizon control when Weekly is selected, capped to the validated ~4-5 week backtest range
+- [ ] Toggle state persisted (reuse dark/light toggle's existing persistence mechanism)
 
-### Add After Validation
+### Add After Validation (future, if requested)
 
-- [ ] Top-N headline drill-down for sentiment provenance — once the basic adjustment is live and
-      trusted
-- [ ] Weekly-specific MAPE chip shown alongside the monthly one — once weekly mode ships for at
-      least one series
-- [ ] Sentiment trend mini-chart — once the point-in-time score display is validated as useful
+- [ ] Shareable/bookmarkable granularity via URL query param — nice-to-have, low cost, not required for launch
+- [ ] Extended weekly horizon range, if a future backtest validates beyond ~5 weeks
 
-### Future Consideration (defer)
+### Future Consideration (explicitly deferred, not this milestone)
 
-- [ ] Live/polling news API integration — explicitly out of step with single-user, roughly-
-      monthly usage; also flagged in prior-milestone STACK.md as deliberately unresearched/
-      deferred pending its own future research pass
-- [ ] SHAP or other formal explainability tooling — disproportionate for this scale and model
-      complexity
-- [ ] Full in-app article reader — feature bloat for an occasional-use procurement tool
-- [ ] Open-ended multi-granularity picker beyond Monthly/Weekly — no stated need beyond these two
+- [ ] Weekly-cadence Data Entry UI for manual weekly actuals — explicitly out of scope per milestone definition; would need its own CSV import/validation research
+- [ ] Per-series granularity mixing within one view — anti-feature, not planned
+- [ ] Weekly Diesel-USD/Diesel-MNT forecasting — blocked indefinitely on a weekly Diesel/FX-adjacent data source that doesn't currently exist; not a UI problem to solve
 
 ## Feature Prioritization Matrix
 
 | Feature | User Value | Implementation Cost | Priority |
-|---------|------------|----------------------|----------|
-| Sentiment/backtest research step (go/no-go) | HIGH | MEDIUM | P1 |
-| Weekly re-research backtest, per series (go/no-go) | HIGH | MEDIUM | P1 |
-| Sentiment-adjusted band + basic provenance (if go) | HIGH | MEDIUM | P1 (conditional) |
-| Weekly toggle + per-series disabled state (if go) | HIGH | MEDIUM | P1 (conditional) |
-| Sentiment staleness/coverage warning | MEDIUM | LOW | P1 (conditional, ships with the band) |
-| Per-series weekly capability badge | MEDIUM | MEDIUM | P2 |
-| Top-N headline provenance drill-down | MEDIUM | MEDIUM | P2 |
-| Weekly-specific MAPE display | MEDIUM | LOW | P2 |
-| Sentiment trend mini-chart | LOW-MEDIUM | MEDIUM | P3 |
-| Statistical-only vs statistical+sentiment view switch | MEDIUM | LOW-MEDIUM | P2 |
-| Live news polling | LOW (for this usage pattern) | HIGH | Reject/defer |
-| SHAP-style explainability | LOW (for this scale) | HIGH | Reject/defer |
-| Full article reader | LOW | MEDIUM-HIGH | Reject/defer |
+|---------|------------|---------------------|----------|
+| Global Monthly/Weekly toggle (Forecast tab + Summary cards) | HIGH | LOW | P1 |
+| Weekly HDAN/PPAN forecast display (chart + cards) | HIGH | LOW (models already validated) | P1 |
+| Weekly FX forecast display (chart + cards) | HIGH | MEDIUM (model not yet backtested — new research this milestone) | P1 |
+| "Monthly only" disabled-state cards for Diesel-USD/Diesel-MNT | HIGH (trust/honesty) | LOW | P1 |
+| Granularity-aware provenance line with weekly-vs-monthly MAPE contrast | MEDIUM-HIGH (justifies the whole feature) | LOW | P1 |
+| Weeks-denominated, capped horizon control | HIGH (prevents silent misuse of un-backtested horizons) | LOW-MEDIUM | P1 |
+| Toggle persistence | MEDIUM | LOW (pattern reuse) | P2 |
+| URL query param deep-link for granularity | LOW | LOW | P3 |
+| Weekly Data Entry UI | N/A this milestone | HIGH | Out of scope |
 
 **Priority key:**
-- P1: Must clear before anything else — the two research/backtest steps are the actual v2.0
-  deliverable in the "spike" sense; conditional P1s only apply if their gate returns a go
-- P2: Should have, add once the conditional P1 ships and is validated with the user
-- P3: Nice to have, future consideration
-
-## Competitor Feature Analysis
-
-No direct competitor exists for this exact niche (single-user Mongolian ammonium
-nitrate/diesel/FX procurement forecasting). Patterns below are drawn from adjacent domains
-(general fintech/market dashboards, BI tools) rather than a like-for-like competitor, and are
-weighted accordingly (MEDIUM confidence, several independent sources agree on the general shape
-even without a perfect analog).
-
-| Feature | General fintech dashboards (e.g. market-sentiment trackers, BI tools) | Our Approach |
-|---------|--------------------------------------------------------------------|--------------|
-| Sentiment provenance/transparency | Source attribution (which outlets/headlines), confidence values, sentiment-by-source breakdowns are the recurring pattern across financial sentiment tooling and BI/UX literature | Reuse this pattern but scale it down to fit a single-user tool: article count + top headlines + explicit "general market, not commodity-specific" label, no dashboard-wide source-mix visualizations |
-| Granularity toggles with partial support | BI tools (Metabase, GA4, Qlik) routinely surface granularity options that aren't valid for every view/series, and users consistently flag it as confusing when the toggle doesn't clearly explain *why* something is unavailable | Explicit per-series disabled state + tooltip, not a silent fallback or a generic error, addressing the exact complaint pattern found in BI-tool user reports |
-| Disabled/unsupported control signaling | Standard convention: disabled control + tooltip explaining why + accessible focus handling (not a plain disabled attribute, which blocks keyboard focus) | Matches the app's own recent a11y precedent (keyboard-accessible data-entry cells, aria-live feedback) — apply the same care to the weekly-mode disabled state |
+- P1: Must have for this milestone's launch
+- P2: Should have, add when convenient within the milestone
+- P3: Nice to have, defer without concern
 
 ## Sources
 
-- **Direct file inspection (HIGH confidence, primary verification):** `archive/README.md`,
-  `archive/news_sentiment_daily.csv`, `archive/news_sentiment_raw.csv`,
-  `archive/sentiment_market_panel.csv`, `archive/ml_features.csv`, `archive/market_prices.csv` —
-  confirmed dataset scope, date coverage/sparsity, and absence of commodity-specific content via
-  direct grep/inspection, not a third-party claim.
-- **Direct code inspection (HIGH confidence):** `app/app/app.py`, `app/app/state.py`,
-  `app/app/forecasting.py` — confirmed existing chart/summary-card/table component structure and
-  the documented bull/bear-band invariant.
-- `.planning/PROJECT.md` — authoritative source for the weekly-mode prior no-go backtest numbers
-  and the "research spike, not committed build" framing this document mirrors for sentiment.
-- Academic/industry sentiment-forecasting research (MEDIUM confidence, WebSearch, not verified
-  against this project's specific series): [Does sentiment analysis bring more responsive
-  commodity price forecasting? (ScienceDirect)](https://www.sciencedirect.com/science/article/abs/pii/S0275531926001686),
-  [Crude oil price forecasting incorporating news sentiment (Springer)](https://link.springer.com/article/10.1007/s44443-025-00289-8),
-  [News Sentiment and Commodity Futures Investing (Wiley)](https://onlinelibrary.wiley.com/doi/10.1002/fut.70019),
-  [Explainable stock price prediction from financial news (NCBI/PMC)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7924447/)
-  — used only to confirm sentiment *can* have measurable forecasting power for oil/crude-adjacent
-  commodities in the literature, which is why the research/backtest gate (rather than an outright
-  rejection) is the right posture for this feature, not evidence that it will work for this
-  project's specific series or data source.
-- Dashboard/UX pattern research (MEDIUM confidence, WebSearch, general conventions not
-  project-specific): [Disabled Buttons UX — Smart Interface Design
-  Patterns](https://smart-interface-design-patterns.com/articles/disabled-buttons/),
-  general BI-tool granularity-toggle discussions (Metabase, GA4, Qlik community threads) —
-  used to confirm the disabled+tooltip and partial-granularity-support conventions referenced
-  above.
+- `.planning/PROJECT.md` — milestone scope, existing shipped features, key decisions history (HIGH confidence, primary source)
+- `.planning/milestones/v2.0-ROADMAP.md` — Phase 16/17 research spike outcomes and their "no-go = don't ship degraded" precedent, directly informing the anti-features on faking data (HIGH confidence)
+- `backend_research/REPORT-WEEKLY.md` — validated weekly HDAN/PPAN model MAPE figures (7.25%/6.96% weekly vs 9.49%/10.08% monthly benchmark), horizon-matched methodology (h=4/5 weeks) — HIGH confidence, primary source for the horizon-cap and provenance recommendations
+- CLAUDE.md project stack/architecture notes — confirms Reflex `rx.State` shared-state pattern already used for dark/light toggle, reused for granularity toggle recommendation (HIGH confidence)
+- [Forecast Cadence | Revspire](https://www.revspire.io/resources/blogs/the-complete-2026-guide-to-forecast-cadence-for-revenue-leaders) — general forecast-cadence guidance (MEDIUM confidence, general B2B revenue-ops context, not commodity-forecasting-specific)
+- [How do dashboards visualize forecasts? | Pedowitz Group](https://www.pedowitzgroup.com/how-do-dashboards-visualize-forecasts) — general dashboard forecast-visualization patterns (MEDIUM confidence)
+- [community.qlik.com — showing monthly/weekly/daily views dynamically](https://community.qlik.com/t5/QlikView-App-Dev/How-to-show-monthly-weekly-and-daily-views-dynamically-in/td-p/104708) — corroborates the single-toggle, dominant-tempo-per-screen pattern with per-mode default date ranges (MEDIUM confidence, community forum not official docs, but concrete implementation precedent)
+- [DataCult — Weekly Decision Cadence dashboards](https://www.datacult.ai/2026/02/28/resources-weekly-decision-cadence-dashboards/) — source of the "classic mistake is mixing modes on one screen" principle directly applied to the anti-features section (MEDIUM confidence)
 
 ---
-*Feature research for: Prediction Dashboard v2.0 (news/sentiment scenario adjustment + weekly
-forecast mode research spike)*
-*Researched: 2026-08-31*
+*Feature research for: mixed-cadence (weekly + monthly) financial/commodity forecast dashboard, v2.1 Weekly Forecast UI milestone*
+*Researched: 2026-09-01*

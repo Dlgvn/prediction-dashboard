@@ -1,107 +1,146 @@
 # Pitfalls Research
 
-**Domain:** Adding a news/sentiment scenario-adjustment layer + weekly-forecast re-research spike to an already-shipped Reflex forecasting dashboard
-**Researched:** 2026-08-31
-**Confidence:** HIGH (grounded in direct inspection of `archive/*.csv`, `backend_research/REPORT.md`, and the prior `20260821-weekly-an-backtest` quick-task result — not generic ML folklore)
+**Domain:** Adding weekly-cadence forecasting (HDAN, PPAN, FX) to an existing monthly-only Reflex forecasting dashboard
+**Researched:** 2026-09-01
+**Confidence:** HIGH (grounded in this repo's own frozen artifacts, code, and CSV files — not generic advice)
 
 ## Critical Pitfalls
 
-### Pitfall 1: The `archive/` sentiment dataset was built for a different prediction problem entirely
+### Pitfall 1: Re-deriving weekly HDAN/PPAN model results instead of transcribing Phase 17's frozen numbers
 
 **What goes wrong:**
-The team treats `archive/` as "pre-prepared sentiment data for this project" and wires it into the forecast without re-checking what it actually measures. Direct inspection shows `sentiment_market_panel.csv` and `ml_features.csv` were built to predict **next-day SPY/QQQ/DIA returns** from **VADER sentiment on general NewsAPI financial headlines** (`spy_return_next1d`, `spy_up_next1d` are the literal regression/classification targets — see header row). Nothing in the pipeline references ammonium nitrate, diesel, Brent, or USD/MNT. `rolling_corr_60d` in the panel is the correlation between sentiment and **SPY**, not any series this app forecasts. Separately, `News_Category_Dataset_v3.json` (87MB) is the well-known Kaggle "News Category Dataset" — general HuffPost topic-classification data (POLITICS/COMEDY/WELLNESS/etc., confirmed by sampling), not finance or commodity news, and its date coverage (2012–2022 per its known provenance; confirmed 2020–2022 in a 5k-row sample) doesn't even overlap the live 2026 forecasting window.
-**Why it happens:** The file names ("news_sentiment", "market_panel") sound domain-relevant, and PROJECT.md's Key Decisions table already states the milestone "builds on the existing `archive/` dataset ... rather than researching a provider from scratch" — creating pressure to treat the data as fit-for-purpose without re-verifying the fit.
-**How to avoid:** Before any backtest work, explicitly document what target variable each archive file was built for, and run a fresh Granger-causality/correlation screen (mirroring `backend_research/causality_screen.py`'s existing pattern) between the sentiment aggregates (`weighted_compound`, `sent_ema10`, `sent_momentum`) and each of the app's actual four series (HDAN, PPAN, Diesel-USD, FX_rate) at monthly resample — not equities. Treat "general market sentiment might carry macro risk-appetite signal relevant to Brent-linked Diesel or risk-off FX moves" as an unproven hypothesis to test, not a given. Exclude `News_Category_Dataset_v3.json` from the pipeline entirely unless a concrete use for it (e.g., training a topic classifier) is identified — it has no date overlap with current forecasting needs and no finance labeling.
-**Warning signs:** Any backtest script that merges archive columns onto price data using date-join alone, without a documented causality/correlation check against the *actual* target series; any PR description that says "sentiment score" without stating what it was validated against.
-**Phase to address:** Backtest/leakage-check phase (before any UI work) — this is a go/no-go gate, same posture as the Phase 2 model-research process already used for VAR/SARIMAX.
+A builder re-runs `backend_research/weekly/run_weekly_sarimax_ets.py`-style logic (or "improves" it) while wiring the weekly forecasting module into `app/`, producing SARIMAX orders, MAPE, or coefficients that quietly differ from what `backend_research/results/weekly_sarimax_ets.json` and `REPORT-WEEKLY.md` actually froze (SARIMAX(0,1,0) univariate/exog and ETS-HoltDamped, HDAN 7.25–7.72% MAPE, PPAN 6.96–7.95% MAPE, h=4).
+
+**Why it happens:**
+`forecast_hdan`/`forecast_ppan_var_system` in `app/app/forecasting.py` already establish the pattern of literally re-fitting a statsmodels model at request time using hard-coded orders/predictors "transcribed from a named Phase 2 output file" — not re-searched. It's tempting for weekly mode to instead call a convenience function that re-runs order selection (`select_arima_order`'s AIC grid search) live, since that logic already exists in `run_weekly_sarimax_ets.py`. That re-introduces exactly the "no runtime order-selection search" violation Phase 3's `forecasting.py` docstring explicitly forbids for monthly models (D-08 in that file) — the same discipline must extend to weekly.
+
+**How to avoid:**
+Transcribe the frozen weekly constants (SARIMAX order `(0,1,0)`, `seasonal=None`, ETS `trend=add, damped_trend=True`, and which driver variant — univariate vs `baltic_an_exog_duplicate` — actually won) into `forecasting.py` as new module-level frozen constants, exactly mirroring `HDAN_SARIMAX_ORDER`/`HDAN_PREDICTORS`. The runtime weekly-forecast function may still call `sm.tsa.SARIMAX(...).fit()` on live history (that's expected — the coefficients change as new rows are entered) but the **order/spec** must come from the frozen JSON, never from a live AIC grid search inside `app/`.
+
+**Warning signs:**
+Any weekly forecasting code path that imports `itertools` to build an order grid, or that calls something equivalent to `select_arima_order` at request time — that's the tell that order selection leaked into production.
+
+**Phase to address:**
+Weekly forecasting-module phase (the `app/app/forecasting.py` extension phase, analogous to Phase 3).
 
 ---
 
-### Pitfall 2: Sparse historical coverage makes any sentiment backtest a small-N illusion
+### Pitfall 2: FX Data.csv's three-cadence single-file layout silently corrupting the parse
 
 **What goes wrong:**
-`news_sentiment_daily.csv` has only 164 rows total, but they are wildly non-uniform: 1–4 rows per year from 2020–2025 (mostly single-headline days, `article_count=1`), then 148 rows concentrated in the last ~5 months (Mar–Aug 2026) — a direct artifact of NewsAPI's free-tier 28-day lookback window (confirmed in `archive/README.md`: "last 28 days per run"). Any monthly-resampled merge against the ~44-month HDAN/PPAN/Diesel/FX price history will have real (dense, multi-article) sentiment coverage for only ~5 of those months. A backtest run naively against this will effectively be "trained and tested" on a handful of overlapping months, then padded with statistically meaningless single-headline outliers from unrelated years.
-**Why it happens:** The daily/panel/ml_features CSVs *look* like a continuous 6-year time series (2020–2026 date range spans years), which invites treating row count or date range as a proxy for sample size, when the effective sample size for anything resampled to monthly cadence is much smaller.
-**How to avoid:** Report effective monthly sample size explicitly (months with ≥N articles of coverage) before running any backtest, and apply the same small-sample discipline the project already established in Phase 2 (`MIN_ML_ORIGINS=5` thin-sample exclusion, `suspiciously_strong/small_sample` flags in `02-07-PLAN.md`'s findings). If effective N is too small to run genuine walk-forward validation, say so explicitly and do not ship an adjustment based on it — this is the same "no un-backtested model ships" rule PROJECT.md already states.
-**Warning signs:** A backtest report that cites row counts from the CSV files (164, 119, 117) as if they were monthly sample sizes; "the sentiment-adjusted band looks better" conclusions drawn from fewer than ~12 genuinely independent monthly observations.
-**Phase to address:** Backtest/leakage-check phase.
+`FX Data.csv` is one file with three independent Date/Value column pairs side by side (`Date,Daily,,Date,Weekly,,Date,Monthly`), separated by blank spacer columns, each with its own row count and its own date range (Daily is by far the longest, descending to 2010; Weekly is 865 rows also to 2010-01-04; Monthly is shorter). A naive `pd.read_csv("FX Data.csv")` produces a single DataFrame where pandas auto-names the duplicate `Date`/blank columns `Date.1`, `Unnamed: 2`, `Date.2`, etc., and — critically — rows past the shortest column's length are `NaN`, not absent, so a groupby/dropna on the whole frame silently truncates all three series to the shortest one's length, or (worse) misaligns Weekly row N with whatever Daily/Monthly value happens to sit on that same physical CSV row (they are NOT date-aligned row-for-row; Daily has ~5900 rows, Weekly 865, Monthly far fewer, and they're just concatenated column-wise).
+
+**Why it happens:**
+Every existing loader in `backend_research/data_loader.py` (`load_an_monthly`, `load_diesel_monthly`, `load_an_weekly`, `load_weekly_drivers`) assumes one Date column per CSV — this file layout has no precedent in the codebase, so there's no existing pattern to copy from. It's easy to write `pd.read_csv(FX_CSV)` and select `df["Weekly"]` without noticing the row you get back was aligned by physical CSV row position, not by the `Date` column three columns to its left after `Unnamed: 2`.
+
+**How to avoid:**
+Read each cadence as its own two-column slice, drop rows where that slice's Value is NaN, and treat the three cadences as three fully independent DataFrames — never assume matching row-index alignment across them:
+```python
+df = pd.read_csv(FX_CSV)
+weekly = df.iloc[:, 3:5].rename(columns={df.columns[3]: "Date", df.columns[4]: "Weekly"}).dropna()
+```
+(pandas will name columns `Date`, `Daily`, `Unnamed: 2`, `Date.1`, `Weekly`, `Unnamed: 5`, `Date.2`, `Monthly` — use positional `.iloc` slicing, not name lookup, since the duplicate `Date` names are fragile to reorder/typos.) Confirm shape (865 rows for Weekly, per PROJECT.md) and date range (2010-01-04 to 2026-07-27) right after load, mirroring `data_loader.py`'s `if __name__ == '__main__':` assert-shape pattern.
+
+**Warning signs:**
+Row counts under 865 for the weekly slice, or a weekly date range that doesn't independently span 2010–2026 (a sign rows got truncated to the shortest column's length); any FX weekly value that looks suspiciously like a Daily or Monthly value from an adjacent column (unit/scale confusion from misaligned columns).
+
+**Phase to address:**
+FX weekly data-loader / backtest phase (the new `backend_research`-style research spike for FX, before any app wiring).
 
 ---
 
-### Pitfall 3: Look-ahead bias in the date-join between daily sentiment and monthly price entries
+### Pitfall 3: Thousands-separator parsing on FX Data.csv's Value columns
 
 **What goes wrong:**
-Merging a daily/rolling sentiment feature onto a monthly price observation is a classic leakage point. Two concrete mechanisms exist in this data specifically: (1) `news_sentiment_raw.csv`'s `published_at` is UTC; Mongolia is UTC+8, so a headline timestamped late UTC-day is already the next local day — matching by the raw `date` column without a timezone-aware cutoff can pull in "tomorrow's" news for "today's" forecast origin. (2) Several `ml_features.csv`/`sentiment_market_panel.csv` columns (`sent_quantile_60d`, `rolling_corr_60d`, `*_rolling_mean_5/10/20d`) are windowed statistics — if the resample-to-monthly step naively averages a whole calendar month's sentiment (including days after the user's actual forecast-origin/data-entry date) into "this month's sentiment," the adjustment is trained on information that wouldn't have existed at forecast time.
-**Why it happens:** Point-in-time correctness across cadence mismatches (daily sentiment vs. monthly price entries, entered by the user at an irregular, "roughly monthly" cadence — not always month-end) is easy to get right for the *price* series (already solved via `backend_research/walk_forward.py`'s rolling-origin harness) but easy to re-break when a new, differently-cadenced feature is bolted on, because it requires its own cutoff logic rather than reusing the existing harness unmodified.
-**How to avoid:** Reuse `backend_research/walk_forward.py`'s existing rolling-origin harness (already has a `LeakageError` per STATE.md's Phase 02-01 decision) and extend it — do not write a parallel, separate merge path for sentiment. Define the sentiment cutoff as "all articles published strictly before the forecast-origin date, converted to the same reference timezone as price entry," and unit-test it the same way `test_walk_forward.py` already tests leakage.
-**Warning signs:** A new sentiment-merge function that doesn't import or extend `walk_forward.py`; any pandas `resample('M').mean()` call on sentiment without an explicit as-of cutoff parameter.
-**Phase to address:** Backtest/leakage-check phase.
+FX values are quoted strings like `"3,592.73"` — `pd.read_csv` without cleanup either leaves these as `object`/string dtype (breaking any downstream `.astype(float)` or arithmetic with a `ValueError: could not convert string to float`) or, if `thousands=","` is passed to `read_csv` globally, it can misparse the `Date` columns' literal commas if any exist, or silently misinterpret the blank spacer columns.
+
+**Why it happens:**
+This exact issue was "already observed" per the task brief, and existing loaders (`load_an_monthly`, `load_diesel_monthly`) already have the fix pattern: `.astype(str).str.replace(',', '').astype(float)` per-column, not a `read_csv(thousands=...)` kwarg. A new FX loader written without consulting `data_loader.py`'s established pattern could reintroduce the bug that pattern already solved once.
+
+**How to avoid:**
+Reuse the exact `.astype(str).str.replace(',', '').astype(float)` idiom (or `pd.to_numeric(..., errors='coerce')` as `load_diesel_monthly` does) per value column, applied only to the Value columns identified via positional slicing (Pitfall 2), never via a blanket `read_csv(thousands=',')` that could interact unpredictably with the file's spacer/duplicate-Date-column layout.
+
+**Warning signs:**
+`TypeError`/`ValueError` on the first arithmetic operation on the FX weekly series; or, more dangerously, values silently truncated (e.g. `"3,592.73"` parsed as `3` because a partial numeric coercion succeeded on only the leading digits) — always check `.dtype == float64` and spot-check a few known values after load, not just that the load "succeeded" without error.
+
+**Phase to address:**
+FX weekly data-loader / backtest phase (same phase as Pitfall 2 — same loader function).
 
 ---
 
-### Pitfall 4: Correlation-with-equities conflated with predictive signal for commodities/FX
+### Pitfall 4: Assuming FX Data.csv's weekly week-ending convention matches AN Data.csv's (Phase 17's) weekly convention
 
 **What goes wrong:**
-The archive dataset's own internal validation (`rolling_corr_60d`) measures correlation between sentiment and *SPY*, and even for its intended purpose, correlation ≠ next-day prediction (could be contemporaneous, not lead-lag). If this correlation is cited as evidence sentiment "works" and then applied to HDAN/PPAN/Diesel/FX without its own out-of-sample backtest, that's conflating a different domain's correlation with this domain's predictive validity. Compounding this: the project's own existing research already found FX_rate shows **no significant relationship (p<0.10) with any other series in the causality matrix**, including Brent-linked drivers (`backend_research/REPORT.md`, "Cross-series causality" section) — a strong prior that a generic equity-sentiment score is unlikely to move FX_rate either, and any backtest result suggesting otherwise deserves extra scrutiny before being trusted.
-**Why it happens:** "The dataset shows sentiment correlates with market moves" is an easy, plausible-sounding justification to reach for once the data is already loaded, especially under time pressure to ship a "provenance" story for the UI.
-**How to avoid:** Require the same walk-forward, held-out MAPE/coverage comparison used for every other model family in this project (Phase 2 precedent) before any sentiment adjustment ships — "with sentiment" vs. "without sentiment" on the actual target series, not a borrowed equities correlation number.
-**Warning signs:** A PR or research note that cites `rolling_corr_60d` or any SPY-related metric as justification for shipping the AN/Diesel/FX adjustment.
-**Phase to address:** Backtest/leakage-check phase.
+Phase 17's weekly HDAN/PPAN work used `AN Data.csv`'s native weekly rows, whose sampled dates in 2026 are `7/10, 7/3, 6/26, 6/19` — all **Fridays**. `FX Data.csv`'s Weekly column samples `2026-07-27, 07-20, 07-13, 07-06` — all **Mondays**. These are two different week-ending (or week-starting) conventions, roughly 3 days apart. If a builder joins HDAN/PPAN weekly series to FX weekly series by naive index alignment (e.g. `pd.concat(axis=1)` or a plain merge on Date) assuming "both are weekly, so rows line up," every joined row actually pairs a Friday AN observation with a Monday-ish FX observation from a different calendar week — introducing several days of look-ahead or lookback leakage into any exog/combined-view logic, and silently misaligning what the mixed-cadence UI displays side-by-side.
+
+**Why it happens:**
+`data_loader.py`'s own `merged_weekly()` function already anticipated this exact problem for AN Data.csv vs AN price weekly.csv ("the two files' week-ending conventions aren't guaranteed to align") and used `pd.merge_asof(..., direction='nearest', tolerance=pd.Timedelta(days=3))` to fix it — but that fix was scoped to those two files. Nothing currently checks or fixes the AN-vs-FX weekly offset, and because FX is being backtested as its own univariate series (no cross-series exog per PROJECT.md's plan), it's easy to assume this alignment problem doesn't apply — until the UI needs to show HDAN, PPAN, and FX on the same weekly x-axis/chart.
+
+**How to avoid:**
+(1) For backtesting FX standalone, no join is needed — this pitfall doesn't block WKLY-FX modeling itself. (2) For the mixed-cadence UI (Pitfall 6 below), when plotting/aligning weekly HDAN/PPAN forecast dates against weekly FX forecast dates on one chart or table, either normalize both to the same week-ending weekday before display, or use `pd.merge_asof` with an explicit tolerance (mirroring `merged_weekly()`'s `tolerance_days=3` pattern) rather than assuming index equality — and document which convention (Friday vs Monday week-ending) the UI's weekly x-axis actually uses, so labels aren't misleading.
+
+**Warning signs:**
+Any `pd.concat`/`.join()` of AN-family weekly series and FX weekly series that doesn't go through `merge_asof` or an explicit date-tolerance join; a chart where weekly gridlines/x-axis ticks don't consistently land on the same weekday across series.
+
+**Phase to address:**
+Mixed-cadence UI wiring phase (whichever phase builds the weekly chart/table that shows HDAN+PPAN+FX together).
 
 ---
 
-### Pitfall 5: Sentiment adjustment silently destabilizes an already-calibrated, backtested bull/bear spread
+### Pitfall 5: Mixed-cadence UI silently showing stale or misleading data for Diesel-USD/Diesel-MNT when the user is in "weekly" mode
 
 **What goes wrong:**
-The existing bull/bear bands are a validated, backtested statistical spread (per-series MAPE/volatility, e.g. HDAN SARIMAX 13.33% MAPE, PPAN Direct-OLS VAR-system 23.8% MAPE per `.planning/STATE.md`'s Phase 02-07 decision). Sentiment scores in this dataset are noisy and occasionally extreme (single-headline days with `compound` as low as −0.94), and if the sentiment layer is applied as a direct multiplier/additive shift on the band without bounds, one volatile-news day can blow the band far outside anything the backtest calibrated for — undermining the very thing PROJECT.md says v1's bands already got right ("bull/bear = base ± a statistical spread ... not a fixed band").
-**Why it happens:** It's tempting to implement "sentiment adjustment" as a simple UI-layer scalar (e.g., `band_width *= (1 + k * sentiment_score)`) because it's easy to code and demo, without re-validating that the *combined* (statistical spread + sentiment) band is still well-calibrated (e.g., empirical coverage — how often the actual price falls inside the band — no worse than the unadjusted spread).
-**How to avoid:** Clip/cap sentiment's influence (e.g., a bounded multiplier, not an unbounded raw score pass-through), and explicitly backtest empirical coverage of the *combined* band against the unadjusted band's coverage — the adjustment should not be shipped if it makes the calibrated spread worse. Treat this as a new model requiring the same research/backtest gate as any other model family in this project, not a UI tweak exempt from that discipline (this is the specific way PROJECT.md's "no un-backtested model ships" rule could get silently bypassed — by relabeling a model as "just an adjustment").
-**Warning signs:** Sentiment-adjustment code that lives entirely in `rx.State`/UI code with no corresponding research/backtest artifact; a demo where one bad-news day makes the band visually much wider than any prior month without a stated cap.
-**Phase to address:** Backtest/leakage-check phase (methodology + cap), then UI phase (wire in the already-validated, bounded adjustment).
+Diesel-USD and derived Diesel-MNT have no weekly source data and remain monthly-only per PROJECT.md's explicit scope. If the granularity toggle is implemented as a single global "mode" flag that the whole page reads (the natural first implementation), the two monthly-only series either (a) silently disappear from the weekly view with no explanation, (b) show their last monthly forecast row repeated/stretched across weekly x-axis positions in a way that looks like a real weekly forecast, or (c) throw an unhandled exception when the weekly-mode code path tries to call a weekly forecast function that doesn't exist for `diesel_usd_ton`/`diesel_mnt`.
+
+**Why it happens:**
+`forecast_all()` in `forecasting.py` is currently a single dispatcher returning exactly five keys (`hdan`, `ppan`, `diesel_usd_ton`, `fx_rate`, `diesel_mnt`) for one implicit cadence (monthly). There is no existing `granularity` parameter anywhere in `app/app/state.py` or `forecasting.py` — this is genuinely new plumbing, not an extension of an existing pattern, so there's no established "how do we degrade a series that isn't available at the requested cadence" convention to fall back on. The most natural naive implementation is a global toggle that assumes all series can render the same way, because that's true today (all four series are monthly).
+
+**How to avoid:**
+Make cadence-availability an explicit, queryable property per series, not an implicit assumption. Concretely: extend `forecast_all`'s return contract (or a new `forecast_all_weekly`) so each series result carries its own cadence, and have the UI layer branch per-series, not per-page: `hdan`/`ppan`/`fx_rate` render on the weekly x-axis when weekly mode is on; `diesel_usd_ton`/`diesel_mnt` continue to render their monthly forecast (with an explicit "monthly — no weekly data available" label/badge) in the same view, rather than being hidden or resampled to look weekly. This matches the milestone's own stated principle: "shown honestly as such in the mixed-cadence UI rather than hidden or faked." Never resample/interpolate a monthly forecast into fake weekly points to fill the chart.
+
+**Warning signs:**
+Any chart or table row for Diesel-USD/Diesel-MNT in weekly mode that has more than ~1 data point per month, or that has no visible cadence label; any code path that reuses the same x-axis tick array for all five series without checking which series actually has data at that cadence.
+
+**Phase to address:**
+Mixed-cadence UI wiring phase; this is the single most consequential pitfall for this milestone and should get explicit acceptance-criteria coverage ("Diesel-USD/Diesel-MNT visibly labeled monthly-only when weekly mode is selected") in that phase's plan.
 
 ---
 
-### Pitfall 6: "Live" sentiment provenance misleads a single-user, monthly-cadence app
+### Pitfall 6: Reusing `walk_forward_backtest`'s `min_train`/`horizon` monthly intuition for a fresh FX weekly backtest
 
 **What goes wrong:**
-PROJECT.md's target feature explicitly wants "provenance (what's driving the adjustment) shown to the user." But this app is used by one person, roughly monthly (per STACK.md/PROJECT.md's stated usage pattern), with no background job scheduler (single Reflex process, no Celery/cron). If the sentiment score is fetched once and cached, then shown weeks later as if current, the user could make a procurement decision believing the adjustment reflects "today's news" when it's stale. Separately, NewsAPI's free tier only returns the **trailing 28 days** — there is no way to backfill sentiment for a gap month if the user skips a session, so a returning user's "provenance" display could silently have a hole (or worse, silently reuse the last cached score without flagging it as stale).
-**Why it happens:** "News/live-driven" framing in the milestone goal implies real-time freshness, but the app's actual usage cadence and architecture (single-process, occasional use, no scheduler) can't genuinely deliver that without extra plumbing that wasn't scoped.
-**How to avoid:** Show an explicit "sentiment as of [fetch date]" timestamp next to the adjustment (not just "live news says..."), and fetch fresh on each session load rather than caching indefinitely, given the low usage frequency makes per-session fetch cheap. Document explicitly that the trailing-28-day NewsAPI limitation means gaps longer than 28 days between sessions cannot be backfilled — degrade gracefully (fall back to unadjusted statistical spread with a visible note) rather than silently reusing a stale score.
-**Warning signs:** No timestamp visible next to the sentiment-driven scenario; a code path that reuses a cached sentiment value with no expiry/staleness check.
-**Phase to address:** UI/provenance phase.
+Phase 17 chose `MIN_TRAIN_WEEKLY=104` (~2 years) and `HORIZON_WEEKLY=5` deliberately for HDAN/PPAN's ~206-row native weekly series, leaving ~102 backtest origins — explicitly sized to that series' short history. FX Data.csv's Weekly column has 865 rows (2010–2026), a much longer history. Copy-pasting `MIN_TRAIN_WEEKLY=104`/`HORIZON_WEEKLY=5` verbatim for FX isn't wrong, but leaving it unexamined risks two separate mistakes: (a) not revisiting whether 104 is still a sensible "burn-in" fraction now that ~760 origins would be available (a much larger backtest sample is possible and arguably should be used to strengthen confidence, since FX has 4x the history HDAN/PPAN had), and (b) accidentally reusing `BENCHMARK_MAPE = {"HDAN": 9.49, "PPAN": 10.08}` style hard-coded dict logic that has no FX entry, causing a `KeyError` at runtime if the script is cloned rather than rewritten per-series.
+
+**Why it happens:**
+`run_weekly_sarimax_ets.py` is the obvious, only prior-art template for "how do we weekly-backtest a series in this repo," and its `beats_benchmark()` function's `BENCHMARK_MAPE[series_name]` lookup is written as if the dict will always contain the queried key — cloning the file wholesale without adding an `"FX"` entry (and without deciding what FX's benchmark even is — the existing monthly FX model's Naive/1.72% MAPE, transcribed from `forecasting.py`'s `MODEL_INFO`) will crash or silently compare against the wrong number if a stray dict key collides.
+
+**How to avoid:**
+Write a dedicated FX weekly backtest script (not a live edit of `run_weekly_sarimax_ets.py`) that: (1) explicitly sets `BENCHMARK_MAPE = {"FX": 1.72}` sourced from `forecasting.py`'s `MODEL_INFO["fx_rate"]` (transcribed, not re-derived, per Pitfall 1's discipline), (2) re-evaluates `MIN_TRAIN_WEEKLY` given FX's 865-row history rather than copying 104 unexamined — document the choice with a comment the way `run_weekly_sarimax_ets.py` did ("Pitfall 2 budget" comment), and (3) reuses the shared `walk_forward.py` harness exactly as Phase 17 did (never a hand-rolled loop), consistent with the project's established discipline.
+
+**Warning signs:**
+A backtest script for FX where `BENCHMARK_MAPE` still contains `"HDAN"`/`"PPAN"` keys, or where `MIN_TRAIN_WEEKLY=104` appears without any comment justifying it against FX's actual row count.
+
+**Phase to address:**
+FX weekly backtest/research phase (before any app wiring — mirrors Phase 17's research-first discipline that PROJECT.md's "no un-backtested model ships" constraint requires).
 
 ---
 
-### Pitfall 7: Re-running the same weekly VAR family with the same proxy inputs reproduces the same no-go
+### Pitfall 7: FX weekly series' 2010–2026 span vs. the app's actual seeded `PriceRow` history creating a length mismatch at forecast time
 
 **What goes wrong:**
-The prior spike (`.planning/quick/20260821-weekly-an-backtest/SUMMARY.md`) already found weekly-native VAR underperforms monthly VAR at the horizon-matched comparison (10.35%/16.01% vs. 9.49%/10.08% MAPE), and diagnosed *why*: the one-step weekly model's R² was only 0.03–0.04, meaning almost all of its apparent accuracy was persistence/naive, not real signal from the weekly driver variables (Middle East Ammonia, Black Sea/China Urea, gas benchmarks — proxies, not HDAN/PPAN's actual Mongolian domestic price drivers). If the v2.0 re-research spike re-fits VAR (or another autoregressive family) on the *same* proxy variables, it will very likely reproduce the same low-R² result, wasting the spike's budget without genuinely testing a new hypothesis.
-**Why it happens:** VAR is the project's known-good model family for the monthly case (it's the Phase 2 winner shape for HDAN), so there's a natural pull toward "try VAR again but weekly" as the default first move, without first asking whether the *input variables* — not the model family — were the actual bottleneck.
-**How to avoid:** Before refitting any model, run the equivalent of `backend_research/causality_screen.py` against candidate new weekly variables to check they actually lead/explain HDAN/PPAN at weekly granularity (not just correlate) — this project already has that harness; reuse it rather than jumping straight to VAR. Treat "same model family, different data" and "different model family, same data" as two genuinely different experiments, and don't call the spike complete unless at least the *data/variable* side has changed meaningfully from what the prior spike already ruled out.
-**Warning signs:** A new backtest script that imports the same `load_weekly_drivers()` predictor set from the prior spike unchanged; a re-research summary whose R² is still in the 0.03–0.06 range without commentary on why that's different this time.
-**Phase to address:** Weekly re-research spike phase (design step, before any backtest run).
+`FX Data.csv`'s Weekly column goes back to 2010, but the app's SQLite `PriceRow` table (seeded per `app/app/seed.py` from `Diesel Data.csv`, monthly since 2020-02) has no comparable weekly FX history loaded yet — nothing in `app/app/models.py`/`seed.py` currently seeds anything from `FX Data.csv` at all. If the weekly forecast module is wired to read weekly FX history from `PriceRow` (the existing pattern `forecast_fx` uses for monthly — reading from the app's own DB, not re-reading CSVs at request time), a naive implementation might assume the DB already has ~16 years of weekly FX rows when it will actually have zero until a new seed step is added, causing `InsufficientHistoryError`-style failures (per `MIN_HISTORY_ROWS=24` in `forecasting.py`) or, worse, a seed script that dumps all 865 weekly rows into the same `PriceRow` table/columns the monthly UI reads, corrupting the monthly Data Entry view's row count/history window (12-month default + "show all history" toggle from v1.2).
 
----
+**Why it happens:**
+`forecast_hdan`/`forecast_ppan_var_system`/`forecast_fx` all take a `history: pd.DataFrame` parameter that Phase 4/5's state layer builds directly from `PriceRow` query results — there is exactly one `PriceRow` table today, storing one row per (implicitly monthly) date. Weekly FX data needs either a new table/column, or a clearly separated in-memory path that doesn't route through `PriceRow` at all — but nothing in the current schema distinguishes cadence, so it's easy to reach for "just add more rows to `PriceRow`" as the path of least resistance.
 
-### Pitfall 8: False confidence from a non-comparable backtest window or horizon
+**How to avoid:**
+Decide explicitly (in the phase that wires weekly FX into `app/`) whether weekly history is (a) a new `rx.Model` table (e.g. `WeeklyPriceRow`) seeded once from `FX Data.csv`'s Weekly column, separate from the monthly `PriceRow` table the Data Entry tab reads/writes, or (b) read directly from `FX Data.csv` at forecast time without going through SQLite at all (acceptable since this milestone is "forecast-viewing only... no new weekly data-entry UI" — there's no user-editable weekly data to persist yet). Either is defensible, but it must be a deliberate choice, not an accidental commingling with the existing monthly `PriceRow` table that the Data Entry UI and CSV-import feature already depend on.
 
-**What goes wrong:**
-The prior weekly spike used a horizon-matched comparison (rolled 4-week-ahead weekly forecasts up against the monthly benchmark) specifically so the MAPE numbers were apples-to-apples. A re-attempt that evaluates 1-week-ahead weekly MAPE against the 1-month-ahead monthly benchmark (9.49%/10.08%), or that uses a single train/test split instead of the existing walk-forward harness (`walk_forward.py`, `run_var_vecm_wf.py`), can produce a misleadingly good number that doesn't reflect genuine improvement — especially since only ~5 more months of weekly data exist now (this spike is ~1.5 weeks after the prior one, per dates) than when the prior no-go was recorded, so there isn't much genuinely new data to shift the conclusion on its own.
-**Why it happens:** A smaller, more favorable-looking MAPE is an easy thing to declare victory on, especially under pressure to "unblock" a deferred feature; horizon mismatches and window-selection effects are subtle and easy to miss without deliberately cross-checking against the prior report's exact methodology.
-**How to avoid:** Any new weekly backtest must use the same walk-forward, horizon-matched methodology as the prior spike (same rollup-to-4-weeks-ahead comparison) so results are directly comparable to the existing 9.49%/10.08% monthly benchmark recorded in `.planning/STATE.md`. If the new spike's data window barely differs from the prior one (same source files, few extra weeks), say so explicitly rather than implying a fresh, independent result.
-**Warning signs:** A new report whose comparison table doesn't cite the prior spike's exact MAPE figures side-by-side; use of a single fixed holdout instead of rolling-origin validation.
-**Phase to address:** Weekly re-research spike phase.
+**Warning signs:**
+Any migration/seed script that inserts rows into the existing `PriceRow` table with a weekly cadence; any code path where the monthly Data Entry table's row count or "12-month default window" suddenly includes weekly-cadence rows.
 
----
-
-### Pitfall 9: Partial weekly coverage creates an inconsistent, confusing UI if only some series clear the bar
-
-**What goes wrong:**
-No weekly Diesel/FX data exists at all (confirmed unchanged in both PROJECT.md and STATE.md), so even in the best case, only HDAN/PPAN could ever get weekly mode — Diesel-MNT (a derived series requiring both Diesel-USD *and* FX) can never be weekly-native. The existing UI was built around one global horizon/granularity picker across all four series simultaneously (per Phase 5's "Forecast UI, Scenario Chart" and the single `forecast_results` dict keyed by all series). If a future phase ships weekly mode for HDAN/PPAN only, naively reusing the current single-toggle UI would either (a) force Diesel/FX to silently stay monthly while the chart x-axis/labels imply weekly for everything, or (b) block weekly mode entirely behind "all series must support it," wasting a validated win on 2 of 4 series.
-**Why it happens:** The existing granularity/horizon selector is a single global control by design (simpler UI, matches the current all-monthly reality) — extending it to a mixed-granularity world isn't a natural fallout of the current component structure and is easy to bolt on incorrectly under time pressure.
-**How to avoid:** If any series clears the new backtest bar, design the granularity toggle as per-series-aware from the start (e.g., disable/gray weekly for Diesel/FX with an explicit "weekly data unavailable for this series" label, rather than silently degrading), and treat this as a UI/UX design decision requiring its own explicit spec — not an afterthought bolted onto the existing single-toggle component. This should only be built at all if the backtest bar is actually cleared (per Pitfall 7/8) — don't build the mixed-granularity UI speculatively ahead of a validated result.
-**Warning signs:** A UI mock or implementation that has one horizon dropdown silently changing behavior per-series without a visible label explaining why; Diesel-MNT chart lines that jump or look stale in weekly mode without explanation.
-**Phase to address:** UI phase (conditional — only if weekly re-research spike returns a go).
+**Phase to address:**
+Weekly FX data-loading/seeding phase (should be decided before or alongside the mixed-cadence UI phase, since it determines what `history` the weekly forecast functions receive).
 
 ---
 
@@ -109,85 +148,74 @@ No weekly Diesel/FX data exists at all (confirmed unchanged in both PROJECT.md a
 
 | Shortcut | Immediate Benefit | Long-term Cost | When Acceptable |
 |----------|--------------------|-----------------|------------------|
-| Wiring `archive/` sentiment columns straight into a UI adjustment without a causality/backtest gate | Fast demo of "provenance" UI | Violates the project's own "no un-backtested model ships" rule; risks shipping noise as signal on a domain-mismatched dataset | Never |
-| Caching a single sentiment fetch indefinitely to avoid NewsAPI rate limits | Simple, no API-key management complexity | Silently stale "live" provenance shown to the user across sessions weeks apart | Only with an explicit staleness timestamp and a visible "last fetched" label — never silent |
-| Re-running the exact prior weekly VAR script with a slightly longer date range and calling it "re-research" | Cheap, fast to execute | Reproduces the already-diagnosed low-R² no-go, burns spike budget with no new information | Never — the milestone explicitly frames this as re-research, not a rerun |
-| Treating the 87MB `News_Category_Dataset_v3.json` as in-scope just because it's in `archive/` | Avoids a scoping conversation | Wastes engineering time trying to extract signal from a topically and temporally irrelevant dataset | Never, unless a concrete distinct use (e.g. training a separate classifier) is identified first |
-| Single train/test split for the weekly spike instead of reusing `walk_forward.py` | Faster to write | Not comparable to the existing walk-forward-validated 9.49%/10.08% benchmark; risk of a falsely favorable number | Never for the go/no-go decision itself; fine only for very early, throwaway exploration clearly labeled as such |
+| Cloning `run_weekly_sarimax_ets.py` in place for FX instead of writing a fresh script | Faster to start | Stale `BENCHMARK_MAPE`/`MIN_TRAIN_WEEKLY` constants copied unexamined (Pitfall 6), report determinism logic (`write_report`) hard-codes `series_list = ["HDAN", "PPAN"]` and would need surgery to not silently omit FX | Never — write a new script per series family, reusing only the shared `walk_forward.py` harness import |
+| Global page-level `granularity` toggle instead of per-series cadence-awareness | Simpler first implementation | Diesel-USD/Diesel-MNT silently mis-rendered in weekly mode (Pitfall 5) | Never for this milestone — PROJECT.md explicitly requires honest per-series cadence display |
+| Reading `FX Data.csv` directly at forecast-request time instead of seeding a table | Avoids new migration/seed work this milestone | Re-parses/re-cleans the CSV (Pitfall 2/3 risk) on every request; no persisted weekly FX history for future data-entry milestones | Acceptable for this milestone specifically, since it's "forecast-viewing only" — revisit once weekly data entry is in scope |
 
 ## Integration Gotchas
 
 | Integration | Common Mistake | Correct Approach |
-|-------------|-----------------|-------------------|
-| NewsAPI (via `archive/README.md`'s documented free-tier limits) | Assuming historical backfill is available for any gap in the user's usage cadence | Free tier only returns the trailing 28 days; design the feature to degrade gracefully (visible "unavailable" state) for older gaps rather than assuming continuous coverage |
-| VADER sentiment scoring | Treating `compound` score magnitude as meaningful signal strength rather than a rough sentiment polarity heuristic | Use it as one weak input among several (article volume, source weighting, momentum), not a standalone predictive feature — and validate against the actual target series, not just report it |
-| Timezone handling between `published_at` (UTC) and Mongolia-local price-entry dates | Naive string-date join across the two, causing off-by-one-day leakage at merge boundaries | Convert explicitly to a consistent reference timezone with a documented as-of cutoff before merging, and unit-test the boundary case |
-| Reusing `backend_research/walk_forward.py` for a new, differently-cadenced feature (daily sentiment vs. monthly price) | Writing a parallel, ad hoc merge/backtest path that doesn't inherit the existing `LeakageError` guard | Extend the existing harness rather than duplicating merge logic outside it |
+|-------------|------------------|-------------------|
+| `FX Data.csv` (three-cadence single file) | `pd.read_csv` + name-based column selection, silently misaligning Weekly values with Daily/Monthly rows on the same physical CSV line (Pitfall 2) | Positional `.iloc` column slicing per cadence, independent `.dropna()` per slice, verify row count (865) and date range (2010-01-04..2026-07-27) after load |
+| `backend_research/results/weekly_sarimax_ets.json` (Phase 17's frozen weekly HDAN/PPAN results) | Re-deriving/re-fitting order selection at runtime in `app/` instead of transcribing frozen constants (Pitfall 1) | Copy frozen order/spec into `forecasting.py` module constants, exactly mirroring `HDAN_SARIMAX_ORDER`; live refit is fine, live *order search* is not |
+| AN Data.csv weekly cadence vs. FX Data.csv weekly cadence (different week-ending weekday) | Assuming both "weekly" series share row alignment; joining via plain `concat`/`merge` (Pitfall 4) | `pd.merge_asof(..., direction='nearest', tolerance=pd.Timedelta(days=3))`, mirroring `data_loader.py`'s existing `merged_weekly()` pattern, whenever HDAN/PPAN and FX weekly series need to appear aligned |
+| Existing monthly `PriceRow` SQLite table | Seeding weekly FX rows into the same table/columns the monthly Data Entry UI reads (Pitfall 7) | New dedicated weekly table, or CSV-direct read with no DB persistence this milestone — never commingle cadences in one table |
 
 ## Performance Traps
 
 | Trap | Symptoms | Prevention | When It Breaks |
 |------|----------|------------|-----------------|
-| Loading the 87MB `News_Category_Dataset_v3.json` into memory in a single-process Reflex app "just in case" | Slow app startup, memory bloat on a single-user local deployment | Don't load it at all unless a concrete, scoped use is defined (see Pitfall 1) | Immediately noticeable on a modest local machine given the app's single-process, no-worker architecture |
-| Re-fetching/re-scoring sentiment on every page load without caching *within* a session | Redundant NewsAPI calls, possible rate-limit exhaustion during dev/testing | Cache within a session, refresh only on new session/explicit refresh, with a visible timestamp (ties to Pitfall 6) | Noticeable once NewsAPI daily quota is hit during iterative development/testing |
-
-## Security Mistakes
-
-| Mistake | Risk | Prevention |
-|---------|------|------------|
-| Hardcoding a NewsAPI (or equivalent) API key in source rather than environment config | Key leakage if the repo is ever shared/pushed publicly | Load from environment/`.env` (already how the project should be handling any external credentials — confirm no key lands in a committed file) |
-| Rendering raw article titles/URLs from `news_sentiment_raw.csv` (or a live fetch) directly into the UI without sanitization | XSS if headline text ever contains unexpected markup (low risk with Reflex's default escaping, but worth confirming for any `rx.html`/raw-HTML usage) | Stick to Reflex's default text rendering (auto-escaped); avoid `dangerously_set_inner_html`-style patterns for headline text |
+| Re-fitting SARIMAX/ETS on FX's full 865-row weekly history on every forecast request (mirrors existing monthly `forecast_fx`'s "D-06 forbids caching" refit-every-call design) | Slightly slower page load in weekly mode than monthly mode | Acceptable at this project's single-user/occasional-use scale per PROJECT.md's own constraints — do not add caching purely for this milestone; only reconsider if perceived latency becomes a real user complaint | Not expected to break at this project's scale (single user, occasional use); would only matter if usage pattern changed significantly |
+| Walk-forward backtesting FX's full 865-row history with `refit_every=1` (refit at every one of ~760 possible origins) during the research phase | Backtest script research phase runs noticeably slower than Phase 17's ~102-origin HDAN/PPAN runs | Cap origins similarly to Phase 17's ~100-origin scale (e.g. don't start `min_train` unnecessarily small) or accept the longer one-time research run — this is a research-script cost, not a runtime app cost, so it's a one-time tradeoff | Only a research-phase inconvenience, not a shipped-app issue |
 
 ## UX Pitfalls
 
 | Pitfall | User Impact | Better Approach |
 |---------|-------------|-------------------|
-| Showing a sentiment-driven adjustment with no explanation of *what* news domain it's drawn from (general financial/equity headlines, not AN/diesel/Mongolia-specific) | User may over-trust an adjustment that has no demonstrated connection to their actual commodities, undermining the "provenance" feature's whole purpose | Explicitly label the sentiment source and scope in the UI ("general market sentiment, not commodity-specific") so the user can calibrate trust appropriately |
-| Sentiment adjustment silently shifting the bull/bear band with no visible delta vs. the pre-sentiment statistical band | User can't tell whether/how much the adjustment mattered, undermining trust and debuggability | Show both the base statistical band and the sentiment-adjusted band (or at least a clear "+/− X% from sentiment" delta), consistent with the project's existing "model provenance" display precedent (Phase 13) |
-| Weekly mode available for only 2 of 4 series with no visual distinction | User assumes weekly mode "just works" for everything and gets confused by stale/mismatched Diesel-MNT figures | Per-series-aware granularity control with explicit unavailability messaging (see Pitfall 9) |
+| No visible cadence label per series in mixed-cadence weekly view | User can't tell if Diesel-USD/Diesel-MNT numbers are "this week's forecast" or "still this month's, unchanged" — could misread a stale-looking number as a fresh weekly forecast | Explicit "Monthly" badge/label next to Diesel-USD/Diesel-MNT whenever the page is in weekly mode, reusing the existing per-series model-name+MAPE display pattern (`MODEL_INFO`) that Phase 3/5 already established for provenance transparency |
+| Weekly x-axis gridlines silently using a different week-ending weekday for FX vs. HDAN/PPAN (Pitfall 4) | Chart looks aligned but isn't — user could misread which week a crossing/value belongs to | Pick and document one canonical weekly x-axis convention for the whole chart, normalizing or clearly footnoting the ~3-day AN-vs-FX week-ending offset |
+| Granularity toggle framed as an all-or-nothing page mode | Reinforces the false impression that all 5 series behave identically in weekly mode | Frame the toggle as "preferred cadence" with clear fallback behavior communicated in the UI copy itself, not just in code comments |
 
 ## "Looks Done But Isn't" Checklist
 
-- [ ] **Sentiment backtest:** Often missing a genuine causality/correlation check against the *actual* target series (HDAN/PPAN/Diesel/FX) rather than the archive's own SPY-focused validation — verify a fresh Granger/correlation screen was run against this project's series specifically.
-- [ ] **Sentiment backtest:** Often missing an explicit statement of effective monthly sample size (not raw CSV row count) — verify the report states how many months had real (multi-article) sentiment coverage.
-- [ ] **Sentiment leakage check:** Often missing a timezone-aware, as-of cutoff in the daily-to-monthly merge — verify the merge logic (not just the model) was unit-tested for leakage, reusing `walk_forward.py`'s existing guard.
-- [ ] **Sentiment UI:** Often missing a visible "as of [date]" timestamp on the sentiment-driven adjustment — verify staleness is never silently hidden from the user.
-- [ ] **Sentiment band calibration:** Often missing an empirical coverage check ("combined band still contains the actual price at least as often as the unadjusted band") — verify this was backtested, not just eyeballed.
-- [ ] **Weekly spike:** Often missing a side-by-side comparison table against the prior spike's exact figures (9.49%/10.08% monthly, 10.35%/16.01% prior weekly) — verify the new report cites and compares against these, not just its own numbers in isolation.
-- [ ] **Weekly spike:** Often missing confirmation that walk-forward (not a single split) validation was used — verify the harness matches the prior spike's methodology.
-- [ ] **Weekly UI (if shipped):** Often missing explicit per-series unavailability messaging for Diesel/FX — verify the UI never silently shows monthly data under a "weekly" label.
+- [ ] **FX weekly backtest:** Often missing a genuinely FX-specific `BENCHMARK_MAPE` entry — verify the script doesn't reuse or silently omit a benchmark comparison for FX (unlike HDAN/PPAN, FX's monthly benchmark is Naive/1.72%, not VAR)
+- [ ] **Frozen weekly HDAN/PPAN wiring:** Often missing the frozen-constant transcription step — verify `forecasting.py`'s weekly additions have no live `itertools.product`/AIC grid search anywhere in the `app/` runtime path
+- [ ] **Mixed-cadence UI:** Often missing an explicit "why is Diesel-USD only showing monthly points" affordance — verify a first-time user in weekly mode isn't left to infer the cadence mismatch themselves
+- [ ] **FX Data.csv parsing:** Often missing verification that all three cadence columns parsed to the expected row counts/date ranges independently — verify with an assert-shape check mirroring `data_loader.py`'s existing `if __name__ == '__main__':` pattern
+- [ ] **AN-vs-FX weekly alignment:** Often missing any join-tolerance handling at all (the two sources were developed independently — Phase 17 for AN, this milestone for FX) — verify any code that displays AN-family and FX weekly series together uses `merge_asof`/tolerance logic, not row-position assumptions
 
 ## Recovery Strategies
 
 | Pitfall | Recovery Cost | Recovery Steps |
 |---------|-----------------|------------------|
-| Sentiment adjustment shipped without a real backtest, later found to be noise-driven | MEDIUM | Feature-flag/disable the sentiment layer, fall back to the existing pure-statistical band (already validated), then run the proper backtest before re-enabling — the existing bands are unaffected since the adjustment should be additive/layered, not a replacement |
-| Weekly mode shipped on a re-attempt that turns out to reuse the same flawed proxy variables (silent repeat of the no-go) | LOW–MEDIUM | Revert to monthly-only mode (prior, already-shipped behavior); re-run the spike with genuinely different candidate variables, using `causality_screen.py` first this time |
-| Discover mid-development that `News_Category_Dataset_v3.json` was accidentally load-bearing in a pipeline | LOW | Since it has no demonstrated connection to any shipped feature per this research, remove the dependency and re-verify the pipeline still produces the same output — should be a no-op if unused as expected |
+| Re-derived (not transcribed) weekly HDAN/PPAN constants ship to `app/` | LOW | Replace with a direct read of `backend_research/results/weekly_sarimax_ets.json`'s frozen values; add a regression test comparing `forecasting.py`'s constants against the JSON file's values so this can't silently drift again |
+| FX Data.csv column-misalignment bug ships (Pitfall 2) | MEDIUM | Add the assert-shape check retroactively, re-verify against known FX values for a few spot-check dates, re-run any backtest that used the corrupted load |
+| Diesel-USD/Diesel-MNT silently mis-rendered in weekly mode (Pitfall 5) | LOW-MEDIUM | UI-only fix (add cadence badge/label, adjust chart data source per series) — doesn't require re-touching the forecasting module itself since the underlying monthly forecast values were never wrong, just mislabeled |
+| PriceRow table commingled with weekly FX rows (Pitfall 7) | HIGH | Requires a data migration to split weekly rows into a new table, re-verify the monthly Data Entry tab's row counts/history window are back to monthly-only, re-test CSV import/export paths that assume one row = one month |
 
 ## Pitfall-to-Phase Mapping
 
 | Pitfall | Prevention Phase | Verification |
 |---------|--------------------|----------------|
-| 1. Domain-mismatched sentiment data | Backtest/leakage-check phase | Written causality/correlation screen against HDAN/PPAN/Diesel/FX (not SPY) exists before any UI work starts |
-| 2. Small-N illusion from sparse coverage | Backtest/leakage-check phase | Report states effective monthly sample size and applies the project's existing thin-sample exclusion rule |
-| 3. Look-ahead bias in daily→monthly merge | Backtest/leakage-check phase | Merge logic extends `walk_forward.py`; leakage unit test exists for the sentiment merge specifically |
-| 4. Correlation/predictive-signal conflation | Backtest/leakage-check phase | Backtest report compares "with sentiment" vs "without" on the target series' own MAPE/coverage, not a borrowed SPY correlation |
-| 5. Sentiment destabilizing the calibrated spread | Backtest/leakage-check phase, then UI phase | Empirical coverage of combined band backtested and bounded/capped before UI wiring |
-| 6. Stale "live" provenance | UI/provenance phase | Visible as-of timestamp and graceful degradation on >28-day gaps confirmed in a live browser check |
-| 7. Repeating the same failed weekly model family | Weekly re-research spike phase (design step) | Spike design doc names what's *actually* different (variables, not just model family) vs. the prior no-go before any backtest is run |
-| 8. Non-comparable backtest window/horizon | Weekly re-research spike phase | New report's comparison table cites the prior spike's exact figures side-by-side, using the same walk-forward/horizon-matched methodology |
-| 9. Partial-coverage UI inconsistency | UI phase (conditional on a go decision) | Per-series granularity control with explicit unavailability messaging, human-verified in browser, only built if the backtest bar was actually cleared |
+| 1: Re-deriving frozen weekly HDAN/PPAN results | Weekly forecasting-module phase | New weekly constants in `forecasting.py` byte-match `backend_research/results/weekly_sarimax_ets.json`'s chosen records; no order-search code imported into `app/` |
+| 2: FX Data.csv three-cadence layout misparsed | FX weekly backtest/research phase | Loader's weekly slice has exactly 865 rows spanning 2010-01-04..2026-07-27, verified via an assert/test |
+| 3: Thousands-separator parsing on FX values | FX weekly backtest/research phase | Loaded weekly FX series is `float64` dtype; spot-checked values match the raw CSV (e.g. `3592.90` for 2026-07-27) |
+| 4: AN vs FX weekly week-ending convention mismatch | Mixed-cadence UI wiring phase | Any joined/co-displayed AN+FX weekly view uses `merge_asof` with documented tolerance; UI copy states which weekday convention is shown |
+| 5: Monthly-only series mis-rendered in weekly mode | Mixed-cadence UI wiring phase | Diesel-USD/Diesel-MNT show an explicit "monthly" cadence label/badge when weekly mode is active; no interpolated/faked weekly points appear for them |
+| 6: FX weekly backtest reusing HDAN/PPAN-scaled constants unexamined | FX weekly backtest/research phase | Dedicated FX backtest script has its own `BENCHMARK_MAPE["FX"]` (transcribed from `MODEL_INFO["fx_rate"]`) and a commented, deliberate `MIN_TRAIN_WEEKLY` choice given FX's 865-row history |
+| 7: Weekly FX history storage commingled with monthly `PriceRow` | Weekly FX data-loading/seeding phase | Either a new dedicated weekly table exists, or weekly forecast functions read `FX Data.csv` directly with no writes to `PriceRow`; monthly Data Entry tab's row counts unaffected |
 
 ## Sources
 
-- Direct inspection of `archive/README.md`, `archive/news_sentiment_daily.csv`, `archive/sentiment_market_panel.csv`, `archive/ml_features.csv`, `archive/market_prices.csv`, `archive/news_sentiment_raw.csv`, `archive/News_Category_Dataset_v3.json` (this session, 2026-08-31) — HIGH confidence, primary source
-- `backend_research/REPORT.md` ("Cross-series causality" section — FX_rate shows no significant relationship with any driver) — HIGH confidence, project's own prior research
-- `.planning/quick/20260821-weekly-an-backtest/SUMMARY.md` (prior weekly VAR no-go result and its diagnosed root cause) — HIGH confidence, project's own prior research
-- `.planning/STATE.md` (Phase 02-07 model winners, MIN_ML_ORIGINS/suspiciously_strong small-sample precedent, weekly-mode blocker note) — HIGH confidence, project's own decision record
-- `.planning/PROJECT.md` (v2.0 milestone scope, "no un-backtested model ships" constraint, "single local user, roughly monthly use" pattern) — HIGH confidence, project's own scope document
-- General knowledge that the NewsAPI free tier restricts historical article access to a trailing ~28-30 day window, and that the "News Category Dataset" (Kaggle, Rishabh Misra) is a general HuffPost topic-classification corpus spanning roughly 2012–2022 — MEDIUM confidence (training-data knowledge, consistent with and corroborated by the in-repo `archive/README.md` wording and the sampled JSON contents, but not independently re-verified against NewsAPI's current live terms/pricing page in this session)
+- `C:\Users\Dulguun.U\Documents\Projects\prediction-dashboard\.planning\PROJECT.md` — milestone scope, prior weekly no-go/go history, key decisions — HIGH confidence (primary project record)
+- `C:\Users\Dulguun.U\Documents\Projects\prediction-dashboard\backend_research\REPORT-WEEKLY.md` — Phase 17's frozen weekly HDAN/PPAN go/no-go, models, MAPE figures — HIGH confidence (frozen deliverable)
+- `C:\Users\Dulguun.U\Documents\Projects\prediction-dashboard\backend_research\weekly\run_weekly_sarimax_ets.py` — weekly backtest methodology, `MIN_TRAIN_WEEKLY`/`HORIZON_WEEKLY` rationale, benchmark-lookup pattern — HIGH confidence (source code read directly)
+- `C:\Users\Dulguun.U\Documents\Projects\prediction-dashboard\backend_research\results\weekly_sarimax_ets.json` — frozen per-record weekly results — HIGH confidence
+- `C:\Users\Dulguun.U\Documents\Projects\prediction-dashboard\backend_research\data_loader.py` — existing CSV-cleanup and cross-file date-alignment patterns (`merged_weekly`'s `merge_asof` tolerance fix) — HIGH confidence
+- `FX Data.csv` (repo root) — inspected directly: three Date/Value column pairs, comma-thousands-separated values, Weekly column dates observed as Mondays (2026-07-27, 07-20, 07-13, 07-06) vs. AN Data.csv's Friday-based weekly dates (7/10, 7/3, 6/26, 6/19 2026) — HIGH confidence (direct file inspection)
+- `C:\Users\Dulguun.U\Documents\Projects\prediction-dashboard\app\app\forecasting.py` — existing frozen-constant discipline, per-series cadence assumptions baked into `forecast_all`'s five-key contract, existing Pitfall 1-5 inline documentation this file already carries — HIGH confidence
+- `git log` (this repo) — confirmed Phase 3's `forecasting.py` foundation had at least one explicit revert/correction (`docs: revert premature FCST-04/05 completion (foundation only, not full wiring)`), and Phase 17/16's research-first, frozen-artifact discipline pattern — HIGH confidence
 
 ---
-*Pitfalls research for: Sentiment scenario-adjustment layer + weekly-forecast re-research spike (Prediction Dashboard v2.0)*
-*Researched: 2026-08-31*
+*Pitfalls research for: weekly-cadence forecasting UI addition to an existing monthly-only Reflex dashboard*
+*Researched: 2026-09-01*
