@@ -382,7 +382,11 @@ Plans:
   4. A documented go/no-go verdict exists, comparing the best weekly FX candidate against the 1.72% MAPE monthly benchmark
   5. If the verdict is "no-go", FX weekly forecasting is explicitly excluded from Phase 22's UI scope rather than shipped un-backtested
 
-**Plans**: TBD
+**Plans**: 1 plan
+
+Plans:
+
+- [ ] 20-01-PLAN.md — Dedicated FX weekly SARIMAX/ETS backtest, examined MIN_TRAIN_WEEKLY, computed go/no-go vs. 1.72% benchmark, REPORT-WEEKLY-FX.md (wave 1)
 
 ### Phase 21: Weekly Forecasting Module
 
@@ -439,7 +443,7 @@ Plans:
 | 17. Weekly Forecast Re-Research Spike | 2/2 | Complete   | 2026-09-01 |
 | 18. Sentiment-Adjusted Scenario UI | — | Dropped (Phase 16 no-go) | - |
 | 19. Weekly Schema & Ingestion | 0/2 | Not started | - |
-| 20. FX Weekly Backtest | 0/? | Not started | - |
+| 20. FX Weekly Backtest | 0/1 | Not started | - |
 | 21. Weekly Forecasting Module | 0/? | Not started | - |
 | 22. Weekly Granularity Toggle & UI | 0/? | Not started | - |
 
