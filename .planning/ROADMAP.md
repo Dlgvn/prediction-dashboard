@@ -21,7 +21,7 @@
 - [x] **Phase 17: Weekly Forecast Re-Research Spike** - A documented go/no-go on new weekly-cadence candidates for HDAN/PPAN, compared against the prior no-go benchmark (completed 2026-09-01, go — no UI shipped, out of scope this milestone)
 - ~~Phase 18: Sentiment-Adjusted Scenario UI~~ — dropped, Phase 16 returned no-go (see [v2.0 archive](milestones/v2.0-ROADMAP.md))
 - [x] **Phase 19: Weekly Schema & Ingestion** - Genuine weekly-cadence historical data for HDAN, PPAN, and FX rate is persisted separately from the monthly table
-- [ ] **Phase 20: FX Weekly Backtest** - A backtested weekly FX forecasting model exists with a documented, frozen go/no-go verdict against the monthly benchmark
+- [x] **Phase 20: FX Weekly Backtest** - A backtested weekly FX forecasting model exists with a documented, frozen go/no-go verdict against the monthly benchmark (completed 2026-09-01)
 - [ ] **Phase 21: Weekly Forecasting Module** - `forecast_all_weekly` and per-series weekly forecast functions exist, unit-testable in isolation from the UI
 - [ ] **Phase 22: Weekly Granularity Toggle & UI** - User can toggle Monthly/Weekly, see weekly forecasts for HDAN/PPAN/FX with correct provenance and dates, and see Diesel honestly marked monthly-only
 
@@ -386,7 +386,7 @@ Plans:
 
 Plans:
 
-- [ ] 20-01-PLAN.md — Dedicated FX weekly SARIMAX/ETS backtest, examined MIN_TRAIN_WEEKLY, computed go/no-go vs. 1.72% benchmark, REPORT-WEEKLY-FX.md (wave 1)
+- [x] 20-01-PLAN.md — Dedicated FX weekly SARIMAX/ETS backtest, examined MIN_TRAIN_WEEKLY, computed go/no-go vs. 1.72% benchmark, REPORT-WEEKLY-FX.md (wave 1)
 
 ### Phase 21: Weekly Forecasting Module
 
@@ -443,7 +443,7 @@ Plans:
 | 17. Weekly Forecast Re-Research Spike | 2/2 | Complete   | 2026-09-01 |
 | 18. Sentiment-Adjusted Scenario UI | — | Dropped (Phase 16 no-go) | - |
 | 19. Weekly Schema & Ingestion | 1/2 | In Progress|  |
-| 20. FX Weekly Backtest | 0/1 | Not started | - |
+| 20. FX Weekly Backtest | 1/1 | Complete   | 2026-09-01 |
 | 21. Weekly Forecasting Module | 0/? | Not started | - |
 | 22. Weekly Granularity Toggle & UI | 0/? | Not started | - |
 

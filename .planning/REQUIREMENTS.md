@@ -8,7 +8,7 @@
       FX rate — sourced from `AN Data.csv` (native weekly) and `FX Data.csv`'s Weekly
       column, never resampled/interpolated from monthly data — persisted separately from
       the existing monthly `PriceRow` table
-- [ ] **WKUI-02**: A backtested weekly-cadence FX forecasting model exists, compared
+- [x] **WKUI-02**: A backtested weekly-cadence FX forecasting model exists, compared
       explicitly against the existing monthly FX benchmark (1.72% MAPE, AR(1)/Naive), with
       a documented, frozen go/no-go verdict — a "no-go" is a valid, complete outcome (FX
       stays monthly-only in the UI if so), not a blocker to closing this requirement
@@ -80,7 +80,7 @@ section, carried forward unchanged.)
 | Requirement | Phase | Status |
 |-------------|-------|--------|
 | WKUI-01 | Phase 19 | Complete |
-| WKUI-02 | Phase 20 | Pending |
+| WKUI-02 | Phase 20 | Complete |
 | WKUI-03 | Phase 22 | Pending |
 | WKUI-04 | Phase 22 | Pending |
 | WKUI-05 | Phase 22 | Pending |
