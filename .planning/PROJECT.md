@@ -121,18 +121,33 @@ VAR benchmark on both HDAN and PPAN — but weekly UI itself remains deferred to
 future milestone by design, regardless of this favorable result. Full detail:
 `.planning/milestones/v2.0-ROADMAP.md`.
 
+## Current Milestone: v2.1 Weekly Forecast UI
+
+**Goal:** Ship weekly-cadence forecasting for HDAN, PPAN, and FX rate on the dashboard, now
+that Phase 17's re-research cleared the backtest bar and a real weekly FX data source has
+been found.
+
+**Target features:**
+- Research/backtest weekly-cadence FX forecasting against `FX Data.csv`'s Weekly column
+  (865 rows, perfect 7-day cadence, 2010-01-04 to 2026-07-27) — a new, genuinely weekly
+  source, not a resample of monthly data. Produce a validated model + documented benchmark
+  comparison, following the project's existing "no un-backtested model ships" discipline.
+- Weekly-cadence forecast UI (granularity toggle) covering HDAN, PPAN, and FX rate.
+  Diesel-USD and derived Diesel-MNT have no weekly source data and remain monthly-only,
+  shown honestly as such in the mixed-cadence UI rather than hidden or faked.
+- Forecast-viewing only this milestone — no new weekly data-entry UI (existing monthly
+  Data Entry tab is unaffected).
+
+**Key context:** `FX Data.csv` also has a `Daily` column (not currently used) and a
+`Monthly` column (already the source for the existing monthly FX model) — same file, three
+cadences, so no new data source/ingestion pattern is needed, just a new column.
+
 ## Current State
 
 **Shipped:** v2.0 (2026-09-01). Full-scope monthly dashboard (data entry, bull/base/bear
 forecasting for HDAN/PPAN/Diesel-USD/FX + derived Diesel-MNT, historical/forecast charts,
 Excel export/CSV import, light/dark theming, tab navigation) plus two closed research
-spikes. No open milestone.
-
-**Next milestone goals (candidates, not committed):** see `.planning/REQUIREMENTS.md`'s
-"Backlog carried forward from v2.0" — most notably, building the weekly-cadence forecast UI
-now that Phase 17 cleared the backtest bar (SARIMAX/ETS at weekly cadence beats the monthly
-VAR benchmark for HDAN/PPAN), which needs its own planning cycle for the mixed-cadence UX
-(Diesel/FX/Diesel-MNT stay monthly-only). Run `/gsd-new-milestone` to scope the next one.
+spikes.
 
 ## Evolution
 
@@ -152,4 +167,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-01 at completion of v2.0 milestone*
+*Last updated: 2026-09-01 at start of v2.1 milestone*

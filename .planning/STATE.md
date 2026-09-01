@@ -1,43 +1,43 @@
 ---
 gsd_state_version: 1.0
-milestone: none
-milestone_name: none
-status: idle
-stopped_at: v2.0 milestone archived
-last_updated: "2026-09-01T04:00:00.000Z"
-last_activity: 2026-09-01 -- v2.0 milestone audited (passed) and archived to .planning/milestones/. No open milestone; run /gsd-new-milestone to start the next one.
+milestone: v2.1
+milestone_name: Weekly Forecast UI
+status: defining_requirements
+stopped_at: Milestone v2.1 started
+last_updated: "2026-09-01T05:00:00.000Z"
+last_activity: 2026-09-01 -- Milestone v2.1 (Weekly Forecast UI) started. FX Data.csv's Weekly column identified as a real weekly FX data source (865 rows, 2010-01-04..2026-07-27, perfect 7-day cadence). Defining requirements/roadmap next.
 progress:
-  total_phases: 2
-  completed_phases: 2
-  total_plans: 4
-  completed_plans: 4
-  percent: 100
+  total_phases: 0
+  completed_phases: 0
+  total_plans: 0
+  completed_plans: 0
+  percent: 0
 ---
 
 # Project State
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-08-31)
+See: .planning/PROJECT.md (updated 2026-09-01)
 
 **Core value:** The user can enter a month's actuals, pick a forecast horizon (1-12 months),
 and see a chart with three price scenarios (bull/base/bear) for each of the four tracked
 series — without opening Excel.
 
-**Current focus:** v2.0 — research whether a news/sentiment-driven adjustment to the
-bull/bear scenario bands is viable against the app's real HDAN/PPAN/Diesel-USD/FX series
-(Phase 16), re-research whether weekly-cadence HDAN/PPAN forecasting can clear a new
-backtest bar with genuinely new variables/model families (Phase 17, research-only — no
-weekly UI ships this milestone regardless of outcome), and only if Phase 16 returns a go,
-build an additive sentiment-adjusted band + provenance + toggle on the existing fan chart
-(Phase 18).
+**Current focus:** v2.1 — ship weekly-cadence forecasting for HDAN, PPAN, and FX rate on the
+dashboard. Requires a new research phase first (backtest weekly FX forecasting against
+`FX Data.csv`'s Weekly column — a genuine weekly source, not previously used), then a
+weekly-cadence forecast UI (granularity toggle) built on top of Phase 17's already-validated
+HDAN/PPAN weekly models plus the new FX weekly model. Diesel-USD/Diesel-MNT remain
+monthly-only (no weekly source exists for them). Forecast-viewing only — no weekly data
+entry this milestone.
 
 ## Current Position
 
-Phase: 17 (Weekly Forecast Re-Research Spike) — Complete
-Plan: 01 complete (data loader path fix + Baltic-AN dedup); 02 complete (weekly SARIMAX/ETS backtests + go/no-go report). Phase 17 fully done; next up is Phase 18, gated on Phase 16's SENT-01/02 result (no-go) — per STATE.md decision, Phase 18 is dropped from the v2.0 milestone rather than built. v2.0 milestone is therefore effectively complete pending final wrap-up.
-Status: Weekly-cadence SARIMAX/ETS/SARIMAX+exog(BalticAN) candidates backtested via walk_forward_backtest (MIN_TRAIN=104, HORIZON=5) for HDAN/PPAN. All 6 candidates beat the fixed monthly VAR benchmark (9.49%/10.08%) at h=4: overall verdict GO. Frozen to backend_research/results/weekly_sarimax_ets.json; documented in backend_research/REPORT-WEEKLY.md (byte-identical across reruns). WKLY-01/WKLY-02 closed. No app/ code changed; no weekly UI ships this milestone despite the go verdict, per the phase's explicit research-only scope.
-Last activity: 2026-09-01 -- Phase 17 Plan 02 (weekly SARIMAX/ETS re-research) complete -- Phase 17 done
+Phase: Not started (defining requirements)
+Plan: —
+Status: Defining requirements
+Last activity: 2026-09-01 — Milestone v2.1 started
 
 ## Performance Metrics
 

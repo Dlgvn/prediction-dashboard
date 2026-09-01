@@ -1,3 +1,5 @@
+.web
+.states
 .web/
 reflex.lock/
 *.db
