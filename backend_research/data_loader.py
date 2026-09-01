@@ -1,12 +1,15 @@
 """Shared, validated data loading for all phase-1 research scripts.
 Reuses the exact cleaning logic already validated this session (see chat history:
 AN model re-validation and Diesel model re-validation)."""
+from pathlib import Path
+
 import pandas as pd
 import numpy as np
 
-AN_CSV = "/Users/dlgvnbyr/Desktop/Prediction Dashboard/AN Data.csv"
-DIESEL_CSV = "/Users/dlgvnbyr/Desktop/Prediction Dashboard/Diesel Data.csv"
-AN_WEEKLY_CSV = "/Users/dlgvnbyr/Desktop/Prediction Dashboard/AN price weekly.csv"
+_REPO_ROOT = Path(__file__).resolve().parent.parent
+AN_CSV = str(_REPO_ROOT / "AN Data.csv")
+DIESEL_CSV = str(_REPO_ROOT / "Diesel Data.csv")
+AN_WEEKLY_CSV = str(_REPO_ROOT / "AN price weekly.csv")
 
 def load_an_monthly():
     """Returns monthly DataFrame indexed by YM period: PPAN, HDAN, Baltic AN, Ammonia,
