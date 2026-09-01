@@ -100,8 +100,8 @@ tracked series — without opening Excel.
 | Reflex + SQLite single-process monolith (not split FastAPI service, not Postgres) | Matches single-user, occasional-use scale; simplest to run/deploy | — Pending |
 | Fresh model design/research rather than porting the Excel workbook's exact coefficients | User explicitly chose this during brainstorming over reusing the workbook's VAR/AR models | — Pending |
 | No file-upload UI in v1 — manual in-app entry + Excel export instead | User explicitly requested this during brainstorming, reversing an earlier upload-first draft | — Pending |
-| v2 weekly-forecast-mode work is a research spike (re-research before shipping), not a committed build | v1.2-era backtest was a no-go: weekly-native VAR underperformed monthly (10.35%/16.01% vs 9.49%/10.08% MAPE) and no weekly Diesel/FX data exists at all — must clear a new backtest bar before any weekly UI ships | — Pending |
-| v2 news/sentiment scenario feature builds on the existing `archive/` dataset (news_sentiment_daily.csv, sentiment_market_panel.csv, ml_features.csv, raw news dump) rather than researching a provider from scratch | User confirmed this data was prepared for this purpose | — Pending |
+| v2 weekly-forecast-mode work is a research spike (re-research before shipping), not a committed build | v1.2-era backtest was a no-go: weekly-native VAR underperformed monthly (10.35%/16.01% vs 9.49%/10.08% MAPE) and no weekly Diesel/FX data exists at all — must clear a new backtest bar before any weekly UI ships | ✓ Cleared: Phase 17's SARIMAX/ETS re-research beat the monthly benchmark (best HDAN 7.25%, PPAN 6.96% vs 9.49%/10.08%) — but weekly UI itself remains deferred to a future milestone by design |
+| v2 news/sentiment scenario feature builds on the existing `archive/` dataset (news_sentiment_daily.csv, sentiment_market_panel.csv, ml_features.csv, raw news dump) rather than researching a provider from scratch | User confirmed this data was prepared for this purpose | ✓ Data used as planned; Phase 16's causality screen returned no-go (effective monthly sample size never reached the required floor) — sentiment UI (Phase 18) correctly dropped, not built degraded |
 
 ## Milestone History
 
@@ -111,14 +111,28 @@ Fixed the Data Entry table's usability at real data scale (12-month default wind
 ### v1.3 Dashboard Polish & Data-Entry Rework (complete)
 Fixed the transparent html/body background bug (black margins on wide/dark-mode viewports), added a persisted dark/light toggle, added a tab/nav bar between page sections, showed per-series model name + backtest accuracy near the forecast, fixed the fan chart's overlapping axis label/legend, and reworked Data Entry to root-cause and fix the silent-validation bug (native date picker + click-away race fix).
 
-## Current Milestone: v2.0 News/Sentiment Scenarios & Weekly Forecast Research
+### v2.0 News/Sentiment Scenarios & Weekly Forecast Research (complete)
+Two independent research-only spikes, no `app/` or UI changes shipped either way. Sentiment
+causality screen against the real HDAN/PPAN/Diesel-USD/FX series returned no-go (effective
+monthly sample size never cleared the required floor) — the gated sentiment UI (Phase 18)
+was correctly dropped, not built degraded. Weekly-cadence re-research (new SARIMAX/ETS
+candidates, Baltic-AN dedup resolved as duplicate signal) returned go — beat the monthly
+VAR benchmark on both HDAN and PPAN — but weekly UI itself remains deferred to its own
+future milestone by design, regardless of this favorable result. Full detail:
+`.planning/milestones/v2.0-ROADMAP.md`.
 
-**Goal:** Add live news/sentiment-driven bull/bear scenario adjustment on top of the existing statistical-spread scenarios, and resolve whether weekly-granularity forecasting can clear a real backtest bar before building any weekly UI.
+## Current State
 
-**Target features:**
-- Research and backtest a news/sentiment-driven adjustment to the bull/bear scenario bands, built on the `archive/` dataset (news_sentiment_daily.csv, sentiment_market_panel.csv, ml_features.csv, raw news dump)
-- Surface the sentiment-adjusted scenarios in the existing forecast chart/UI, with provenance (what's driving the adjustment) shown to the user
-- Re-research weekly-granularity forecasting as a spike: try new approaches/data for HDAN/PPAN (which have real weekly data) and confirm whether Diesel/FX remain permanently monthly-only; only proceed to a shipped weekly UI mode if a new backtest actually beats the prior no-go result
+**Shipped:** v2.0 (2026-09-01). Full-scope monthly dashboard (data entry, bull/base/bear
+forecasting for HDAN/PPAN/Diesel-USD/FX + derived Diesel-MNT, historical/forecast charts,
+Excel export/CSV import, light/dark theming, tab navigation) plus two closed research
+spikes. No open milestone.
+
+**Next milestone goals (candidates, not committed):** see `.planning/REQUIREMENTS.md`'s
+"Backlog carried forward from v2.0" — most notably, building the weekly-cadence forecast UI
+now that Phase 17 cleared the backtest bar (SARIMAX/ETS at weekly cadence beats the monthly
+VAR benchmark for HDAN/PPAN), which needs its own planning cycle for the mixed-cadence UX
+(Diesel/FX/Diesel-MNT stay monthly-only). Run `/gsd-new-milestone` to scope the next one.
 
 ## Evolution
 
@@ -138,4 +152,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-31 at start of v2.0 milestone*
+*Last updated: 2026-09-01 at completion of v2.0 milestone*

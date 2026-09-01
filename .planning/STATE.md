@@ -1,16 +1,16 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.0
-milestone_name: News/Sentiment Scenarios & Weekly Forecast Research
-status: executing
-stopped_at: Completed 17-02-PLAN.md
-last_updated: "2026-09-01T03:15:00.000Z"
-last_activity: 2026-09-01 -- Phase 17 Plan 02 (weekly SARIMAX/ETS re-research, go verdict) complete -- Phase 17 done, WKLY-01/WKLY-02 closed
+milestone: none
+milestone_name: none
+status: idle
+stopped_at: v2.0 milestone archived
+last_updated: "2026-09-01T04:00:00.000Z"
+last_activity: 2026-09-01 -- v2.0 milestone audited (passed) and archived to .planning/milestones/. No open milestone; run /gsd-new-milestone to start the next one.
 progress:
-  total_phases: 18
+  total_phases: 2
   completed_phases: 2
-  total_plans: 5
-  completed_plans: 5
+  total_plans: 4
+  completed_plans: 4
   percent: 100
 ---
 
