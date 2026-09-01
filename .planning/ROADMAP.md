@@ -372,7 +372,16 @@ Plans:
   2. A documented go/no-go report exists with an explicit side-by-side comparison against the prior spike's exact benchmark figures (9.49%/10.08% monthly MAPE)
   3. The report closes WKLY-01/WKLY-02 regardless of outcome; no `app/` code changes occur in this phase and no weekly UI ships this milestone even if the result is a go
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+**Wave 1**
+
+- [ ] 17-01-PLAN.md — Patch data_loader.py to repo-root-relative paths and resolve the Baltic-AN dedup question with a frozen verdict (wave 1)
+
+**Wave 2** *(blocked on Wave 1 completion)*
+
+- [ ] 17-02-PLAN.md — Run weekly-cadence SARIMAX/ExponentialSmoothing candidates via the shared walk-forward harness, freeze `results/weekly_sarimax_ets.json` and generate `REPORT-WEEKLY.md` with the go/no-go comparison against the 9.49%/10.08% benchmark (wave 2)
 
 ### Phase 18: Sentiment-Adjusted Scenario UI (conditional on Phase 16 go)
 
