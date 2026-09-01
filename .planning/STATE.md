@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: News/Sentiment Scenarios & Weekly Forecast Research
 status: executing
-stopped_at: Completed 16-01-PLAN.md
+stopped_at: Completed 16-02-PLAN.md
 last_updated: "2026-09-01T00:00:00.000Z"
-last_activity: 2026-09-01 -- Phase 16 Plan 01 (sentiment data loader) complete
+last_activity: 2026-09-01 -- Phase 16 Plan 02 (sentiment causality screen) complete -- Phase 16 complete, no-go
 progress:
   total_phases: 18
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 2
-  completed_plans: 1
-  percent: 50
+  completed_plans: 2
+  percent: 100
 ---
 
 # Project State
@@ -34,10 +34,10 @@ build an additive sentiment-adjusted band + provenance + toggle on the existing 
 
 ## Current Position
 
-Phase: 16 (Sentiment Data Sufficiency & Causality Research) — In progress
-Plan: 16-02 (next)
-Status: Plan 01 complete, Plan 02 (causality screen) ready to execute
-Last activity: 2026-09-01 -- Phase 16 Plan 01 (sentiment data loader) complete
+Phase: 16 (Sentiment Data Sufficiency & Causality Research) — Complete (no-go)
+Plan: none (Phase 16 done; Phase 17 next)
+Status: Both plans complete. Screen ran against real HDAN/PPAN/Diesel-USD/FX data; all four series returned "no-go" (effective monthly N 14/14/19/20, all below MIN_GRANGER_N=24). SENT-01/SENT-02 closed. Phase 18 (sentiment UI) is dropped per its "go"-gated dependency on Phase 16.
+Last activity: 2026-09-01 -- Phase 16 Plan 02 (sentiment causality screen) complete -- Phase 16 complete
 
 ## Performance Metrics
 
@@ -102,6 +102,7 @@ Last activity: 2026-09-01 -- Phase 16 Plan 01 (sentiment data loader) complete
 | Phase 15 P01 | 15min | 1 tasks | 2 files |
 | Phase 15 P02 | 25min | 2 tasks | 2 files |
 | Phase 16-sentiment-data-sufficiency-causality-research P01 | 35min | 2 tasks | 2 files |
+| Phase 16-sentiment-data-sufficiency-causality-research P02 | 50min | 3 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -181,6 +182,7 @@ Recent decisions affecting current work:
 - [v2.0 roadmap]: No weekly UI phase exists in this milestone — WKLY-01/WKLY-02 close via Phase 17's research report alone; weekly UI is deferred to its own future milestone regardless of Phase 17's outcome, per REQUIREMENTS.md v2.1+ Deferred section
 - [Phase 16-01]: weighted_compound/sent_ema3/sent_ema10/sent_momentum rebuilt from raw article timestamps corrected to Mongolia-local (UTC+8), never resampled from archive/news_sentiment_daily.csv (date-only, UTC-day-bucketed, cannot be corrected after the fact); vix_regime_code bucketed on ml_features.csv's own US-trading-day calendar with no MN_OFFSET shift
 - [Phase 16-01]: merge_lagged() reindexes the gappy predictor onto the dense target index by calendar label before shifting, includes y_lag1 in its dropna so its row count equals causality_screen.granger_ftest()'s true effective n, and raises walk_forward.LeakageError (reused, not a parallel exception class) on lag<1 or non-monthly indexes
+- [Phase 16-02]: Sentiment causality screen returned "no-go" for all four series (HDAN/PPAN/Diesel-USD/FX rate) — effective monthly overlap (14/14/19/20) never reaches MIN_GRANGER_N=24, imported unchanged from causality_screen.py. Phase 16 complete; SENT-01/SENT-02 closed. Phase 18 (sentiment UI) is dropped from the v2.0 milestone per its "go"-gated dependency, not built in a degraded form.
 
 ### Pending Todos
 
@@ -212,15 +214,15 @@ Recent decisions affecting current work:
 - Confidence-band methodology (backtest MAPE vs. model-native forecast SE) needs a concrete
   design decision during Phase 3 planning.
 
-- [v2.0] Sentiment relevance is genuinely unresolved going into Phase 16 — research (SUMMARY.md)
-  found the `archive/` sentiment dataset is a generic US-equity-market (SPY/QQQ/DIA/VIX) news
-  corpus with zero ammonium nitrate/diesel/Mongolia/tugrik content, and its dense daily coverage
-  is only ~2 months wide (a NewsAPI free-tier artifact), not the 6-year span its date range
-  implies. A "no-go" from Phase 16 is a likely, valid, and complete outcome — Phase 18 should not
-  be started speculatively ahead of that result.
+- [v2.0] RESOLVED (2026-09-01): Phase 16's causality screen returned "no-go" for all four
+  series against the app's real HDAN/PPAN/Diesel-USD/FX data — effective monthly overlap
+  (14/14/19/20) never reaches MIN_GRANGER_N=24, as anticipated from the archive's sparse
+  ~20-month sentiment coverage. SENT-01/SENT-02 are closed as a complete, valid outcome.
+  Phase 18 (sentiment UI) is dropped from the v2.0 milestone rather than built speculatively
+  or in a degraded form.
 
 ## Session Continuity
 
-Last session: 2026-08-31T04:59:10.539Z
-Stopped at: Phase 16 context gathered
-Resume file: .planning/phases/16-sentiment-data-sufficiency-causality-research/16-CONTEXT.md
+Last session: 2026-09-01T00:00:00.000Z
+Stopped at: Completed 16-02-PLAN.md (Phase 16 complete, no-go)
+Resume file: .planning/phases/16-sentiment-data-sufficiency-causality-research/16-02-SUMMARY.md

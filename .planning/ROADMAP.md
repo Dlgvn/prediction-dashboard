@@ -17,7 +17,7 @@
 - [x] **Phase 13: Model Provenance Display** - Each forecast shows which model produced it and its backtested accuracy (completed 2026-08-25)
 - [x] **Phase 14: Tab/Nav Bar** - User switches between Summary/Forecast/Data Entry via tabs without losing in-progress state (completed 2026-08-25)
 - [x] **Phase 15: Data Entry Rework** - Date entry reliably accepts valid input with visible errors and no format memorization (completed 2026-08-25)
-- [ ] **Phase 16: Sentiment Data Sufficiency & Causality Research** - A documented go/no-go on whether a sentiment-driven scenario adjustment is viable against the app's real series
+- [x] **Phase 16: Sentiment Data Sufficiency & Causality Research** - A documented go/no-go on whether a sentiment-driven scenario adjustment is viable against the app's real series
 - [ ] **Phase 17: Weekly Forecast Re-Research Spike** - A documented go/no-go on new weekly-cadence candidates for HDAN/PPAN, compared against the prior no-go benchmark
 - [ ] **Phase 18: Sentiment-Adjusted Scenario UI (conditional on Phase 16 go)** - User sees an additive, honestly-labeled sentiment band on the fan chart with provenance and a toggle
 
@@ -359,7 +359,7 @@ Plans:
 
 **Wave 2** *(blocked on Wave 1 completion)*
 
-- [ ] 16-02-PLAN.md — Run the causality screen against the real HDAN/PPAN/Diesel-USD/FX series, freeze `results/sentiment_causality_screen.json` and generate `REPORT-SENTIMENT.md` (wave 2)
+- [x] 16-02-PLAN.md — Run the causality screen against the real HDAN/PPAN/Diesel-USD/FX series, freeze `results/sentiment_causality_screen.json` and generate `REPORT-SENTIMENT.md` (wave 2)
 
 ### Phase 17: Weekly Forecast Re-Research Spike
 

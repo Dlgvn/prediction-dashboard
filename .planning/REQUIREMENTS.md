@@ -4,10 +4,10 @@
 
 ### Sentiment Research (gated)
 
-- [ ] **SENT-01**: A causality/correlation screen runs against the app's actual
+- [x] **SENT-01**: A causality/correlation screen runs against the app's actual
       HDAN/PPAN/Diesel-USD/FX series (not equities), with the effective monthly sample
       size explicitly reported, before any sentiment adjustment is considered valid
-- [ ] **SENT-02**: The sentiment backtest produces a documented, frozen go/no-go result
+- [x] **SENT-02**: The sentiment backtest produces a documented, frozen go/no-go result
       (mirroring the project's "no un-backtested model ships" discipline) — a "no-go" is a
       valid, complete outcome for this requirement, not a blocker to closing it
 
@@ -240,8 +240,8 @@
 | NAV-01 | Phase 14 | Complete |
 | DATA-09 | Phase 15 | Complete |
 | DATA-10 | Phase 15 | Complete |
-| SENT-01 | Phase 16 | Pending |
-| SENT-02 | Phase 16 | Pending |
+| SENT-01 | Phase 16 | Complete |
+| SENT-02 | Phase 16 | Complete |
 | SENT-03 | Phase 18 | Pending |
 | SENT-04 | Phase 18 | Pending |
 | SENT-05 | Phase 18 | Pending |
