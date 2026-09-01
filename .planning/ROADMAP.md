@@ -362,7 +362,12 @@ Full detail: [.planning/milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md).
   4. AN-family (Friday-based) and FX (Monday-based) weekly rows are joined/aligned via a tolerance-based join (e.g. `merge_asof`), not naive row alignment, so no silent date misalignment is introduced
   5. Row counts and date ranges after seeding match the source CSVs (spot-checkable against the known 865-row/2010-01-04..2026-07-27 FX range)
 
-**Plans**: TBD
+**Plans**: 2 plans
+
+Plans:
+
+- [ ] 19-01-PLAN.md — WeeklyPriceRow schema + Alembic migration (wave 1)
+- [ ] 19-02-PLAN.md — seed_weekly.py native AN/FX parsing, tolerance merge_asof, idempotent upsert (wave 2)
 
 ### Phase 20: FX Weekly Backtest
 
@@ -433,7 +438,7 @@ Full detail: [.planning/milestones/v2.0-ROADMAP.md](milestones/v2.0-ROADMAP.md).
 | 16. Sentiment Data Sufficiency & Causality Research | 2/2 | Complete   | 2026-09-01 |
 | 17. Weekly Forecast Re-Research Spike | 2/2 | Complete   | 2026-09-01 |
 | 18. Sentiment-Adjusted Scenario UI | — | Dropped (Phase 16 no-go) | - |
-| 19. Weekly Schema & Ingestion | 0/? | Not started | - |
+| 19. Weekly Schema & Ingestion | 0/2 | Not started | - |
 | 20. FX Weekly Backtest | 0/? | Not started | - |
 | 21. Weekly Forecasting Module | 0/? | Not started | - |
 | 22. Weekly Granularity Toggle & UI | 0/? | Not started | - |
