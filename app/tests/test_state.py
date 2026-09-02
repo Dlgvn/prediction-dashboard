@@ -19,6 +19,7 @@ from app.state import (
     TABLE_WINDOW_ROWS,
     WEEKLY_CAPABLE_SERIES,
     WEEKLY_FORECAST_SERIES_LABELS,
+    WEEKLY_FORECAST_TABLE_COLUMNS,
     WEEKLY_SERIES_ATTRS,
     DashboardState,
 )
@@ -1039,6 +1040,21 @@ def test_weekly_capable_series_and_labels_are_consistent():
     assert set(WEEKLY_FORECAST_SERIES_LABELS) == {"hdan", "ppan", "fx_rate"}
 
 
+def test_available_forecast_series_labels_narrows_when_weekly(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.set_granularity("weekly")
+
+    assert state.available_forecast_series_labels == ["HDAN", "PPAN", "FX Rate"]
+
+
+def test_available_forecast_series_labels_full_when_monthly(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+
+    assert state.available_forecast_series_labels == list(FORECAST_SERIES_LABELS.values())
+
+
 # ---------------------------------------------------------------------------
 # Excel export (EXPORT-01, EXPORT-02)
 # ---------------------------------------------------------------------------
@@ -1443,6 +1459,91 @@ def test_forecast_chart_empty_state(session, monkeypatch):
     assert any(
         "No forecast available for this series yet." in a.text for a in annotations
     )
+
+
+# ---------------------------------------------------------------------------
+# Weekly branching for forecast_chart_figure / forecast_table_rows (WKUI-08)
+# ---------------------------------------------------------------------------
+
+
+def test_forecast_chart_figure_weekly_dates_are_week_spaced(
+    session, monkeypatch, synthetic_weekly_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.set_granularity("weekly")
+    state.weekly_rows = _weekly_rows_from_synthetic_history(synthetic_weekly_history)
+    state.horizon_weeks = 4
+    state.forecast_series = "hdan"
+
+    figure = state.forecast_chart_figure
+
+    # data[1] is the "Bear" trace; its x values are [last_hist_date, *fc_dates].
+    bridge_x = pd.to_datetime(list(figure.data[1].x))
+    assert bridge_x[2] - bridge_x[1] == pd.Timedelta(weeks=1)
+
+
+def test_forecast_chart_figure_monthly_unchanged(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+
+    figure = state.forecast_chart_figure
+
+    assert [t.name for t in figure.data] == [
+        "Historical",
+        "Bear",
+        "Expected range",
+        "Base forecast",
+    ]
+    assert figure.layout.xaxis.title.text == "Month"
+
+
+def test_forecast_table_rows_weekly_has_no_diesel_columns(
+    session, monkeypatch, synthetic_weekly_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.set_granularity("weekly")
+    state.weekly_rows = _weekly_rows_from_synthetic_history(synthetic_weekly_history)
+    state.horizon_weeks = 4
+
+    rows = state.forecast_table_rows
+
+    assert rows != []
+    for row in rows:
+        assert not any(key.startswith("diesel_usd_ton_") or key.startswith("diesel_mnt_") for key in row)
+        for series_key in WEEKLY_FORECAST_SERIES_LABELS:
+            for scenario in ("base", "bull", "bear"):
+                assert f"{series_key}_{scenario}" in row
+
+
+def test_forecast_table_rows_weekly_dates_are_real_calendar_dates(
+    session, monkeypatch, synthetic_weekly_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.set_granularity("weekly")
+    state.weekly_rows = _weekly_rows_from_synthetic_history(synthetic_weekly_history)
+    state.horizon_weeks = 4
+
+    rows = state.forecast_table_rows
+
+    dates = [pd.to_datetime(row["month"]) for row in rows]
+    assert dates == sorted(dates)
+    assert len(set(dates)) == len(dates)
+
+
+def test_forecast_table_rows_weekly_empty_when_no_weekly_rows(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.set_granularity("weekly")
+    state.weekly_rows = []
+
+    rows = state.forecast_table_rows
+
+    assert rows == []
 
 
 # ---------------------------------------------------------------------------

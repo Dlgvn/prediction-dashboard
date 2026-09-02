@@ -156,6 +156,15 @@ WEEKLY_FORECAST_SERIES_LABELS: dict[str, str] = {
     "fx_rate": "FX Rate",
 }
 
+# Phase 22 (WKUI-08): weekly forecast table's column set -- 3 series x 3 scenarios,
+# mirrors FORECAST_TABLE_COLUMNS' derivation exactly but scoped to WEEKLY_CAPABLE_SERIES
+# (no Diesel columns -- no weekly Diesel data exists).
+WEEKLY_FORECAST_TABLE_COLUMNS: list[tuple[str, str]] = [
+    (f"{series_key}_{scenario}", f"{label} {scenario}")
+    for series_key, label in WEEKLY_FORECAST_SERIES_LABELS.items()
+    for scenario in ("base", "bull", "bear")
+]
+
 
 class DashboardState(rx.State):
     """Holds the price table for display, reflecting the DB as source of truth."""
@@ -642,6 +651,18 @@ class DashboardState(rx.State):
         return FORECAST_SERIES_LABELS[self.forecast_series]
 
     @rx.var
+    def available_forecast_series_labels(self) -> list[str]:
+        """Options list for the Forecast tab's Series select (WKUI-03) -- narrows to
+        weekly-capable series while granularity == 'weekly' so the user can never pick a
+        Diesel series that would render an empty/broken weekly chart. set_granularity's
+        fallback (Plan 22-01) already resets forecast_series to 'hdan' on toggle, so this
+        computed var and that fallback stay in sync by construction.
+        """
+        if self.granularity == "weekly":
+            return list(WEEKLY_FORECAST_SERIES_LABELS.values())
+        return list(FORECAST_SERIES_LABELS.values())
+
+    @rx.var
     def freshness_chips(self) -> list[dict[str, str]]:
         """Four ordered as-of-date chips (DATA-06/D-07), pure over self.rows.
 
@@ -894,25 +915,34 @@ class DashboardState(rx.State):
         Reads self.forecast_results (never re-invokes forecast_all -- Pitfall
         2 guard) and builds a single continuous date axis: 12 trailing
         historical months feeding into a shaded bull/bear band with a solid
-        base line drawn on top.
+        base line drawn on top. Branches onto weekly_forecast_results/real
+        week-ending dates (WKUI-08) while granularity == 'weekly'.
         """
         t = tokens(self.theme_mode)
         attr = self.forecast_series
-        results = self.forecast_results
-        series = results.get(attr, [])
+        use_weekly = self.granularity == "weekly"
 
-        # Historical segment (D-05): last 12 non-null observations for the
-        # selected series, diesel_mnt derived per diesel_mnt_forecast's
-        # exact multiplier convention.
-        hist_pairs = self._actual_series_for(attr)[-12:]
+        if use_weekly:
+            results = self.weekly_forecast_results
+            series = results.get(attr, [])
+            hist_pairs = self._weekly_actual_series_for(attr)[-12:]
+            axis_label = "Week"
+            series_label = WEEKLY_FORECAST_SERIES_LABELS.get(attr, attr)
+        else:
+            results = self.forecast_results
+            series = results.get(attr, [])
+            hist_pairs = self._actual_series_for(attr)[-12:]
+            axis_label = "Month"
+            series_label = FORECAST_SERIES_LABELS[attr]
+
         hist_dates: list = [d for d, _ in hist_pairs]
         hist_values: list = [v for _, v in hist_pairs]
 
         if not series or not hist_dates:
             figure = go.Figure()
             figure.update_layout(
-                xaxis_title="Month",
-                yaxis_title=FORECAST_SERIES_LABELS[attr],
+                xaxis_title=axis_label,
+                yaxis_title=series_label,
                 showlegend=False,
                 legend=dict(orientation="h", y=-0.55, yanchor="top", x=0.5, xanchor="center"),
                 margin=dict(l=40, r=16, t=16, b=140),
@@ -937,9 +967,16 @@ class DashboardState(rx.State):
         last_hist_date = hist_dates_dt[-1]
         last_hist_value = hist_values[-1]
 
-        fc_dates = [
-            last_hist_date + pd.DateOffset(months=entry["month"]) for entry in series
-        ]
+        if use_weekly:
+            # WKUI-08: weekly rows are keyed "week" (Phase 21's shipped _to_rows_weekly
+            # contract), NOT "month" -- confirmed by direct read of forecasting.py.
+            fc_dates = [
+                last_hist_date + pd.DateOffset(weeks=entry["week"]) for entry in series
+            ]
+        else:
+            fc_dates = [
+                last_hist_date + pd.DateOffset(months=entry["month"]) for entry in series
+            ]
         fc_base = [entry["base"] for entry in series]
         fc_bull = [entry["bull"] for entry in series]
         fc_bear = [entry["bear"] for entry in series]
@@ -1002,8 +1039,8 @@ class DashboardState(rx.State):
             annotation_position="top left",
         )
         figure.update_layout(
-            xaxis_title="Month",
-            yaxis_title=FORECAST_SERIES_LABELS[attr],
+            xaxis_title=axis_label,
+            yaxis_title=series_label,
             margin=dict(l=40, r=16, t=16, b=140),
             legend=dict(orientation="h", y=-0.55, yanchor="top", x=0.5, xanchor="center"),
             plot_bgcolor="rgba(0,0,0,0)",
@@ -1020,8 +1057,36 @@ class DashboardState(rx.State):
 
         Transposes self.forecast_results (series-major) into one flat row
         per horizon month, carrying all five series' base/bull/bear values
-        simultaneously, preformatted to strings.
+        simultaneously, preformatted to strings. Branches onto
+        weekly_forecast_results/real week-ending dates (WKUI-08) while
+        granularity == 'weekly'.
         """
+        if self.granularity == "weekly":
+            results = self.weekly_forecast_results
+            if not any(results.get(key) for key in WEEKLY_FORECAST_SERIES_LABELS):
+                return []
+            weekly_hist = self._weekly_actual_series_for("hdan")
+            if not weekly_hist:
+                return []
+            last_date = pd.to_datetime(weekly_hist[-1][0])
+            rows: list[dict[str, str]] = []
+            for step in range(1, self.horizon_weeks + 1):
+                week_date = last_date + pd.DateOffset(weeks=step)
+                # "month" key kept even for weekly rows (not renamed to "week") so
+                # app.py's forecast_table() can render the first column unconditionally
+                # via row["month"] -- only the header LABEL and column SET branch.
+                row: dict[str, str] = {"month": week_date.strftime("%Y-%m-%d")}
+                for series_key in WEEKLY_FORECAST_SERIES_LABELS:
+                    series = results.get(series_key, [])
+                    entry = series[step - 1] if step - 1 < len(series) else None
+                    for scenario in ("base", "bull", "bear"):
+                        value = entry[scenario] if entry is not None else None
+                        row[f"{series_key}_{scenario}"] = (
+                            f"{value:,.2f}" if value is not None else ""
+                        )
+                rows.append(row)
+            return rows
+
         results = self.forecast_results
         if not any(results.get(key) for key in FORECAST_SERIES_LABELS):
             return []
