@@ -725,6 +725,13 @@ def test_index_renders_each_section_once():
         assert combined_source.count(call) == 1
 
 
+def test_export_button_used_in_forecast_and_data_entry_sections():
+    forecast_source = inspect.getsource(app_module.forecast_section)
+    data_entry_source = inspect.getsource(app_module.data_entry_section)
+    assert "export_button()" in forecast_source
+    assert "export_button()" in data_entry_source
+
+
 def test_index_does_not_css_hide_sections():
     source_path = app_module.__file__
     with open(source_path) as f:

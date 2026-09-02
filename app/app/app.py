@@ -988,6 +988,7 @@ def data_entry_section() -> rx.Component:
             align="start",
             width="100%",
         ),
+        export_button(),
         spacing="3",
         aria_label="Data entry",
         role="region",
