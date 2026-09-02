@@ -32,6 +32,23 @@ view — never replacing it.
   placeholder with no numbers, and NOT hidden entirely — the card's presence and its
   (dimmed) monthly numbers make clear this series simply doesn't have weekly granularity,
   rather than looking broken or making the user wonder where it went.
+- **New Diesel-USD summary card (scope addition)**: `SUMMARY_CARD_SERIES` in `state.py`
+  (line ~122) is currently `("hdan", "ppan", "diesel_mnt", "fx_rate")` — Diesel-USD was
+  deliberately excluded by an earlier design decision (see the comment at line ~119-120:
+  "excludes diesel_usd_ton... because the user tracks the MNT purchasing price... not the
+  raw USD/ton"). Per this session's decision, add a 5th card for `diesel_usd_ton` so both
+  Diesel-USD and Diesel-MNT can independently carry the "monthly only" badge in Weekly
+  mode. This card should render in **both** Monthly and Weekly modes (consistent card set
+  regardless of granularity — cards shouldn't appear/disappear on toggle, only their
+  content/state changes), following the exact same card-rendering pattern as the other
+  four `SUMMARY_CARD_SERIES` entries (historical high/low, YoY, model provenance line —
+  Diesel-USD has its own monthly model in `MODEL_INFO` already, per `forecasting.py`).
+  This is the one place this phase's scope extends slightly beyond pure weekly-toggle
+  wiring — flag it as such in the plan, and confirm `diesel_usd_ton`'s existing
+  `FRESHNESS_SERIES`/`FORECAST_TABLE_COLUMNS`-adjacent wiring (it's already tracked
+  elsewhere in `state.py`, e.g. `FRESHNESS_SERIES` at line ~99) so adding it to
+  `SUMMARY_CARD_SERIES` doesn't require plumbing brand-new data, just extending an
+  existing tuple and its consumers.
 
 ## Locked from milestone-level research (FEATURES.md, PITFALLS.md, SUMMARY.md)
 
@@ -74,9 +91,11 @@ view — never replacing it.
   and unchanged by this phase.
 - No per-series granularity override.
 - No horizon extension beyond what Phase 21 actually validated.
-- No changes to the existing monthly Forecast/Summary rendering when Monthly is selected —
-  this phase is additive; Monthly mode's current behavior must be pixel-identical to today
-  post-implementation (regression risk to watch).
+- No changes to the existing monthly Forecast/Summary rendering when Monthly is selected,
+  **except** the one explicit addition above (a new Diesel-USD summary card, which now
+  appears in Monthly mode too, not just Weekly) — every other card/chart/table behavior in
+  Monthly mode must be pixel-identical to today post-implementation (regression risk to
+  watch, verify the other 4 cards are unaffected).
 
 ## Claude's Discretion
 
