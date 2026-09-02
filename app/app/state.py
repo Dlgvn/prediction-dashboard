@@ -271,6 +271,22 @@ class DashboardState(rx.State):
 
     weekly_rows: list[WeeklyPriceRow] = []
 
+    # Weekly CSV bulk import (bug-fix follow-up to Phase 22): mirrors the
+    # monthly import_stage/import_error/... fields above verbatim, but
+    # scoped to WeeklyPriceRow/WEEKLY_SERIES_ATTRS. Before this, WeeklyPriceRow
+    # had NO write path anywhere in the app (only ever populated once by
+    # seed_weekly.py at DB-init time) -- so Weekly-mode forecasts for
+    # HDAN/PPAN/FX Rate could never reflect anything the user entered via
+    # Data Entry, which only ever wrote to the monthly PriceRow table. This
+    # is the root cause of "forecast doesn't update after I add new data."
+    weekly_import_stage: str = "idle"
+    weekly_import_error: str = ""
+    weekly_import_filename: str = ""
+    weekly_import_added_count: int = 0
+    weekly_import_duplicate_count: int = 0
+    weekly_import_invalid_count: int = 0
+    _staged_weekly_import_rows: list[dict] = []
+
     def toggle_theme_mode(self) -> None:
         """Flip theme_mode between "light" and "dark" (THEME-02).
 
@@ -1459,3 +1475,97 @@ class DashboardState(rx.State):
 
     def dismiss_import(self) -> None:
         self._reset_import()
+
+    # -------------------------------------------------------------------
+    # Weekly CSV bulk import (bug fix: gives WeeklyPriceRow a write path so
+    # Weekly-mode forecasts can actually update — see weekly_import_stage
+    # declaration above for the full root-cause explanation). Mirrors the
+    # monthly CSV import block above field-for-field and method-for-method,
+    # scoped to WeeklyPriceRow/WEEKLY_SERIES_ATTRS.
+    # -------------------------------------------------------------------
+
+    @rx.var
+    def weekly_import_added_text(self) -> str:
+        return f"{self.weekly_import_added_count} rows will be added"
+
+    @rx.var
+    def weekly_import_duplicate_text(self) -> str:
+        return f"{self.weekly_import_duplicate_count} rows skipped (duplicate date)"
+
+    @rx.var
+    def weekly_import_invalid_text(self) -> str:
+        return f"{self.weekly_import_invalid_count} rows skipped (invalid value)"
+
+    @rx.var
+    def weekly_import_result_text(self) -> str:
+        return f"Import complete: {self.weekly_import_added_count} rows added."
+
+    @rx.var
+    def can_confirm_weekly_import(self) -> bool:
+        return self.weekly_import_stage == "preview" and self.weekly_import_added_count > 0
+
+    def _reset_weekly_import(self) -> None:
+        self.weekly_import_stage = "idle"
+        self.weekly_import_error = ""
+        self.weekly_import_filename = ""
+        self.weekly_import_added_count = 0
+        self.weekly_import_duplicate_count = 0
+        self.weekly_import_invalid_count = 0
+        self._staged_weekly_import_rows = []
+
+    @rx.event
+    async def handle_weekly_csv_upload(self, files: list[rx.UploadFile]) -> None:
+        self._reset_weekly_import()
+
+        if not files:
+            return
+
+        file = files[0]
+        self.weekly_import_filename = getattr(file, "name", None) or getattr(
+            file, "filename", ""
+        )
+
+        try:
+            contents = await file.read()
+            result = parse_import_csv(
+                contents, WEEKLY_SERIES_ATTRS, [r.date for r in self.weekly_rows]
+            )
+        except Exception:
+            self.weekly_import_error = (
+                "This file couldn't be read as a CSV. Save it as .csv and try again."
+            )
+            self.weekly_import_stage = "error"
+            return
+
+        if not result.ok:
+            self.weekly_import_error = result.error
+            self.weekly_import_stage = "error"
+            return
+
+        self._staged_weekly_import_rows = result.rows
+        self.weekly_import_added_count = result.added_count
+        self.weekly_import_duplicate_count = result.duplicate_count
+        self.weekly_import_invalid_count = result.invalid_count
+        self.weekly_import_stage = "preview"
+
+    def confirm_weekly_import(self) -> None:
+        if self.weekly_import_stage != "preview":
+            return
+
+        before = len(self.weekly_rows)
+
+        with rx.session() as session:
+            for record in self._staged_weekly_import_rows:
+                session.add(WeeklyPriceRow(**record))
+            session.commit()
+
+        self._staged_weekly_import_rows = []
+        self.load_weekly_rows()
+        self.weekly_import_added_count = len(self.weekly_rows) - before
+        self.weekly_import_stage = "done"
+
+    def cancel_weekly_import(self) -> None:
+        self._reset_weekly_import()
+
+    def dismiss_weekly_import(self) -> None:
+        self._reset_weekly_import()

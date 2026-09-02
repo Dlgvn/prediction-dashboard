@@ -1048,6 +1048,92 @@ def test_available_forecast_series_labels_narrows_when_weekly(session, monkeypat
     assert state.available_forecast_series_labels == ["HDAN", "PPAN", "FX Rate"]
 
 
+# ---------------------------------------------------------------------------
+# Regression tests for the "forecast doesn't update after adding data" bug:
+# WeeklyPriceRow previously had NO write path anywhere in the app (only ever
+# populated once by seed_weekly.py), so weekly_forecast_results/summary cards
+# in Weekly mode could never reflect anything entered via Data Entry (which
+# only ever wrote to the monthly PriceRow table). Fix: add a weekly CSV
+# bulk-import path (handle_weekly_csv_upload/confirm_weekly_import) mirroring
+# the existing monthly one, targeting WeeklyPriceRow.
+# ---------------------------------------------------------------------------
+
+
+def _weekly_import_csv(rows: list[dict], columns=None) -> bytes:
+    columns = columns or ["date", *WEEKLY_SERIES_ATTRS]
+    frame = pd.DataFrame(rows, columns=columns)
+    return frame.to_csv(index=False).encode()
+
+
+def _full_weekly_import_row(date: str, value: float = 1.0) -> dict:
+    row = {"date": date}
+    for attr in WEEKLY_SERIES_ATTRS:
+        row[attr] = value
+    return row
+
+
+def test_confirm_weekly_import_writes_rows_and_reloads_weekly_rows(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.load_weekly_rows()
+
+    csv_bytes = _weekly_import_csv([_full_weekly_import_row("2026-01-02")])
+    asyncio.run(state.handle_weekly_csv_upload([_FakeUpload(csv_bytes)]))
+    assert state.weekly_import_stage == "preview"
+    assert state.weekly_import_added_count == 1
+
+    state.confirm_weekly_import()
+
+    assert state.weekly_import_stage == "done"
+    assert "2026-01-02" in [r.date for r in state.weekly_rows]
+    db_row = session.exec(
+        WeeklyPriceRow.select().where(WeeklyPriceRow.date == "2026-01-02")
+    ).first()
+    assert db_row is not None
+    assert db_row.hdan == 1.0
+
+
+def test_weekly_forecast_results_updates_after_weekly_csv_import(
+    session, monkeypatch, synthetic_weekly_history
+):
+    """The actual bug-report scenario: after new weekly data lands (via the
+    new weekly CSV import), weekly_forecast_results must reflect it without
+    any full page reload -- exercising the real handler chain (upload ->
+    confirm -> load_weekly_rows -> weekly_forecast_results), not a manual
+    var assignment.
+    """
+    for row in _weekly_rows_from_synthetic_history(synthetic_weekly_history):
+        session.add(
+            WeeklyPriceRow(
+                date=row.date,
+                **{attr: getattr(row, attr) for attr in WEEKLY_SERIES_ATTRS},
+            )
+        )
+    session.commit()
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_weekly_rows()
+    state.horizon_weeks = 3
+
+    before = state.weekly_forecast_results
+    before_base = before["hdan"][0]["base"]
+
+    next_date = (
+        pd.to_datetime(state.weekly_rows[-1].date) + pd.DateOffset(weeks=1)
+    ).strftime("%Y-%m-%d")
+    csv_bytes = _weekly_import_csv([_full_weekly_import_row(next_date, value=99999.0)])
+    asyncio.run(state.handle_weekly_csv_upload([_FakeUpload(csv_bytes)]))
+    state.confirm_weekly_import()
+
+    after = state.weekly_forecast_results
+    after_base = after["hdan"][0]["base"]
+
+    assert after_base != before_base, (
+        "weekly_forecast_results did not update after new weekly data was imported"
+    )
+
+
 def test_available_forecast_series_labels_full_when_monthly(session, monkeypatch):
     monkeypatch.setattr("reflex.session", lambda: session)
     state = DashboardState()
