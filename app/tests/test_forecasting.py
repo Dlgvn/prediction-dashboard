@@ -9,7 +9,10 @@ from app.forecasting import (
     DIESEL_LITERS_PER_TON,
     HDAN_GARCH_SIGMA_PCT,
     HDAN_PREDICTORS,
+    MAX_HORIZON_WEEKLY,
+    MIN_HISTORY_ROWS_WEEKLY,
     MODEL_INFO,
+    WEEKLY_ARIMA_SE_ORDER,
     InsufficientHistoryError,
     _apply_garch_spread,
     _apply_se_spread,
@@ -24,6 +27,8 @@ from app.forecasting import (
     forecast_fx,
     forecast_hdan,
     forecast_ppan_var_system,
+    forecast_weekly_hdan,
+    forecast_weekly_ppan,
 )
 
 
@@ -565,3 +570,104 @@ def test_model_info_matches_forecast_all_output_keys(synthetic_history):
     (the additive `warning` key is not a modeled series, so it's excluded)."""
     result = forecast_all(synthetic_history, horizon=1, markup_pct=5.0)
     assert set(MODEL_INFO) == set(result.keys()) - {"warning"}
+
+
+# ---------------------------------------------------------------------------
+# Phase 21: weekly forecasting -- HDAN/PPAN
+# ---------------------------------------------------------------------------
+
+
+def test_forecast_weekly_hdan_shape_and_finite(synthetic_weekly_history):
+    result = forecast_weekly_hdan(synthetic_weekly_history, horizon=4)
+    assert set(result.keys()) == {"base", "bull", "bear"}
+    for key in ("base", "bull", "bear"):
+        assert len(result[key]) == 4
+        assert np.isfinite(np.asarray(result[key])).all()
+
+
+def test_forecast_weekly_ppan_shape_and_finite(synthetic_weekly_history):
+    result = forecast_weekly_ppan(synthetic_weekly_history, horizon=4)
+    assert set(result.keys()) == {"base", "bull", "bear"}
+    for key in ("base", "bull", "bear"):
+        assert len(result[key]) == 4
+        assert np.isfinite(np.asarray(result[key])).all()
+
+
+def test_forecast_weekly_hdan_bull_base_bear_ordering(synthetic_weekly_history):
+    result = forecast_weekly_hdan(synthetic_weekly_history, horizon=4)
+    for i in range(4):
+        assert result["bull"][i] > result["base"][i] > result["bear"][i]
+
+
+def test_forecast_weekly_ppan_bull_base_bear_ordering(synthetic_weekly_history):
+    result = forecast_weekly_ppan(synthetic_weekly_history, horizon=4)
+    for i in range(4):
+        assert result["bull"][i] > result["base"][i] > result["bear"][i]
+
+
+def test_forecast_weekly_bands_widen_with_horizon(synthetic_weekly_history):
+    for forecaster in (forecast_weekly_hdan, forecast_weekly_ppan):
+        result = forecaster(synthetic_weekly_history, horizon=MAX_HORIZON_WEEKLY)
+        half_widths = [
+            result["bull"][i] - result["base"][i]
+            for i in range(MAX_HORIZON_WEEKLY)
+        ]
+        assert all(
+            half_widths[i] <= half_widths[i + 1] + 1e-9
+            for i in range(len(half_widths) - 1)
+        )
+
+
+def test_forecast_weekly_hdan_uses_unlagged_baltic_an(monkeypatch, synthetic_weekly_history):
+    import app.forecasting as forecasting_mod
+
+    captured = {}
+    real_forecast_predictor = forecasting_mod._forecast_predictor
+
+    def spy(series, horizon):
+        captured["series"] = series
+        return real_forecast_predictor(series, horizon)
+
+    monkeypatch.setattr(forecasting_mod, "_forecast_predictor", spy)
+    forecasting_mod.forecast_weekly_hdan(synthetic_weekly_history, horizon=4)
+
+    pd.testing.assert_series_equal(
+        captured["series"].reset_index(drop=True),
+        synthetic_weekly_history["baltic_an"].reset_index(drop=True),
+        check_names=False,
+    )
+
+
+def test_forecast_weekly_hdan_raises_on_horizon_above_max(synthetic_weekly_history):
+    with pytest.raises(ValueError):
+        forecast_weekly_hdan(synthetic_weekly_history, horizon=MAX_HORIZON_WEEKLY + 1)
+
+
+def test_forecast_weekly_hdan_succeeds_at_max_horizon(synthetic_weekly_history):
+    result = forecast_weekly_hdan(synthetic_weekly_history, horizon=MAX_HORIZON_WEEKLY)
+    assert len(result["base"]) == MAX_HORIZON_WEEKLY
+
+
+def test_forecast_weekly_hdan_raises_on_short_history(synthetic_weekly_history):
+    short_history = synthetic_weekly_history.iloc[:50]
+    with pytest.raises(InsufficientHistoryError):
+        forecast_weekly_hdan(short_history, horizon=4)
+
+
+def test_forecast_weekly_ppan_raises_on_missing_baltic_an(synthetic_weekly_history):
+    history = synthetic_weekly_history.drop(columns=["baltic_an"])
+    with pytest.raises(InsufficientHistoryError):
+        forecast_weekly_ppan(history, horizon=4)
+
+
+def test_weekly_arima_se_order_values():
+    assert WEEKLY_ARIMA_SE_ORDER["hdan"] == (0, 1, 0)
+    assert WEEKLY_ARIMA_SE_ORDER["ppan"] == (0, 1, 0)
+
+
+def test_forecast_weekly_hdan_h1_half_width_matches_arima_se(synthetic_weekly_history):
+    result = forecast_weekly_hdan(synthetic_weekly_history, horizon=1)
+    expected_se = _arima_forecast_se(
+        synthetic_weekly_history["hdan"], (0, 1, 0), 1
+    )[0]
+    assert result["bull"][0] - result["base"][0] == pytest.approx(expected_se, rel=1e-9)
