@@ -23,6 +23,7 @@ from app.forecasting import (
     WEEKLY_MODEL_INFO,
     InsufficientHistoryError,
     forecast_all,
+    forecast_all_weekly,
 )
 from app.models import AppSetting, PriceRow, WeeklyPriceRow
 from app.theme import (
@@ -56,6 +57,10 @@ SERIES_ATTRS = (
     "fx_rate",
     "brent",
 )
+
+# The 4 non-date columns on WeeklyPriceRow (Phase 19), defined once so both
+# _weekly_history_df and _weekly_actual_series_for share a single source of truth.
+WEEKLY_SERIES_ATTRS: tuple[str, ...] = ("hdan", "ppan", "baltic_an", "fx_rate")
 
 # Single source of truth for series display labels, shared by app.py's
 # _COLUMNS (table headers) and the chart's Series selector. Order matches
@@ -571,6 +576,34 @@ class DashboardState(rx.State):
         self.forecast_warning = result.get("warning", "")
         return result
 
+    @rx.var
+    def weekly_forecast_results(self) -> dict:
+        """Single computed var wrapping forecast_all_weekly() -- the SAME "exactly one
+        call site" discipline forecast_results already established applies here,
+        independently. Empty-result shape is always the 3-key WEEKLY_FORECAST_SERIES_LABELS
+        shape with empty lists, so downstream chart/table/card vars (Plans 22-02/22-03) can
+        index keys unconditionally without branching on error state.
+        """
+        empty_result = {key: [] for key in WEEKLY_FORECAST_SERIES_LABELS}
+
+        if not self.weekly_rows:
+            self.weekly_forecast_error = (
+                "Not enough weekly historical data to forecast yet."
+            )
+            return empty_result
+
+        history = self._weekly_history_df()
+        try:
+            result = forecast_all_weekly(history, self.horizon_weeks)
+        except (InsufficientHistoryError, ValueError):
+            self.weekly_forecast_error = (
+                "Not enough weekly historical data to forecast yet."
+            )
+            return empty_result
+
+        self.weekly_forecast_error = ""
+        return result
+
     def select_series(self, label: str) -> None:
         """Handle the Series dropdown; ignores unknown labels (T-04-12)."""
         attr = LABEL_TO_ATTR.get(label)
@@ -1011,6 +1044,42 @@ class DashboardState(rx.State):
             self.rows = session.exec(
                 PriceRow.select().order_by(PriceRow.date)
             ).all()
+
+    def load_weekly_rows(self) -> None:
+        """Re-read all WeeklyPriceRow records from SQLite, ordered ascending by date.
+        Mirrors load_rows() exactly, sourced from WeeklyPriceRow (Phase 19).
+        """
+        with rx.session() as session:
+            self.weekly_rows = session.exec(
+                WeeklyPriceRow.select().order_by(WeeklyPriceRow.date)
+            ).all()
+
+    def _weekly_history_df(self) -> pd.DataFrame:
+        """Build the plain date-indexed DataFrame forecast_all_weekly's caller contract
+        requires. Mirrors _history_df() exactly, sourced from weekly_rows/WEEKLY_SERIES_ATTRS.
+        """
+        if not self.weekly_rows:
+            return pd.DataFrame()
+        records = [
+            {attr: getattr(row, attr) for attr in WEEKLY_SERIES_ATTRS}
+            for row in self.weekly_rows
+        ]
+        index = pd.DatetimeIndex(pd.to_datetime([row.date for row in self.weekly_rows]))
+        frame = pd.DataFrame(records, index=index)
+        return frame.sort_index()
+
+    def _weekly_actual_series_for(self, key: str) -> list[tuple[str, float]]:
+        """Full-history (date, value) pairs for a WEEKLY_CAPABLE_SERIES key, skipping
+        None. Mirrors _actual_series_for() exactly, but WeeklyPriceRow has no
+        diesel-style derived key -- only ever called with key in WEEKLY_CAPABLE_SERIES.
+        """
+        pairs: list[tuple[str, float]] = []
+        for row in self.weekly_rows:
+            value = getattr(row, key)
+            if value is None:
+                continue
+            pairs.append((row.date, value))
+        return pairs
 
     # State-transition table (15-CONTEXT.md D-02) — for each trigger, what
     # happens to editing_key / draft_value / edit_error / draft_rows /

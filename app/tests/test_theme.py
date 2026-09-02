@@ -65,6 +65,13 @@ def test_all_locked_color_hex_values_present():
         )
 
 
+def test_dimmed_opacity_is_a_string():
+    # Phase 22 (WKUI-05): rx.Box's opacity prop expects a string/numeric CSS
+    # value, not a Python float, so DIMMED_OPACITY must be str-typed.
+    assert isinstance(theme.DIMMED_OPACITY, str)
+    assert 0.0 < float(theme.DIMMED_OPACITY) < 1.0
+
+
 def test_theme_module_imports_with_no_third_party_dependency():
     # Module already imported above without error; assert it declares no
     # import statements at all (zero third-party imports requirement),

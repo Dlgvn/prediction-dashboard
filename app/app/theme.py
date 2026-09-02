@@ -157,6 +157,15 @@ ARROW_DOWN = "↓"
 ARROW_FLAT = "→"
 
 # ---------------------------------------------------------------------------
+# Disabled/muted-state opacity (Phase 22 -- WKUI-05 Diesel "monthly only" dim)
+# Cross-mode (not per light/dark, unlike the color dicts above) since opacity is
+# a multiplier, not a color -- the same value reads correctly against either
+# SURFACE token. Consumed by Plan 22-02's _summary_card() dimming.
+# ---------------------------------------------------------------------------
+
+DIMMED_OPACITY = "0.55"
+
+# ---------------------------------------------------------------------------
 # Number formatting
 # ---------------------------------------------------------------------------
 

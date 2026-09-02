@@ -9,14 +9,17 @@ import pandas as pd
 from app import state as state_module
 from app import theme
 from app import validators
-from app.forecasting import DIESEL_LITERS_PER_TON
-from app.models import PriceRow
+from app.forecasting import DIESEL_LITERS_PER_TON, MAX_HORIZON_WEEKLY
+from app.models import PriceRow, WeeklyPriceRow
 from app.state import (
     FORECAST_SERIES_LABELS,
     FORECAST_TABLE_COLUMNS,
     SERIES_ATTRS,
     SERIES_LABELS,
     TABLE_WINDOW_ROWS,
+    WEEKLY_CAPABLE_SERIES,
+    WEEKLY_FORECAST_SERIES_LABELS,
+    WEEKLY_SERIES_ATTRS,
     DashboardState,
 )
 
@@ -906,6 +909,134 @@ def test_set_horizon_clamps_horizon_weeks_lower_bound(session, monkeypatch):
     state.set_horizon([0])
 
     assert state.horizon_weeks == 1
+
+
+# ---------------------------------------------------------------------------
+# Phase 22 -- weekly data loading + weekly_forecast_results (WKUI-03/07)
+# ---------------------------------------------------------------------------
+
+
+def _weekly_rows_from_synthetic_history(history):
+    """Build a list of in-memory WeeklyPriceRow objects from the
+    synthetic_weekly_history fixture's DataFrame, one per row, date taken
+    from the DatetimeIndex. Not persisted to the DB.
+    """
+    rows = []
+    for idx, record in zip(history.index, history.to_dict("records")):
+        rows.append(WeeklyPriceRow(date=idx.strftime("%Y-%m-%d"), **record))
+    return rows
+
+
+def test_load_weekly_rows_orders_ascending_by_date(session, monkeypatch):
+    session.add(WeeklyPriceRow(date="2026-01-01", hdan=1.0))
+    session.add(WeeklyPriceRow(date="2020-02-01", hdan=2.0))
+    session.add(WeeklyPriceRow(date="2022-08-01", hdan=3.0))
+    session.commit()
+
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_weekly_rows()
+
+    assert len(state.weekly_rows) == 3
+    assert state.weekly_rows[0].date == "2020-02-01"
+    assert state.weekly_rows[1].date == "2022-08-01"
+    assert state.weekly_rows[2].date == "2026-01-01"
+
+
+def test_load_weekly_rows_reassigns_not_appends(session, monkeypatch):
+    session.add(WeeklyPriceRow(date="2021-01-01", hdan=1.0))
+    session.add(WeeklyPriceRow(date="2021-01-08", hdan=2.0))
+    session.commit()
+
+    monkeypatch.setattr("reflex.session", lambda: session)
+
+    state = DashboardState()
+    state.load_weekly_rows()
+    state.load_weekly_rows()
+
+    assert len(state.weekly_rows) == 2
+
+
+def test_weekly_history_df_empty_when_no_rows(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+
+    df = state._weekly_history_df()
+
+    assert df.empty
+
+
+def test_weekly_history_df_has_expected_columns(session, monkeypatch, synthetic_weekly_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.weekly_rows = _weekly_rows_from_synthetic_history(synthetic_weekly_history)
+
+    df = state._weekly_history_df()
+
+    assert set(df.columns) == set(WEEKLY_SERIES_ATTRS)
+    assert len(df) == len(synthetic_weekly_history)
+
+
+def test_weekly_forecast_results_empty_rows_sets_error(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.weekly_rows = []
+
+    results = state.weekly_forecast_results
+
+    assert set(results.keys()) == set(WEEKLY_FORECAST_SERIES_LABELS)
+    for series in results.values():
+        assert series == []
+    assert state.weekly_forecast_error != ""
+    assert state.forecast_error == ""
+
+
+def test_weekly_forecast_results_populated_calls_forecast_all_weekly_once(
+    session, monkeypatch, synthetic_weekly_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.weekly_rows = _weekly_rows_from_synthetic_history(synthetic_weekly_history)
+    state.horizon_weeks = 4
+
+    call_count = {"n": 0}
+    real_forecast_all_weekly = state_module.forecast_all_weekly
+
+    def _counting_forecast_all_weekly(history, horizon):
+        call_count["n"] += 1
+        return real_forecast_all_weekly(history, horizon)
+
+    monkeypatch.setattr("app.state.forecast_all_weekly", _counting_forecast_all_weekly)
+
+    results = state.weekly_forecast_results
+
+    assert call_count["n"] == 1
+    assert set(results.keys()) == set(WEEKLY_FORECAST_SERIES_LABELS)
+    for key in WEEKLY_FORECAST_SERIES_LABELS:
+        assert len(results[key]) == 4
+    assert state.weekly_forecast_error == ""
+
+
+def test_weekly_forecast_results_out_of_range_horizon_sets_error(
+    session, monkeypatch, synthetic_weekly_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.weekly_rows = _weekly_rows_from_synthetic_history(synthetic_weekly_history)
+    state.horizon_weeks = MAX_HORIZON_WEEKLY + 1  # force out of forecast_all_weekly's range
+
+    results = state.weekly_forecast_results
+
+    assert set(results.keys()) == set(WEEKLY_FORECAST_SERIES_LABELS)
+    for series in results.values():
+        assert series == []
+    assert state.weekly_forecast_error != ""
+
+
+def test_weekly_capable_series_and_labels_are_consistent():
+    assert set(WEEKLY_FORECAST_SERIES_LABELS) == WEEKLY_CAPABLE_SERIES
+    assert set(WEEKLY_FORECAST_SERIES_LABELS) == {"hdan", "ppan", "fx_rate"}
 
 
 # ---------------------------------------------------------------------------
