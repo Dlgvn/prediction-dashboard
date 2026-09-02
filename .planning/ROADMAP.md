@@ -427,7 +427,7 @@ Plans:
 Plans:
 
 - [x] 22-01-PLAN.md — Granularity toggle state + weekly data loading + independent horizon-weeks controls (wave 1)
-- [ ] 22-02-PLAN.md — Diesel-USD summary card + Diesel dimming/badge + weekly model provenance on summary cards (wave 2)
+- [x] 22-02-PLAN.md — Diesel-USD summary card + Diesel dimming/badge + weekly model provenance on summary cards (wave 2)
 - [ ] 22-03-PLAN.md — Granularity toggle UI + weekly chart/table date branching + human verification (wave 3)
 
 **UI hint**: yes
@@ -457,7 +457,7 @@ Plans:
 | 19. Weekly Schema & Ingestion | 1/2 | In Progress|  |
 | 20. FX Weekly Backtest | 1/1 | Complete   | 2026-09-01 |
 | 21. Weekly Forecasting Module | 2/2 | Complete   | 2026-09-02 |
-| 22. Weekly Granularity Toggle & UI | 1/3 | In Progress|  |
+| 22. Weekly Granularity Toggle & UI | 2/3 | In Progress|  |
 
 ---
 *Roadmap created: 2026-08-21*

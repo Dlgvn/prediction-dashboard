@@ -19,13 +19,13 @@
       dashboard, with the toggle driving both the Forecast tab chart and Summary cards
       together (a single global setting, not independent per-series toggles)
 - [x] **WKUI-04**: The selected granularity persists across page reloads/visits
-- [ ] **WKUI-05**: When Weekly is selected, Diesel-USD and Diesel-MNT cards show an
+- [x] **WKUI-05**: When Weekly is selected, Diesel-USD and Diesel-MNT cards show an
       explicit, always-visible "monthly only" disabled/muted state — never hidden, never
       showing fabricated or interpolated weekly data for these series
 - [ ] **WKUI-06**: When Weekly is selected, the forecast horizon is controlled in weeks
       (not a relabeled month slider), capped to the range actually covered by the weekly
       backtest(s)
-- [ ] **WKUI-07**: When Weekly is selected, each weekly-capable series' summary card shows
+- [x] **WKUI-07**: When Weekly is selected, each weekly-capable series' summary card shows
       the correct weekly model name and its backtested MAPE (not a stale monthly figure)
 - [ ] **WKUI-08**: Weekly forecast chart/table dates use real week-ending dates, not
       relabeled monthly tick marks
@@ -83,9 +83,9 @@ section, carried forward unchanged.)
 | WKUI-02 | Phase 20 | Complete |
 | WKUI-03 | Phase 22 | Pending |
 | WKUI-04 | Phase 22 | Complete |
-| WKUI-05 | Phase 22 | Pending |
+| WKUI-05 | Phase 22 | Complete |
 | WKUI-06 | Phase 22 | Pending |
-| WKUI-07 | Phase 22 | Pending |
+| WKUI-07 | Phase 22 | Complete |
 | WKUI-08 | Phase 22 | Pending |
 
 ---
