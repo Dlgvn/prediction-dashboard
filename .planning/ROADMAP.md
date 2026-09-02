@@ -22,7 +22,8 @@
 - ~~Phase 18: Sentiment-Adjusted Scenario UI~~ — dropped, Phase 16 returned no-go (see [v2.0 archive](milestones/v2.0-ROADMAP.md))
 - [x] **Phase 19: Weekly Schema & Ingestion** - Genuine weekly-cadence historical data for HDAN, PPAN, and FX rate is persisted separately from the monthly table
 - [x] **Phase 20: FX Weekly Backtest** - A backtested weekly FX forecasting model exists with a documented, frozen go/no-go verdict against the monthly benchmark (completed 2026-09-01)
-- [x] **Phase 21: Weekly Forecasting Module** - `forecast_all_weekly` and per-series weekly forecast functions exist, unit-testable in isolation from the UI (completed 2026-09-02)
+- [x] **Phase 21: Weekly Forecasting Module** - `forecast_all_weekly` and per-series weekly forecast functions exist, unit-testable in isolation from the UI
+ (completed 2026-09-02)
 - [ ] **Phase 22: Weekly Granularity Toggle & UI** - User can toggle Monthly/Weekly, see weekly forecasts for HDAN/PPAN/FX with correct provenance and dates, and see Diesel honestly marked monthly-only
 
 ## Phase Details
@@ -421,7 +422,13 @@ Plans:
   5. When Weekly is selected, each weekly-capable series' summary card shows the correct weekly model name and its backtested MAPE, not a stale monthly figure
   6. Weekly forecast chart/table dates show real week-ending dates, not relabeled monthly tick marks
 
-**Plans**: TBD
+**Plans**: 3 plans
+
+Plans:
+
+- [ ] 22-01-PLAN.md — Granularity toggle state + weekly data loading + independent horizon-weeks controls (wave 1)
+- [ ] 22-02-PLAN.md — Diesel-USD summary card + Diesel dimming/badge + weekly model provenance on summary cards (wave 2)
+- [ ] 22-03-PLAN.md — Granularity toggle UI + weekly chart/table date branching + human verification (wave 3)
 
 **UI hint**: yes
 
@@ -450,7 +457,7 @@ Plans:
 | 19. Weekly Schema & Ingestion | 1/2 | In Progress|  |
 | 20. FX Weekly Backtest | 1/1 | Complete   | 2026-09-01 |
 | 21. Weekly Forecasting Module | 2/2 | Complete   | 2026-09-02 |
-| 22. Weekly Granularity Toggle & UI | 0/? | Not started | - |
+| 22. Weekly Granularity Toggle & UI | 0/3 | Not started | - |
 
 ---
 *Roadmap created: 2026-08-21*
