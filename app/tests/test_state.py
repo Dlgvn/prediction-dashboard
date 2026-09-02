@@ -1197,7 +1197,7 @@ def test_export_actuals_sheet_values(session, monkeypatch):
     assert df.iloc[0]["ppan"] == 8.25
 
 
-def test_export_has_actuals_and_forecast_sheets(session, monkeypatch):
+def test_export_has_actuals_forecast_and_weekly_sheets(session, monkeypatch):
     monkeypatch.setattr("reflex.session", lambda: session)
     state = DashboardState()
     state.rows = [PriceRow(date="2026-01-01", hdan=9.5, ppan=8.25)]
@@ -1205,7 +1205,71 @@ def test_export_has_actuals_and_forecast_sheets(session, monkeypatch):
     data = state._export_bytes()
     xl = pd.ExcelFile(io.BytesIO(data), engine="openpyxl")
 
-    assert xl.sheet_names == ["Actuals", "Forecast"]
+    assert xl.sheet_names == ["Actuals", "Forecast", "Weekly"]
+
+
+def test_export_weekly_sheet_columns(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.weekly_rows = [
+        WeeklyPriceRow(date="2026-01-02", hdan=1.1, ppan=2.2, baltic_an=3.3, fx_rate=3450.0),
+        WeeklyPriceRow(date="2026-01-09", hdan=1.2, ppan=2.3, baltic_an=3.4, fx_rate=3460.0),
+    ]
+
+    data = state._export_bytes()
+    df = pd.read_excel(io.BytesIO(data), sheet_name="Weekly")
+
+    assert list(df.columns) == ["date", *WEEKLY_SERIES_ATTRS]
+
+
+def test_export_weekly_sheet_data_roundtrip(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.weekly_rows = [
+        WeeklyPriceRow(date="2026-01-02", hdan=1.1, ppan=2.2, baltic_an=3.3, fx_rate=3450.0),
+    ]
+
+    data = state._export_bytes()
+    df = pd.read_excel(io.BytesIO(data), sheet_name="Weekly")
+
+    assert len(df) == len(state.weekly_rows)
+    assert df.iloc[0]["hdan"] == 1.1
+    assert df.iloc[0]["ppan"] == 2.2
+    assert df.iloc[0]["baltic_an"] == 3.3
+    assert df.iloc[0]["fx_rate"] == 3450.0
+
+
+def test_export_weekly_sheet_empty_does_not_raise(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.weekly_rows = []
+
+    data = state._export_bytes()  # noqa: F841 -- must not raise
+    df = pd.read_excel(io.BytesIO(data), sheet_name="Weekly")
+
+    assert len(df) == 0
+    assert list(df.columns) == ["date", *WEEKLY_SERIES_ATTRS]
+
+
+def test_export_actuals_and_forecast_unaffected_by_weekly_addition(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.weekly_rows = [
+        WeeklyPriceRow(date="2026-01-02", hdan=1.1, ppan=2.2, baltic_an=3.3, fx_rate=3450.0),
+    ]
+
+    data = state._export_bytes()
+    actuals_df = pd.read_excel(io.BytesIO(data), sheet_name="Actuals")
+    forecast_df = pd.read_excel(io.BytesIO(data), sheet_name="Forecast")
+
+    assert len(actuals_df) == len(state.rows)
+    assert list(forecast_df.columns) == [
+        "Month",
+        *[label for _, label in FORECAST_TABLE_COLUMNS],
+    ]
 
 
 def test_forecast_sheet_matches_dashboard_table(session, monkeypatch, synthetic_history):

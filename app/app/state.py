@@ -498,16 +498,18 @@ class DashboardState(rx.State):
         return records
 
     def _export_bytes(self) -> bytes:
-        """Build the .xlsx bytes for the two-sheet export workbook.
+        """Build the .xlsx bytes for the three-sheet export workbook.
 
         EXPORT-02 (Phase 9, D-01/D-02/D-03) deliberately supersedes the
         prior D-08 actuals-only behavior: the workbook now carries a second
         "Forecast" sheet capturing base/bull/bear values for the horizon
         selected at the moment Export was clicked, built by reusing
         forecast_table_rows rather than adding a second forecast_all call
-        site. Plain method (not an event handler) so it's unit-testable
-        without Reflex's event machinery. Never writes to disk — BytesIO
-        buffer only.
+        site. A third "Weekly" sheet is sourced from self.weekly_rows /
+        WEEKLY_SERIES_ATTRS and is purely additive — it does not affect the
+        Actuals or Forecast sheets. Plain method (not an event handler) so
+        it's unit-testable without Reflex's event machinery. Never writes
+        to disk — BytesIO buffer only.
         """
         records = []
         for row in self.rows:
@@ -539,10 +541,20 @@ class DashboardState(rx.State):
         forecast_columns = ["Month", *[label for _, label in FORECAST_TABLE_COLUMNS]]
         forecast_df = pd.DataFrame(forecast_records, columns=forecast_columns)
 
+        weekly_records = []
+        for row in self.weekly_rows:
+            record = {"date": row.date}
+            for attr in WEEKLY_SERIES_ATTRS:
+                record[attr] = getattr(row, attr)
+            weekly_records.append(record)
+
+        weekly_df = pd.DataFrame(weekly_records, columns=["date", *WEEKLY_SERIES_ATTRS])
+
         buffer = io.BytesIO()
         with pd.ExcelWriter(buffer, engine="openpyxl") as writer:
             actuals_df.to_excel(writer, sheet_name="Actuals", index=False)
             forecast_df.to_excel(writer, sheet_name="Forecast", index=False)
+            weekly_df.to_excel(writer, sheet_name="Weekly", index=False)
         buffer.seek(0)
         return buffer.getvalue()
 
