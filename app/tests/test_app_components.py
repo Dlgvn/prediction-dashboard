@@ -664,7 +664,11 @@ def test_index_declares_on_mount_exactly_once():
     non_comment_lines = [line for line in lines if not line.strip().startswith("#")]
     joined = "".join(non_comment_lines)
     assert joined.count("on_mount") == 1
-    assert "on_mount=[DashboardState.load_rows, DashboardState.load_markup_pct]" in joined
+    normalized = " ".join(joined.split())
+    assert (
+        "on_mount=[ DashboardState.load_rows, DashboardState.load_markup_pct, "
+        "DashboardState.load_weekly_rows, ],"
+    ) in normalized
 
 
 def test_data_entry_tab_groups_historical_and_data_entry():

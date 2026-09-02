@@ -13,6 +13,7 @@ from app.state import (
 from app.theme import (
     CARD_PADDING,
     CARD_RADIUS,
+    DIMMED_OPACITY,
     FONT_SIZE_BODY,
     FONT_SIZE_DISPLAY,
     FONT_WEIGHT_REGULAR,
@@ -488,74 +489,87 @@ def _summary_card(card: rx.Var) -> rx.Component:
                 font_weight=FONT_WEIGHT_SEMIBOLD,
             ),
             rx.cond(
+                card["cadence_badge"] != "",
+                rx.text(
+                    card["cadence_badge"],
+                    size=RADIX_SIZE_LABEL,
+                    color=DashboardState.muted_text,
+                    font_weight=FONT_WEIGHT_SEMIBOLD,
+                ),
+                rx.fragment(),
+            ),
+            rx.cond(
                 card["has_data"] == "yes",
-                rx.fragment(
-                    rx.text(
-                        card["base"],
-                        font_size=FONT_SIZE_DISPLAY,
-                        font_weight=FONT_WEIGHT_SEMIBOLD,
-                        line_height="1.2",
-                        font_family="'IBM Plex Mono', monospace",
-                    ),
-                    rx.hstack(
+                rx.box(
+                    rx.fragment(
                         rx.text(
-                            card["range_label"] + ":",
-                            size=RADIX_SIZE_LABEL,
-                            color=DashboardState.muted_text,
-                        ),
-                        rx.text(card["range_text"], size=RADIX_SIZE_BODY),
-                        spacing="2",
-                    ),
-                    rx.hstack(
-                        rx.text(
-                            card["arrow"] + " " + card["delta_text"],
-                            color=rx.cond(
-                                card["direction"] == "up",
-                                DashboardState.up_color,
-                                rx.cond(card["direction"] == "down", DashboardState.down_color, DashboardState.muted_text),
-                                ),
+                            card["base"],
+                            font_size=FONT_SIZE_DISPLAY,
                             font_weight=FONT_WEIGHT_SEMIBOLD,
-                            size=RADIX_SIZE_BODY,
+                            line_height="1.2",
+                            font_family="'IBM Plex Mono', monospace",
                         ),
-                        rx.text(card["caption"], size=RADIX_SIZE_LABEL, color=DashboardState.muted_text),
-                        spacing="2",
+                        rx.hstack(
+                            rx.text(
+                                card["range_label"] + ":",
+                                size=RADIX_SIZE_LABEL,
+                                color=DashboardState.muted_text,
+                            ),
+                            rx.text(card["range_text"], size=RADIX_SIZE_BODY),
+                            spacing="2",
+                        ),
+                        rx.hstack(
+                            rx.text(
+                                card["arrow"] + " " + card["delta_text"],
+                                color=rx.cond(
+                                    card["direction"] == "up",
+                                    DashboardState.up_color,
+                                    rx.cond(card["direction"] == "down", DashboardState.down_color, DashboardState.muted_text),
+                                    ),
+                                font_weight=FONT_WEIGHT_SEMIBOLD,
+                                size=RADIX_SIZE_BODY,
+                            ),
+                            rx.text(card["caption"], size=RADIX_SIZE_LABEL, color=DashboardState.muted_text),
+                            spacing="2",
+                        ),
+                        rx.hstack(
+                            rx.text(
+                                card["hilo_label"] + ":",
+                                size=RADIX_SIZE_LABEL,
+                                color=DashboardState.muted_text,
+                            ),
+                            rx.text(card["hilo_text"], size=RADIX_SIZE_BODY),
+                            spacing="2",
+                        ),
+                        rx.hstack(
+                            rx.text(
+                                card["yoy_label"] + ":",
+                                size=RADIX_SIZE_LABEL,
+                                color=DashboardState.muted_text,
+                            ),
+                            rx.text(
+                                card["yoy_arrow"] + " " + card["yoy_text"],
+                                color=rx.cond(
+                                    card["yoy_direction"] == "up",
+                                    DashboardState.up_color,
+                                    rx.cond(card["yoy_direction"] == "down", DashboardState.down_color, DashboardState.muted_text),
+                                    ),
+                                font_weight=FONT_WEIGHT_SEMIBOLD,
+                                size=RADIX_SIZE_BODY,
+                            ),
+                            spacing="2",
+                        ),
+                        rx.hstack(
+                            rx.text(
+                                card["model_label"] + ":",
+                                size=RADIX_SIZE_LABEL,
+                                color=DashboardState.muted_text,
+                            ),
+                            rx.text(card["model_text"], size=RADIX_SIZE_BODY),
+                            spacing="2",
+                        ),
                     ),
-                    rx.hstack(
-                        rx.text(
-                            card["hilo_label"] + ":",
-                            size=RADIX_SIZE_LABEL,
-                            color=DashboardState.muted_text,
-                        ),
-                        rx.text(card["hilo_text"], size=RADIX_SIZE_BODY),
-                        spacing="2",
-                    ),
-                    rx.hstack(
-                        rx.text(
-                            card["yoy_label"] + ":",
-                            size=RADIX_SIZE_LABEL,
-                            color=DashboardState.muted_text,
-                        ),
-                        rx.text(
-                            card["yoy_arrow"] + " " + card["yoy_text"],
-                            color=rx.cond(
-                                card["yoy_direction"] == "up",
-                                DashboardState.up_color,
-                                rx.cond(card["yoy_direction"] == "down", DashboardState.down_color, DashboardState.muted_text),
-                                ),
-                            font_weight=FONT_WEIGHT_SEMIBOLD,
-                            size=RADIX_SIZE_BODY,
-                        ),
-                        spacing="2",
-                    ),
-                    rx.hstack(
-                        rx.text(
-                            card["model_label"] + ":",
-                            size=RADIX_SIZE_LABEL,
-                            color=DashboardState.muted_text,
-                        ),
-                        rx.text(card["model_text"], size=RADIX_SIZE_BODY),
-                        spacing="2",
-                    ),
+                    opacity=rx.cond(card["is_dimmed"] == "yes", DIMMED_OPACITY, "1"),
                 ),
                 rx.text(card["no_data_text"], size=RADIX_SIZE_BODY, color=DashboardState.muted_text),
             ),
@@ -570,6 +584,8 @@ def _summary_card(card: rx.Var) -> rx.Component:
         min_width="200px",
         flex="1 1 200px",
         aria_label=card["label"]
+        + " "
+        + card["cadence_badge"]
         + " "
         + card["base"]
         + " "
@@ -924,7 +940,11 @@ def index() -> rx.Component:
         spacing="6",
         padding_y=SPACE_LG,
         padding_x=SPACE_MD,
-        on_mount=[DashboardState.load_rows, DashboardState.load_markup_pct],
+        on_mount=[
+            DashboardState.load_rows,
+            DashboardState.load_markup_pct,
+            DashboardState.load_weekly_rows,
+        ],
     )
 
 
