@@ -9,7 +9,7 @@ import pandas as pd
 from app import state as state_module
 from app import theme
 from app import validators
-from app.forecasting import DIESEL_LITERS_PER_TON, MAX_HORIZON_WEEKLY
+from app.forecasting import DIESEL_LITERS_PER_TON, MAX_HORIZON_WEEKLY, MODEL_INFO, WEEKLY_MODEL_INFO
 from app.models import PriceRow, WeeklyPriceRow
 from app.state import (
     FORECAST_SERIES_LABELS,
@@ -1630,8 +1630,14 @@ def test_summary_cards_length_and_order_empty(session, monkeypatch):
 
     cards = state.summary_cards
 
-    assert len(cards) == 4
-    assert [c["series_key"] for c in cards] == ["hdan", "ppan", "diesel_mnt", "fx_rate"]
+    assert len(cards) == 5
+    assert [c["series_key"] for c in cards] == [
+        "hdan",
+        "ppan",
+        "diesel_usd_ton",
+        "diesel_mnt",
+        "fx_rate",
+    ]
     for card in cards:
         assert card["has_data"] == "no"
         assert card["base"] == ""
@@ -1646,8 +1652,153 @@ def test_summary_cards_length_and_order_populated(session, monkeypatch, syntheti
 
     cards = state.summary_cards
 
-    assert len(cards) == 4
-    assert [c["series_key"] for c in cards] == ["hdan", "ppan", "diesel_mnt", "fx_rate"]
+    assert len(cards) == 5
+    assert [c["series_key"] for c in cards] == [
+        "hdan",
+        "ppan",
+        "diesel_usd_ton",
+        "diesel_mnt",
+        "fx_rate",
+    ]
+
+
+# ---------------------------------------------------------------------------
+# Phase 22 -- summary_cards dimming/weekly-provenance branching (WKUI-05/07)
+# ---------------------------------------------------------------------------
+
+
+def test_summary_cards_diesel_cards_dimmed_in_weekly_mode(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.set_granularity("weekly")
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    for key in ("diesel_usd_ton", "diesel_mnt"):
+        assert cards[key]["is_dimmed"] == "yes"
+        assert cards[key]["cadence_badge"] == "Monthly data only"
+
+    for key in ("hdan", "ppan", "fx_rate"):
+        assert cards[key]["is_dimmed"] == "no"
+        assert cards[key]["cadence_badge"] == ""
+
+
+def test_summary_cards_not_dimmed_in_monthly_mode(session, monkeypatch, synthetic_history):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    assert state.granularity == "monthly"
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    for key in ("hdan", "ppan", "diesel_usd_ton", "diesel_mnt", "fx_rate"):
+        assert cards[key]["is_dimmed"] == "no"
+        assert cards[key]["cadence_badge"] == ""
+
+
+def test_summary_cards_weekly_capable_cards_read_weekly_results(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    monthly_state = DashboardState()
+    monthly_state.rows = _rows_from_synthetic_history(synthetic_history)
+    monthly_state.horizon_months = 4
+    monthly_cards = monthly_state.summary_cards
+    monthly_base = next(c["base"] for c in monthly_cards if c["series_key"] == "hdan")
+
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.horizon_months = 4
+    state.set_granularity("weekly")
+
+    fake_weekly_results = {
+        "hdan": [{"week": 1, "base": 999.9, "bull": 1000.0, "bear": 900.0}],
+        "ppan": [],
+        "fx_rate": [],
+    }
+    monkeypatch.setattr(
+        state_module.DashboardState,
+        "weekly_forecast_results",
+        property(lambda self: fake_weekly_results),
+    )
+
+    weekly_cards = {c["series_key"]: c for c in state.summary_cards}
+
+    assert weekly_cards["hdan"]["base"] != monthly_base
+    assert weekly_cards["hdan"]["base"] == "999.90"
+
+
+def test_summary_cards_weekly_model_text_folds_in_monthly_mape(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = _rows_from_synthetic_history(synthetic_history)
+    state.set_granularity("weekly")
+
+    fake_weekly_results = {
+        "hdan": [{"week": 1, "base": 100.0, "bull": 110.0, "bear": 90.0}],
+        "ppan": [],
+        "fx_rate": [],
+    }
+    monkeypatch.setattr(
+        state_module.DashboardState,
+        "weekly_forecast_results",
+        property(lambda self: fake_weekly_results),
+    )
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+    weekly_name, weekly_mape = WEEKLY_MODEL_INFO["hdan"]
+    _, monthly_mape = MODEL_INFO["hdan"]
+
+    assert weekly_name in cards["hdan"]["model_text"]
+    assert f"{weekly_mape:.2f}%" in cards["hdan"]["model_text"]
+    assert f"{monthly_mape:.1f}%" in cards["hdan"]["model_text"]
+
+
+def test_summary_cards_diesel_mnt_model_text_never_weekly(
+    session, monkeypatch, synthetic_history
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    monthly_state = DashboardState()
+    monthly_state.rows = _rows_from_synthetic_history(synthetic_history)
+    monthly_cards = {c["series_key"]: c for c in monthly_state.summary_cards}
+
+    weekly_state = DashboardState()
+    weekly_state.rows = _rows_from_synthetic_history(synthetic_history)
+    weekly_state.set_granularity("weekly")
+    weekly_cards = {c["series_key"]: c for c in weekly_state.summary_cards}
+
+    assert (
+        monthly_cards["diesel_mnt"]["model_text"] == weekly_cards["diesel_mnt"]["model_text"]
+    )
+    assert "MAPE weekly" not in weekly_cards["diesel_mnt"]["model_text"]
+
+
+def test_summary_cards_key_parity_no_data_branch_carries_dim_keys(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.rows = []
+    state.weekly_rows = []
+    state.set_granularity("weekly")
+
+    cards = {c["series_key"]: c for c in state.summary_cards}
+
+    for key in ("hdan", "ppan", "diesel_usd_ton", "diesel_mnt", "fx_rate"):
+        assert "is_dimmed" in cards[key]
+        assert "cadence_badge" in cards[key]
+
+    # hdan/ppan/fx_rate are weekly-capable, just dataless -- never dimmed.
+    for key in ("hdan", "ppan", "fx_rate"):
+        assert cards[key]["is_dimmed"] == "no"
+        assert cards[key]["cadence_badge"] == ""
+
+    for key in ("diesel_usd_ton", "diesel_mnt"):
+        assert cards[key]["is_dimmed"] == "yes"
+        assert cards[key]["cadence_badge"] == "Monthly data only"
 
 
 def test_summary_cards_all_values_are_strings(session, monkeypatch, synthetic_history):

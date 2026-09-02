@@ -122,11 +122,14 @@ MONTH_ABBR = (
     "Dec",
 )
 
-# D-01: exactly four forecast-summary cards, in display order. Deliberately
-# excludes diesel_usd_ton from FORECAST_SERIES_LABELS' five keys because the
-# user tracks the MNT purchasing price (diesel_mnt), not the raw USD/ton
-# input.
-SUMMARY_CARD_SERIES: tuple[str, ...] = ("hdan", "ppan", "diesel_mnt", "fx_rate")
+# Phase 22 (WKUI-05, scope addition per 22-CONTEXT.md): now FIVE forecast-summary
+# cards, in display order. diesel_usd_ton was previously excluded (the user tracks
+# the MNT purchasing price, not the raw USD/ton input) but Phase 22 adds it back so
+# both Diesel-USD and Diesel-MNT can independently carry the "Monthly data only"
+# badge when Weekly is selected. This card renders in BOTH Monthly and Weekly modes
+# (consistent card set regardless of granularity -- cards never appear/disappear on
+# toggle, only their content/dim-state changes).
+SUMMARY_CARD_SERIES: tuple[str, ...] = ("hdan", "ppan", "diesel_usd_ton", "diesel_mnt", "fx_rate")
 
 # Derived programmatically (not a hand-written 15-entry literal) so headers
 # and forecast_table_rows' composite keys can never drift apart (FCST-06).
@@ -672,20 +675,33 @@ class DashboardState(rx.State):
 
     @rx.var
     def summary_cards(self) -> list[dict[str, str]]:
-        """Four horizon-reactive forecast-summary cards (D-10..D-13).
+        """Five horizon-reactive forecast-summary cards (D-10..D-13, WKUI-05/07).
 
         Returns a LIST of flat ALL-STRING dicts, one per SUMMARY_CARD_SERIES
-        entry in order, always length 4 — mirrors freshness_chips' shape
+        entry in order, always length 5 — mirrors freshness_chips' shape
         discipline so app.py can rx.foreach without dict-Var indexing.
-        Reads self.forecast_results only; never re-invokes forecast_all
-        (Pitfall 2 guard, T-06-02).
+        Reads self.forecast_results/self.weekly_forecast_results only; never
+        re-invokes forecast_all/forecast_all_weekly (Pitfall 2 guard, T-06-02).
         """
         results = self.forecast_results
         cards: list[dict[str, str]] = []
 
         for key in SUMMARY_CARD_SERIES:
             label = FORECAST_SERIES_LABELS[key]
-            series = results.get(key, [])
+
+            # Phase 22 (WKUI-03/WKUI-05/WKUI-07): compute once, above the has_data
+            # branch point, so BOTH branches below always carry identical
+            # is_dimmed/cadence_badge keys (Pitfall: card dict key-parity break).
+            is_weekly_capable = key in WEEKLY_CAPABLE_SERIES
+            use_weekly = self.granularity == "weekly" and is_weekly_capable
+            is_dimmed = "yes" if (self.granularity == "weekly" and not is_weekly_capable) else "no"
+            cadence_badge = "Monthly data only" if is_dimmed == "yes" else ""
+
+            series = (
+                self.weekly_forecast_results.get(key, [])
+                if use_weekly
+                else results.get(key, [])
+            )
 
             # D-01/D-04: full-history high/low + YoY, computed before the
             # no-data early return so both branches carry the same keys
@@ -732,16 +748,29 @@ class DashboardState(rx.State):
                         yoy_arrow, yoy_direction = ARROW_FLAT, "flat"
                     yoy_text = f"{abs(pct):.1f}% vs. {MONTH_ABBR[month - 1]} {year - 1}"
 
-            # VIS-05: model provenance, computed before the no-data early
-            # return so both branches carry the same keys (model selection
-            # is frozen, not data-dependent). Every value flows from
-            # MODEL_INFO — never hand-type a model name or percentage here.
+            # VIS-05/WKUI-07: model provenance, computed before the no-data early
+            # return so both branches carry the same keys. Weekly-capable cards in
+            # Weekly mode read WEEKLY_MODEL_INFO, folding in the monthly MAPE for
+            # comparison (FEATURES.md should-have); diesel_mnt is NEVER swapped to a
+            # weekly model -- it has no weekly forecast, so it always reads
+            # MODEL_INFO regardless of granularity.
             model_label = "Model"
-            model_name, model_mape = MODEL_INFO[key]
-            if model_mape is None:
-                model_text = model_name
+            if use_weekly:
+                weekly_name, weekly_mape = WEEKLY_MODEL_INFO[key]
+                monthly_name, monthly_mape = MODEL_INFO[key]
+                if monthly_mape is not None:
+                    model_text = (
+                        f"{weekly_name} · {weekly_mape:.2f}% MAPE weekly · "
+                        f"{monthly_mape:.1f}% monthly"
+                    )
+                else:
+                    model_text = f"{weekly_name} · {weekly_mape:.2f}% MAPE weekly"
             else:
-                model_text = f"{model_name} · {model_mape:.1f}% typical error"
+                model_name, model_mape = MODEL_INFO[key]
+                if model_mape is None:
+                    model_text = model_name
+                else:
+                    model_text = f"{model_name} · {model_mape:.1f}% typical error"
 
             if not series:
                 cards.append(
@@ -765,6 +794,7 @@ class DashboardState(rx.State):
                         "model_label": model_label,
                         "model_text": model_text,
                         "no_data_text": "Add pricing data to see a forecast",
+                        "is_dimmed": is_dimmed, "cadence_badge": cadence_badge,
                     }
                 )
                 continue
@@ -817,6 +847,7 @@ class DashboardState(rx.State):
                     "model_label": model_label,
                     "model_text": model_text,
                     "no_data_text": "Add pricing data to see a forecast",
+                    "is_dimmed": is_dimmed, "cadence_badge": cadence_badge,
                 }
             )
 
