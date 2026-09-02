@@ -404,7 +404,7 @@ Plans:
 
 Plans:
 
-- [ ] 21-01-PLAN.md — forecast_weekly_hdan/forecast_weekly_ppan: shared SARIMAX(0,1,0)+BalticAN(unlagged exog) engine (wave 1)
+- [x] 21-01-PLAN.md — forecast_weekly_hdan/forecast_weekly_ppan: shared SARIMAX(0,1,0)+BalticAN(unlagged exog) engine (wave 1)
 - [ ] 21-02-PLAN.md — forecast_weekly_fx (ETS-HoltDamped + simulate()-based spread), WEEKLY_MODEL_INFO, forecast_all_weekly dispatcher (wave 2)
 
 ### Phase 22: Weekly Granularity Toggle & UI
@@ -449,7 +449,7 @@ Plans:
 | 18. Sentiment-Adjusted Scenario UI | — | Dropped (Phase 16 no-go) | - |
 | 19. Weekly Schema & Ingestion | 1/2 | In Progress|  |
 | 20. FX Weekly Backtest | 1/1 | Complete   | 2026-09-01 |
-| 21. Weekly Forecasting Module | 0/2 | Not started | - |
+| 21. Weekly Forecasting Module | 1/2 | In Progress|  |
 | 22. Weekly Granularity Toggle & UI | 0/? | Not started | - |
 
 ---
