@@ -244,8 +244,14 @@ Recent decisions affecting current work:
   degradation" UX pattern for Diesel cards in Weekly mode, and (2) the AN (Friday-based) vs FX
   (Monday-based) week-ending date-labeling convention shown to the user.
 
+### Quick Tasks Completed
+
+| # | Description | Date | Commit | Directory |
+|---|-------------|------|--------|-----------|
+| 260902-iao | Add weekly data to Excel export as a new Weekly sheet | 2026-09-02 | aa4edb5 | [260902-iao-add-weekly-data-to-excel-export-as-a-new](./quick/260902-iao-add-weekly-data-to-excel-export-as-a-new/) |
+
 ## Session Continuity
 
-Last session: 2026-09-02T01:00:25.340Z
-Stopped at: 22-03 code/tests complete (09e23b3, 522d97c); Task 3 human-verify checkpoint pending live-browser walkthrough
+Last session: 2026-09-02T05:10:25.055Z
+Stopped at: Quick task 260902-iao complete (weekly Excel export sheet added, 435/435 tests passing). Live-fixed a separate bug: WeeklyPriceRow had no write path (weekly CSV import added, commit 3882efc) after a debug session confirmed the monthly reactivity chain was already correct.
 Resume file: None
