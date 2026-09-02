@@ -781,6 +781,134 @@ def test_forecast_results_calls_forecast_all_once(session, monkeypatch, syntheti
 
 
 # ---------------------------------------------------------------------------
+# Phase 22 -- granularity toggle + independent weekly horizon (WKUI-03/04/06)
+# ---------------------------------------------------------------------------
+
+
+def test_granularity_defaults_to_monthly(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+
+    assert state.granularity == "monthly"
+
+
+def test_set_granularity_switches_between_monthly_and_weekly(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+
+    state.set_granularity("weekly")
+    assert state.granularity == "weekly"
+
+    state.set_granularity("monthly")
+    assert state.granularity == "monthly"
+
+
+def test_set_granularity_ignores_unknown_value(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+
+    state.set_granularity("bogus")
+
+    assert state.granularity == "monthly"
+
+
+def test_set_granularity_resets_forecast_series_when_not_weekly_capable(
+    session, monkeypatch
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.forecast_series = "diesel_mnt"
+
+    state.set_granularity("weekly")
+
+    assert state.forecast_series == "hdan"
+
+
+def test_set_granularity_keeps_forecast_series_when_already_weekly_capable(
+    session, monkeypatch
+):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.forecast_series = "ppan"
+
+    state.set_granularity("weekly")
+
+    assert state.forecast_series == "ppan"
+
+
+def test_active_horizon_branches_on_granularity(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.horizon_months = 7
+    state.horizon_weeks = 3
+
+    assert state.granularity == "monthly"
+    assert state.active_horizon == 7
+
+    state.set_granularity("weekly")
+    assert state.active_horizon == 3
+
+
+def test_horizon_max_branches_on_granularity(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+
+    assert state.horizon_max == 12
+
+    state.set_granularity("weekly")
+    assert state.horizon_max == 5
+
+
+def test_horizon_caption_pluralizes_correctly(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+
+    state.horizon_months = 1
+    assert state.horizon_caption == "1 month"
+    state.horizon_months = 3
+    assert state.horizon_caption == "3 months"
+
+    state.set_granularity("weekly")
+    state.horizon_weeks = 1
+    assert state.horizon_caption == "1 week"
+    state.horizon_weeks = 4
+    assert state.horizon_caption == "4 weeks"
+
+
+def test_set_horizon_writes_horizon_weeks_when_granularity_weekly(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.set_granularity("weekly")
+    state.horizon_months = 6  # sentinel -- must stay untouched below
+
+    state.set_horizon([8])
+
+    assert state.horizon_weeks == 5  # clamped to MAX_HORIZON_WEEKLY
+    assert state.horizon_months == 6
+
+
+def test_set_horizon_writes_horizon_months_when_granularity_monthly(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.horizon_weeks = 2  # sentinel -- must stay untouched below
+
+    state.set_horizon([8])
+
+    assert state.horizon_months == 8
+    assert state.horizon_weeks == 2
+
+
+def test_set_horizon_clamps_horizon_weeks_lower_bound(session, monkeypatch):
+    monkeypatch.setattr("reflex.session", lambda: session)
+    state = DashboardState()
+    state.set_granularity("weekly")
+
+    state.set_horizon([0])
+
+    assert state.horizon_weeks == 1
+
+
+# ---------------------------------------------------------------------------
 # Excel export (EXPORT-01, EXPORT-02)
 # ---------------------------------------------------------------------------
 

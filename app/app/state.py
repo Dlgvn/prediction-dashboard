@@ -18,11 +18,13 @@ from app.csv_import import parse_import_csv
 from app.forecasting import (
     DIESEL_LITERS_PER_TON,
     MAX_HORIZON,
+    MAX_HORIZON_WEEKLY,
     MODEL_INFO,
+    WEEKLY_MODEL_INFO,
     InsufficientHistoryError,
     forecast_all,
 )
-from app.models import AppSetting, PriceRow
+from app.models import AppSetting, PriceRow, WeeklyPriceRow
 from app.theme import (
     ARROW_DOWN,
     ARROW_FLAT,
@@ -133,6 +135,19 @@ FORECAST_TABLE_COLUMNS: list[tuple[str, str]] = [
 # recent 12 rows. Data is monthly cadence, so 12 rows == 12 months.
 TABLE_WINDOW_ROWS: int = 12
 
+# Phase 22 (WKUI-03/WKUI-07): the 3 series with a genuine weekly-cadence forecast
+# (Phase 21's forecast_all_weekly output keys exactly). diesel_usd_ton/diesel_mnt are
+# deliberately absent -- no weekly source data exists for Diesel (19-CONTEXT.md).
+WEEKLY_CAPABLE_SERIES: frozenset[str] = frozenset({"hdan", "ppan", "fx_rate"})
+
+# Phase 22: Forecast tab's Series selector/table label set while Weekly is active --
+# narrower than FORECAST_SERIES_LABELS (5 keys) since Diesel has no weekly data.
+WEEKLY_FORECAST_SERIES_LABELS: dict[str, str] = {
+    "hdan": "HDAN",
+    "ppan": "PPAN",
+    "fx_rate": "FX Rate",
+}
+
 
 class DashboardState(rx.State):
     """Holds the price table for display, reflecting the DB as source of truth."""
@@ -221,6 +236,24 @@ class DashboardState(rx.State):
     # a fresh page load, so this must reset every reload.
     active_section: str = "summary"
 
+    # Phase 22 (WKUI-03/WKUI-04): global granularity toggle. Mirrors theme_mode's exact
+    # rx.LocalStorage mechanism (own key, own default) so it persists across reload/visit
+    # independently of theme_mode. Default "monthly" per the locked non-goal: Weekly is
+    # opt-in, never auto-selected even though some weekly models are more accurate.
+    granularity: str = rx.LocalStorage("monthly", name="pd_granularity")
+
+    # Phase 22 (WKUI-06): independent from horizon_months (see set_horizon below for why) --
+    # NOT persisted, matching horizon_months' existing non-persisted precedent. Default 4
+    # matches WEEKLY_MODEL_INFO's primary validated horizon (mape_h4).
+    horizon_weeks: int = 4
+
+    # Phase 22: non-fatal "not enough weekly history" signal, mirrors forecast_error's role
+    # but kept as a SEPARATE var (not reused) so a stale monthly forecast_error can never be
+    # displayed alongside weekly-mode content or vice versa.
+    weekly_forecast_error: str = ""
+
+    weekly_rows: list[WeeklyPriceRow] = []
+
     def toggle_theme_mode(self) -> None:
         """Flip theme_mode between "light" and "dark" (THEME-02).
 
@@ -228,6 +261,39 @@ class DashboardState(rx.State):
         toggle (D-02: light is always the safe default).
         """
         self.theme_mode = "dark" if self.theme_mode == "light" else "light"
+
+    def set_granularity(self, value: str) -> None:
+        """Assign the granularity toggle's value (WKUI-03/WKUI-04); ignores unrecognized
+        values defensively, mirroring select_series'/select_forecast_series' "ignore
+        unknown label" guard. Also falls the Forecast tab's series selector back to a
+        weekly-capable series if the user is currently viewing a Diesel series when
+        switching to Weekly, so the chart never tries to render a series with no weekly
+        data (Pitfall: dead/invalid forecast_series selection after toggling).
+        """
+        if value not in ("monthly", "weekly"):
+            return
+        self.granularity = value
+        if value == "weekly" and self.forecast_series not in WEEKLY_CAPABLE_SERIES:
+            self.forecast_series = "hdan"
+
+    @rx.var
+    def active_horizon(self) -> int:
+        """Slider value source -- branches so the existing horizon_months slider keeps
+        working exactly as today when granularity == 'monthly' (Monthly pixel-identical
+        regression constraint)."""
+        return self.horizon_weeks if self.granularity == "weekly" else self.horizon_months
+
+    @rx.var
+    def horizon_max(self) -> int:
+        return MAX_HORIZON_WEEKLY if self.granularity == "weekly" else MAX_HORIZON
+
+    @rx.var
+    def horizon_caption(self) -> str:
+        if self.granularity == "weekly":
+            n = self.horizon_weeks
+            return f"{n} week" if n == 1 else f"{n} weeks"
+        n = self.horizon_months
+        return f"{n} month" if n == 1 else f"{n} months"
 
     # PITFALLS.md Pitfall 3: set_active_section below must do exactly two
     # things — assign active_section and scroll to top — and NOTHING else.
@@ -512,14 +578,21 @@ class DashboardState(rx.State):
             self.selected_series = attr
 
     def set_horizon(self, value: list[int]) -> None:
-        """on_change fires on every drag tick per D-02; value arrives as a
-        single-element list (Radix Slider's array-value convention).
-        Clamped server-side per T-05-01 — never trust the raw client
+        """on_change fires on every drag tick; value arrives as a single-element list
+        (Radix Slider's array-value convention). Branches internally on granularity to
+        write the correct backing var with the correct clamp bound -- horizon_weeks and
+        horizon_months are DELIBERATELY independent vars (not shared/reused), so a
+        switch back to Monthly after dragging the weekly slider never silently
+        reinterprets a week-count as a month-count and never requires a reset/re-clamp
+        on toggle flip. Clamped server-side per T-05-01 — never trust the raw client
         payload, even though Radix also enforces min/max client-side.
         """
         if not value:
             return
-        self.horizon_months = max(1, min(MAX_HORIZON, int(value[0])))
+        if self.granularity == "weekly":
+            self.horizon_weeks = max(1, min(MAX_HORIZON_WEEKLY, int(value[0])))
+        else:
+            self.horizon_months = max(1, min(MAX_HORIZON, int(value[0])))
 
     def select_forecast_series(self, label: str) -> None:
         """Handle the forecast-series dropdown; ignores unknown labels."""
