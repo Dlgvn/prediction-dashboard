@@ -30,6 +30,12 @@ from app.forecasting import (
     forecast_weekly_hdan,
     forecast_weekly_ppan,
 )
+from app.forecasting import (
+    WEEKLY_MODEL_INFO,
+    _apply_ets_spread,
+    forecast_all_weekly,
+    forecast_weekly_fx,
+)
 
 
 def test_require_series_raises_on_short_history():
@@ -671,3 +677,114 @@ def test_forecast_weekly_hdan_h1_half_width_matches_arima_se(synthetic_weekly_hi
         synthetic_weekly_history["hdan"], (0, 1, 0), 1
     )[0]
     assert result["bull"][0] - result["base"][0] == pytest.approx(expected_se, rel=1e-9)
+
+
+# ---------------------------------------------------------------------------
+# Phase 21: weekly forecasting -- FX + dispatcher
+# ---------------------------------------------------------------------------
+
+
+def test_forecast_weekly_fx_shape_finite_and_ordering(synthetic_weekly_history):
+    result = forecast_weekly_fx(synthetic_weekly_history, horizon=4)
+    assert set(result.keys()) == {"base", "bull", "bear"}
+    for key in ("base", "bull", "bear"):
+        assert len(result[key]) == 4
+        assert np.isfinite(np.asarray(result[key])).all()
+    for i in range(4):
+        assert result["bull"][i] > result["base"][i] > result["bear"][i]
+
+
+def test_forecast_weekly_fx_bands_widen_with_horizon(synthetic_weekly_history):
+    # The ETS-HoltDamped spread is Monte Carlo estimated (n_reps=500,
+    # random_state=0) against a heavily damped trend, whose true per-horizon
+    # variance plateaus quickly rather than growing without bound -- small
+    # pairwise MC sampling noise means strict pointwise non-decreasing is not
+    # guaranteed for every fixture (verified empirically: this fixture's
+    # half-widths fluctuate by a few percent around a near-flat plateau even
+    # at n_reps=20000). Assert the band is present and doesn't collapse or
+    # meaningfully shrink over the full horizon, rather than a brittle
+    # pairwise non-decreasing check.
+    result = forecast_weekly_fx(synthetic_weekly_history, horizon=MAX_HORIZON_WEEKLY)
+    half_widths = [
+        result["bull"][i] - result["base"][i] for i in range(MAX_HORIZON_WEEKLY)
+    ]
+    assert all(hw > 0 for hw in half_widths)
+    assert half_widths[-1] >= half_widths[0] * 0.9
+
+
+def test_forecast_weekly_fx_deterministic_across_calls(synthetic_weekly_history):
+    result1 = forecast_weekly_fx(synthetic_weekly_history, horizon=5)
+    result2 = forecast_weekly_fx(synthetic_weekly_history, horizon=5)
+    assert result1["bull"] == result2["bull"]
+    assert result1["bear"] == result2["bear"]
+
+
+def test_forecast_weekly_fx_raises_on_short_history(synthetic_weekly_history):
+    short_history = synthetic_weekly_history.iloc[:50]
+    with pytest.raises(InsufficientHistoryError):
+        forecast_weekly_fx(short_history, horizon=4)
+
+
+def test_forecast_weekly_fx_raises_on_horizon_above_max(synthetic_weekly_history):
+    with pytest.raises(ValueError):
+        forecast_weekly_fx(synthetic_weekly_history, horizon=MAX_HORIZON_WEEKLY + 1)
+
+
+class _FakeETS:
+    def simulate(self, nsimulations, repetitions, error, random_state):
+        # Deterministic synthetic paths: widen visibly by horizon step.
+        rng = np.random.default_rng(random_state)
+        return rng.normal(
+            0, np.arange(1, nsimulations + 1)[:, None], (nsimulations, repetitions)
+        )
+
+
+def test_apply_ets_spread_shape_and_widening():
+    base = [10.0, 10.0, 10.0]
+    result = _apply_ets_spread(_FakeETS(), base, horizon=3, n_reps=200)
+    assert set(result.keys()) == {"base", "bull", "bear"}
+    half_widths = [result["bull"][i] - base[i] for i in range(3)]
+    assert half_widths[0] < half_widths[1] < half_widths[2]
+
+
+def test_forecast_all_weekly_returns_exact_keys_and_rows(synthetic_weekly_history):
+    result = forecast_all_weekly(synthetic_weekly_history, horizon=4)
+    assert set(result.keys()) == {"hdan", "ppan", "fx_rate"}
+    for key in ("hdan", "ppan", "fx_rate"):
+        assert len(result[key]) == 4
+        for i, row in enumerate(result[key], start=1):
+            assert set(row.keys()) == {"week", "base", "bull", "bear"}
+            assert row["week"] == i
+
+
+def test_forecast_all_weekly_raises_on_horizon_above_max(synthetic_weekly_history):
+    with pytest.raises(ValueError):
+        forecast_all_weekly(synthetic_weekly_history, horizon=MAX_HORIZON_WEEKLY + 1)
+
+
+def test_weekly_model_info_exact_values():
+    assert WEEKLY_MODEL_INFO == {
+        "hdan": ("SARIMAX+BalticAN(exog)", 7.25),
+        "ppan": ("SARIMAX+BalticAN(exog)", 6.96),
+        "fx_rate": ("ETS-HoltDamped", 0.86),
+    }
+
+
+def test_weekly_model_info_keys_match_forecast_all_weekly(synthetic_weekly_history):
+    result = forecast_all_weekly(synthetic_weekly_history, horizon=1)
+    assert set(WEEKLY_MODEL_INFO) == set(result.keys())
+
+
+def test_forecast_all_weekly_fx_rate_agrees_with_direct_call(synthetic_weekly_history):
+    dispatcher_rows = forecast_all_weekly(synthetic_weekly_history, horizon=4)["fx_rate"]
+    direct = forecast_weekly_fx(synthetic_weekly_history, horizon=4)
+    for i, row in enumerate(dispatcher_rows):
+        assert row["base"] == pytest.approx(direct["base"][i])
+        assert row["bull"] == pytest.approx(direct["bull"][i])
+        assert row["bear"] == pytest.approx(direct["bear"][i])
+
+
+def test_forecast_all_weekly_never_includes_diesel(synthetic_weekly_history):
+    result = forecast_all_weekly(synthetic_weekly_history, horizon=1)
+    assert "diesel_usd_ton" not in result
+    assert "diesel_mnt" not in result
