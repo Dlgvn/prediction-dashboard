@@ -591,3 +591,104 @@ def forecast_all(history: pd.DataFrame, horizon: int, markup_pct: float) -> dict
         "diesel_mnt": _to_rows(diesel_mnt_fc, horizon),
         "warning": ppan_fc.get("warning", ""),
     }
+
+
+# ---------------------------------------------------------------------------
+# Weekly forecasting (Phase 21) -- mirrors the monthly section above exactly
+# in return-contract shape, but is a wholly separate model set (frozen from
+# backend_research/results/weekly_sarimax_ets.json and weekly_fx.json).
+# Only 3 series exist at weekly cadence: hdan, ppan, fx_rate. No weekly
+# Diesel-USD/Diesel-MNT -- no weekly source data exists for those.
+# ---------------------------------------------------------------------------
+
+WEEKLY_SARIMAX_ORDER = (0, 1, 0)          # both hdan and ppan, weekly cadence
+WEEKLY_EXOG_COLUMN = "baltic_an"          # WeeklyPriceRow's column name; used UNLAGGED/concurrent
+
+# Auxiliary ARIMA orders used ONLY to derive forecast-standard-error spreads for
+# weekly hdan/ppan -- their own univariate SARIMAX(0,1,0) order per
+# weekly_sarimax_ets.json. _arima_forecast_se never uses this fit's point
+# forecast, only .se_mean (mirrors monthly ARIMA_SE_ORDER's role exactly).
+WEEKLY_ARIMA_SE_ORDER = {"hdan": (0, 1, 0), "ppan": (0, 1, 0)}
+
+# The weekly backtest only validated up to horizon=5 weeks (weekly_sarimax_ets.json's
+# "horizon": 5 field) -- never silently extrapolate beyond this.
+MAX_HORIZON_WEEKLY = 5
+
+# ~2 years of weekly burn-in, matching MIN_TRAIN_WEEKLY in both weekly backtest
+# scripts (run_weekly_sarimax_ets.py, run_fx_weekly_backtest.py). WeeklyPriceRow
+# currently has 206 real rows (19-02-SUMMARY.md) -- this floor is a real, binding
+# constraint, not headroom to shrink.
+MIN_HISTORY_ROWS_WEEKLY = 104
+
+
+def _require_weekly_horizon(horizon: int) -> None:
+    """Validates horizon against MAX_HORIZON_WEEKLY (5), not monthly's MAX_HORIZON (12).
+
+    _require_series's own horizon check is hardwired to MAX_HORIZON=12, so calling it
+    alone would silently accept an out-of-range weekly horizon like 8. Every
+    forecast_weekly_* function calls this FIRST, before any _require_series call.
+    """
+    if not isinstance(horizon, int) or isinstance(horizon, bool) or not (
+        1 <= horizon <= MAX_HORIZON_WEEKLY
+    ):
+        raise ValueError(
+            f"horizon must be an int in 1..{MAX_HORIZON_WEEKLY}, got {horizon!r}."
+        )
+
+
+def _forecast_weekly_sarimax_exog(history: pd.DataFrame, target_col: str, horizon: int) -> dict:
+    """Shared engine for forecast_weekly_hdan/forecast_weekly_ppan: SARIMAX(0,1,0)
+    with WEEKLY_EXOG_COLUMN ('baltic_an') as a single, UNLAGGED/concurrent exog
+    driver -- weekly_sarimax_ets.json's winning 'BalticAN(exog, duplicate)' variant
+    for both hdan and ppan. This is NOT monthly HDAN's per-predictor-lagged
+    convention (HDAN_PREDICTOR_LAGS) -- do not import or apply it here; the weekly
+    backtest's build_exog_sarimax_record has no .shift() call anywhere (21-RESEARCH.md
+    Pattern 1 / Pitfall 1).
+    """
+    _require_weekly_horizon(horizon)
+    y_series = _require_series(history, target_col, horizon, min_rows=MIN_HISTORY_ROWS_WEEKLY)
+    _require_series(history, WEEKLY_EXOG_COLUMN, horizon, min_rows=MIN_HISTORY_ROWS_WEEKLY)
+
+    combined = pd.concat(
+        [history[target_col].rename("y"), history[WEEKLY_EXOG_COLUMN].rename("x")], axis=1
+    ).dropna()
+    if len(combined) < MIN_HISTORY_ROWS_WEEKLY:
+        raise InsufficientHistoryError(
+            f"After aligning '{target_col}' with '{WEEKLY_EXOG_COLUMN}', only "
+            f"{len(combined)} rows remain, but at least {MIN_HISTORY_ROWS_WEEKLY} "
+            "are required to fit the weekly SARIMAX+exog model."
+        )
+    y_fit = combined["y"]
+    x_fit = combined[["x"]]
+
+    fitted = sm.tsa.SARIMAX(
+        y_fit.to_numpy(),
+        exog=x_fit.to_numpy(),
+        order=WEEKLY_SARIMAX_ORDER,
+        enforce_stationarity=False,
+        enforce_invertibility=False,
+    ).fit(disp=False)
+
+    future_exog = _forecast_predictor(history[WEEKLY_EXOG_COLUMN], horizon)
+    result = fitted.get_forecast(steps=horizon, exog=future_exog.reshape(-1, 1))
+    base = np.asarray(result.predicted_mean, dtype=float)
+    assert len(base) == horizon
+
+    se = _arima_forecast_se(y_series, WEEKLY_ARIMA_SE_ORDER[target_col], horizon)
+    return _apply_se_spread(base, se)
+
+
+def forecast_weekly_hdan(history: pd.DataFrame, horizon: int) -> dict:
+    """Forecast weekly HDAN via SARIMAX(0,1,0)+BalticAN(exog), 7.25% MAPE (h=4),
+    from backend_research/results/weekly_sarimax_ets.json. Baltic AN is used at
+    its CONCURRENT (unlagged) value -- see _forecast_weekly_sarimax_exog.
+    """
+    return _forecast_weekly_sarimax_exog(history, "hdan", horizon)
+
+
+def forecast_weekly_ppan(history: pd.DataFrame, horizon: int) -> dict:
+    """Forecast weekly PPAN via SARIMAX(0,1,0)+BalticAN(exog), 6.96% MAPE (h=4),
+    from backend_research/results/weekly_sarimax_ets.json. Same family/engine as
+    forecast_weekly_hdan, different target column.
+    """
+    return _forecast_weekly_sarimax_exog(history, "ppan", horizon)

@@ -49,3 +49,33 @@ def synthetic_history():
         data[col] = base + trend + noise
 
     return pd.DataFrame(data, index=index)
+
+
+@pytest.fixture()
+def synthetic_weekly_history():
+    """Deterministic synthetic weekly-cadence history for weekly forecasting tests.
+
+    130 rows (well above MIN_HISTORY_ROWS_WEEKLY=104), columns hdan/ppan/baltic_an/
+    fx_rate matching WeeklyPriceRow's schema. hdan/ppan/baltic_an share a common
+    trend+noise signal so the exog fit is meaningful (mirrors the ~0.98 real
+    Baltic AN correlation Phase 17 measured); fx_rate is independent.
+    """
+    import numpy as np
+    import pandas as pd
+
+    rng = np.random.default_rng(20260901)
+    n = 130
+    index = pd.date_range("2023-01-06", periods=n, freq="W-FRI")
+
+    trend = np.linspace(0, 15, n)
+    shared_signal = trend + rng.normal(0, 1.0, n)
+
+    hdan = 460.0 + shared_signal + rng.normal(0, 0.5, n)
+    ppan = 465.0 + shared_signal + rng.normal(0, 0.5, n)
+    baltic_an = 390.0 + shared_signal * 0.9 + rng.normal(0, 0.5, n)
+    fx_rate = 3400.0 + np.linspace(0, 30, n) + rng.normal(0, 5.0, n)
+
+    return pd.DataFrame(
+        {"hdan": hdan, "ppan": ppan, "baltic_an": baltic_an, "fx_rate": fx_rate},
+        index=index,
+    )
