@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Weekly Forecast UI
 status: verifying
-stopped_at: Completed 21-02-PLAN.md
-last_updated: "2026-09-02T00:20:44.746Z"
+stopped_at: Completed 22-01-PLAN.md
+last_updated: "2026-09-02T00:44:20.042Z"
 last_activity: 2026-09-02
 progress:
   total_phases: 19
   completed_phases: 3
-  total_plans: 5
-  completed_plans: 5
-  percent: 100
+  total_plans: 8
+  completed_plans: 6
+  percent: 75
 ---
 
 # Project State
@@ -33,9 +33,9 @@ no weekly data entry this milestone.
 
 ## Current Position
 
-Phase: 21 - Weekly Forecasting Module (complete)
-Plan: 02 of 2 (both complete)
-Status: Phase complete — ready for verification
+Phase: 22 - Weekly Granularity Toggle UI (in progress)
+Plan: 01 of 3 (Plan 01 complete — state foundation)
+Status: Wave 1 (state foundation) complete, Wave 2/3 (UI) pending
 Last activity: 2026-09-02
 
 ## Performance Metrics
@@ -109,6 +109,7 @@ Last activity: 2026-09-02
 | Phase 20 P01 | 25min | 2 tasks | 4 files |
 | Phase 21-weekly-forecasting-module P01 | 25min | 2 tasks | 3 files |
 | Phase 21-weekly-forecasting-module P02 | 20min | 2 tasks | 2 files |
+| Phase 22-weekly-granularity-toggle-ui P01 | 25min | 2 tasks | 4 files |
 
 ## Accumulated Context
 
@@ -199,6 +200,7 @@ Recent decisions affecting current work:
 - [Phase 20]: MIN_TRAIN_WEEKLY=104 for FX, independently examined; computed GO verdict (SARIMAX/ETS both beat 1.72% benchmark)
 - [Phase 21-weekly-forecasting-module]: 21-01: forecast_weekly_hdan/forecast_weekly_ppan added via shared _forecast_weekly_sarimax_exog engine, baltic_an used unlagged (not per-predictor-lagged like monthly HDAN); weekly section purely additive to forecasting.py (0 deletions), reuses _arima_forecast_se/_apply_se_spread/_forecast_predictor verbatim
 - [Phase 21-weekly-forecasting-module]: 21-02: forecast_weekly_fx added via ETS-HoltDamped with _apply_ets_spread (HoltWintersResults.simulate()-based, random_state=0 deterministic); WEEKLY_MODEL_INFO + forecast_all_weekly dispatcher complete Phase 21's hdan/ppan/fx_rate weekly forecasting surface (no diesel, no markup_pct)
+- [Phase 22-weekly-granularity-toggle-ui]: 22-01: granularity persists via its own rx.LocalStorage key mirroring theme_mode; horizon_weeks/weekly_rows/weekly_forecast_results built as fully independent parallel state to the monthly path, no shared/reused vars
 
 ### Pending Todos
 
@@ -249,6 +251,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-02T00:20:44.741Z
-Stopped at: Completed 21-02-PLAN.md
+Last session: 2026-09-02T00:44:20.037Z
+Stopped at: Completed 22-01-PLAN.md
 Resume file: None

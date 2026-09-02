@@ -18,7 +18,7 @@
 - [ ] **WKUI-03**: User can toggle between Monthly and Weekly forecast granularity from the
       dashboard, with the toggle driving both the Forecast tab chart and Summary cards
       together (a single global setting, not independent per-series toggles)
-- [ ] **WKUI-04**: The selected granularity persists across page reloads/visits
+- [x] **WKUI-04**: The selected granularity persists across page reloads/visits
 - [ ] **WKUI-05**: When Weekly is selected, Diesel-USD and Diesel-MNT cards show an
       explicit, always-visible "monthly only" disabled/muted state — never hidden, never
       showing fabricated or interpolated weekly data for these series
@@ -82,7 +82,7 @@ section, carried forward unchanged.)
 | WKUI-01 | Phase 19 | Complete |
 | WKUI-02 | Phase 20 | Complete |
 | WKUI-03 | Phase 22 | Pending |
-| WKUI-04 | Phase 22 | Pending |
+| WKUI-04 | Phase 22 | Complete |
 | WKUI-05 | Phase 22 | Pending |
 | WKUI-06 | Phase 22 | Pending |
 | WKUI-07 | Phase 22 | Pending |
