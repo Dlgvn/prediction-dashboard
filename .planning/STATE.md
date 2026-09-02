@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Weekly Forecast UI
-status: executing
-stopped_at: 22-03 code/tests complete (09e23b3, 522d97c); Task 3 human-verify checkpoint pending live-browser walkthrough
-last_updated: "2026-09-02T01:00:25.345Z"
+status: complete
+stopped_at: Phase 22 checkpoint approved — all 9 live-browser checks passed; milestone v2.1 fully done
+last_updated: "2026-09-02T01:30:00.000Z"
 last_activity: 2026-09-02
 progress:
-  total_phases: 19
+  total_phases: 4
   completed_phases: 4
-  total_plans: 8
-  completed_plans: 8
+  total_plans: 9
+  completed_plans: 9
   percent: 100
 ---
 
@@ -33,10 +33,10 @@ no weekly data entry this milestone.
 
 ## Current Position
 
-Phase: 22 - Weekly Granularity Toggle UI (in progress)
-Plan: 3 of 3 (Plan 01 complete — state foundation; Plan 02 complete — summary cards)
-Status: Ready to execute
-Last activity: 2026-09-02
+Phase: 22 - Weekly Granularity Toggle UI (complete)
+Plan: 3 of 3 (all complete — state foundation, summary cards, toggle+chart+checkpoint)
+Status: v2.1 milestone complete — all 4 phases (19-22) done, all 8 WKUI requirements satisfied. Ready for /gsd-complete-milestone.
+Last activity: 2026-09-02 — Phase 22's live-browser checkpoint approved (9/9 checks passed, including both blocking checks: monthly-mode regression and honest Diesel dimming)
 
 ## Performance Metrics
 

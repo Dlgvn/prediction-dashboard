@@ -24,7 +24,7 @@
 - [x] **Phase 20: FX Weekly Backtest** - A backtested weekly FX forecasting model exists with a documented, frozen go/no-go verdict against the monthly benchmark (completed 2026-09-01)
 - [x] **Phase 21: Weekly Forecasting Module** - `forecast_all_weekly` and per-series weekly forecast functions exist, unit-testable in isolation from the UI
  (completed 2026-09-02)
-- [ ] **Phase 22: Weekly Granularity Toggle & UI** - User can toggle Monthly/Weekly, see weekly forecasts for HDAN/PPAN/FX with correct provenance and dates, and see Diesel honestly marked monthly-only
+- [x] **Phase 22: Weekly Granularity Toggle & UI** - User can toggle Monthly/Weekly, see weekly forecasts for HDAN/PPAN/FX with correct provenance and dates, and see Diesel honestly marked monthly-only (completed 2026-09-02)
 
 ## Phase Details
 
@@ -457,7 +457,7 @@ Plans:
 | 19. Weekly Schema & Ingestion | 1/2 | In Progress|  |
 | 20. FX Weekly Backtest | 1/1 | Complete   | 2026-09-01 |
 | 21. Weekly Forecasting Module | 2/2 | Complete   | 2026-09-02 |
-| 22. Weekly Granularity Toggle & UI | 2/3 | In Progress|  |
+| 22. Weekly Granularity Toggle & UI | 3/3 | Complete   | 2026-09-02 |
 
 ---
 *Roadmap created: 2026-08-21*

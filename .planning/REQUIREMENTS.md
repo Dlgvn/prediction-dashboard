@@ -15,19 +15,19 @@
 
 ### Weekly Forecast UI
 
-- [ ] **WKUI-03**: User can toggle between Monthly and Weekly forecast granularity from the
+- [x] **WKUI-03**: User can toggle between Monthly and Weekly forecast granularity from the
       dashboard, with the toggle driving both the Forecast tab chart and Summary cards
       together (a single global setting, not independent per-series toggles)
 - [x] **WKUI-04**: The selected granularity persists across page reloads/visits
 - [x] **WKUI-05**: When Weekly is selected, Diesel-USD and Diesel-MNT cards show an
       explicit, always-visible "monthly only" disabled/muted state — never hidden, never
       showing fabricated or interpolated weekly data for these series
-- [ ] **WKUI-06**: When Weekly is selected, the forecast horizon is controlled in weeks
+- [x] **WKUI-06**: When Weekly is selected, the forecast horizon is controlled in weeks
       (not a relabeled month slider), capped to the range actually covered by the weekly
       backtest(s)
 - [x] **WKUI-07**: When Weekly is selected, each weekly-capable series' summary card shows
       the correct weekly model name and its backtested MAPE (not a stale monthly figure)
-- [ ] **WKUI-08**: Weekly forecast chart/table dates use real week-ending dates, not
+- [x] **WKUI-08**: Weekly forecast chart/table dates use real week-ending dates, not
       relabeled monthly tick marks
 
 ## Backlog carried forward from v2.0
@@ -81,14 +81,15 @@ section, carried forward unchanged.)
 |-------------|-------|--------|
 | WKUI-01 | Phase 19 | Complete |
 | WKUI-02 | Phase 20 | Complete |
-| WKUI-03 | Phase 22 | Pending |
+| WKUI-03 | Phase 22 | Complete |
 | WKUI-04 | Phase 22 | Complete |
 | WKUI-05 | Phase 22 | Complete |
-| WKUI-06 | Phase 22 | Pending |
+| WKUI-06 | Phase 22 | Complete |
 | WKUI-07 | Phase 22 | Complete |
-| WKUI-08 | Phase 22 | Pending |
+| WKUI-08 | Phase 22 | Complete |
 
 ---
 *Requirements defined: 2026-08-21 (v1 baseline); v2.1 requirements added: 2026-09-01*
 *Shipped milestones' requirements (v1 through v2.0) archived in `.planning/milestones/`.*
 *v2.1 traceability mapped to Phases 19-22: 2026-09-01*
+*v2.1 milestone complete: 2026-09-02 (all WKUI-01..08 satisfied)*

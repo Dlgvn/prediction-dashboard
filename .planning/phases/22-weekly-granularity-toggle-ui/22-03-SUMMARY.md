@@ -144,7 +144,7 @@ grep -c "WEEKLY_FORECAST_TABLE_COLUMNS" app/app/state.py  -> 1 (see note above)
 grep -c 'DateOffset(weeks=entry\["week"\])' app/app/state.py -> 1
 ```
 
-## Task 3: Live Browser Verification Checkpoint (NOT YET APPROVED)
+## Task 3: Live Browser Verification Checkpoint (APPROVED 2026-09-02)
 
 This executor has no browser tooling and cannot perform Task 3's live-browser walkthrough. Per the orchestrator's environment notes, the dev server has been started and confirmed reachable, and the plan is otherwise fully coded and unit-tested; the checkpoint is handed off here for the orchestrator (a separate session with browser tooling) to perform.
 
@@ -162,14 +162,23 @@ This executor has no browser tooling and cannot perform Task 3's live-browser wa
 8. **Both themes:** Toggle dark mode -- segmented control, badge, and dimmed card content all legible in both light and dark mode.
 9. **No console errors:** Throughout, no Reflex/React console errors/warnings, especially no "value did not match any item" warning from the Series `rx.select` on granularity toggle.
 
-**Resume signal:** Type "approved" or describe which numbered check failed and what was observed. If check 2 or 4 fails, the phase cannot close as-is; re-invoke this executor to fix, citing the specific check and observed behavior.
+**Verification result (orchestrator, live browser at localhost:3005, 2026-09-02):** All 9 checks PASSED, including both CRITICAL/blocking checks.
+
+1. ✅ Default Monthly — 5 cards render, none dimmed, on fresh load.
+2. ✅ Monthly regression — horizon slider 1-12 "months", all 5 series in the selector, table header "Month" with 5-series columns; pixel/behavior-identical to pre-Phase-22.
+3. ✅ Toggle to Weekly — slider range becomes 1-5 "weeks" (dragged to confirm max=5), Series dropdown narrows to HDAN/PPAN/FX Rate only (Diesel correctly absent).
+4. ✅ Diesel cards dim honestly — Diesel-USD/Diesel-MNT stayed in their grid position, real (non-fabricated) monthly numbers, visibly dimmed, "Monthly data only" badge legible; HDAN/PPAN/FX Rate cards showed different (weekly) values with weekly model name + MAPE folding in the monthly comparison (e.g. "SARIMAX+BalticAN(exog) · 7.25% MAPE weekly · 13.3% monthly").
+5. ✅ Weekly dates are real — chart x-axis showed real week-ending dates (May 3, May 17, May 31, Jun 14... spaced ~1-2 weeks apart, not relabeled months); axis title read "Week".
+6. ✅ Reload persistence — full page reload (navigate) kept Weekly mode active, dimmed cards, weekly numbers, without re-toggling.
+7. ✅ Toggle back to Monthly — slider reverted to prior month value (3 months, not reset/carried-over), Diesel cards un-dimmed, HDAN/PPAN/FX Rate cards back to monthly values/provenance.
+8. ✅ Both themes — dark mode toggle confirmed legible: segmented control, badges, and dimmed card content all render cleanly in dark mode.
+9. ✅ No console errors — `read_console_messages` returned no logs/errors throughout the entire walkthrough.
 
 ## Next Phase Readiness
 
-- All code and automated-test work for Phase 22 is complete (Plans 22-01, 22-02, 22-03 all landed; 429/429 tests passing).
-- Phase 22 cannot be marked fully closed until Task 3's live-browser checkpoint is approved -- STATE.md/ROADMAP.md updates below reflect code-complete status; final phase closure is contingent on checkpoint approval.
-- If the checkpoint approves cleanly, no further work is needed for Phase 22.
-- If any of the nine checks fail, re-invoke this plan's executor with the specific failing check(s) -- all three source files (`state.py`, `app.py`) and their test files are in a clean, fully-committed state to resume from.
+- All code, automated tests (429/429 passing), and the live-browser checkpoint for Phase 22 are complete and approved.
+- Phase 22 (Weekly Granularity Toggle & UI) is fully closed. WKUI-03 through WKUI-08 are all satisfied.
+- This closes out the v2.1 "Weekly Forecast UI" milestone's roadmap (Phases 19-22, all complete).
 
 ---
 *Phase: 22-weekly-granularity-toggle-ui*
