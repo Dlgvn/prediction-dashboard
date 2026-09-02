@@ -140,6 +140,34 @@ def test_forecast_table_has_no_edit_wiring():
     assert "update_draft" not in rendered
 
 
+# --- Phase 22 (WKUI-03/WKUI-06/WKUI-08) --------------------------------------
+
+
+def test_horizon_control_has_segmented_control_toggle():
+    source = inspect.getsource(app_module.horizon_control)
+    assert "rx.segmented_control.root" in source
+    assert "set_granularity" in source
+    assert "DashboardState.active_horizon" in source
+    assert "DashboardState.horizon_max" in source
+
+
+def test_forecast_chart_selector_uses_available_forecast_series_labels():
+    source = inspect.getsource(app_module.forecast_chart)
+    assert "DashboardState.available_forecast_series_labels" in source
+
+
+def test_forecast_table_branches_on_granularity_for_weekly_columns():
+    source = inspect.getsource(app_module.forecast_table)
+    assert "WEEKLY_FORECAST_TABLE_COLUMNS" in source
+    assert "Week of" in source
+    assert 'DashboardState.granularity == "weekly"' in source
+
+
+def test_forecast_table_compiles_with_weekly_column_set():
+    rendered = str(app_module.forecast_table().render())
+    assert "WEEKLY_FORECAST_TABLE_COLUMNS" not in rendered  # constant resolved, not leaked
+
+
 # --- Phase 6 -----------------------------------------------------------------
 
 

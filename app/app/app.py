@@ -4,10 +4,10 @@ import reflex as rx
 
 from app.models import AppSetting, PriceRow  # noqa: F401  (registers tables for reflex db migrate)
 from app.state import (
-    FORECAST_SERIES_LABELS,
     FORECAST_TABLE_COLUMNS,
     SERIES_ATTRS,
     SERIES_LABELS,
+    WEEKLY_FORECAST_TABLE_COLUMNS,
     DashboardState,
 )
 from app.theme import (
@@ -276,34 +276,44 @@ def empty_state() -> rx.Component:
 
 
 def horizon_control() -> rx.Component:
-    """Forecast horizon slider with a live numeric readout (D-01/D-02).
-
-    Uses on_change (not on_value_commit) so the fan chart and table recompute
-    live during drag, per D-02 — no Forecast button, no debounce.
+    """Granularity toggle (WKUI-03) beside the forecast horizon slider (D-01/D-02),
+    per 22-CONTEXT.md's locked placement decision -- horizon range and granularity
+    are closely related (1-12 months vs. up to MAX_HORIZON_WEEKLY weeks), so they
+    live together. Uses on_change (not on_value_commit) so the fan chart and table
+    recompute live during drag, per D-02 -- no Forecast button, no debounce.
     """
-    return rx.hstack(
-        rx.text(
-            "Forecast horizon",
-            font_weight=FONT_WEIGHT_SEMIBOLD,
-            size=RADIX_SIZE_BODY,
+    return rx.vstack(
+        rx.hstack(
+            rx.text("Granularity", font_weight=FONT_WEIGHT_SEMIBOLD, size=RADIX_SIZE_BODY),
+            rx.segmented_control.root(
+                rx.segmented_control.item("Monthly", value="monthly"),
+                rx.segmented_control.item("Weekly", value="weekly"),
+                value=DashboardState.granularity,
+                on_change=lambda value: DashboardState.set_granularity(value.to(str)),
+                size="2",
+                color_scheme="blue",
+            ),
+            spacing="2",
+            align="center",
         ),
-        rx.slider(
-            value=[DashboardState.horizon_months],
-            min=1,
-            max=12,
-            step=1,
-            on_change=DashboardState.set_horizon,
-            size="2",
-            width="100%",
-            max_width="15rem",
-            color_scheme="blue",
+        rx.hstack(
+            rx.text("Forecast horizon", font_weight=FONT_WEIGHT_SEMIBOLD, size=RADIX_SIZE_BODY),
+            rx.slider(
+                value=[DashboardState.active_horizon],
+                min=1,
+                max=DashboardState.horizon_max,
+                step=1,
+                on_change=DashboardState.set_horizon,
+                size="2",
+                width="100%",
+                max_width="15rem",
+                color_scheme="blue",
+            ),
+            rx.text(DashboardState.horizon_caption, size=RADIX_SIZE_BODY),
+            align="center",
+            spacing="2",
+            wrap="wrap",
         ),
-        rx.text(
-            DashboardState.horizon_months.to_string()
-            + rx.cond(DashboardState.horizon_months != 1, " months", " month"),
-            size=RADIX_SIZE_BODY,
-        ),
-        align="center",
         spacing="2",
         wrap="wrap",
     )
@@ -389,7 +399,7 @@ def forecast_chart() -> rx.Component:
                     size=RADIX_SIZE_BODY,
                 ),
                 rx.select(
-                    list(FORECAST_SERIES_LABELS.values()),
+                    DashboardState.available_forecast_series_labels,
                     value=DashboardState.forecast_series_label,
                     on_change=DashboardState.select_forecast_series,
                     size="2",
@@ -415,41 +425,44 @@ def forecast_chart() -> rx.Component:
 
 
 def forecast_table() -> rx.Component:
-    """Read-only all-series base/bull/bear table (FCST-06/VIS-03), with a
-    graceful empty state fallback showing forecast_error copy.
+    """Read-only all-series base/bull/bear table (FCST-06/VIS-03/WKUI-08), with a
+    graceful empty state fallback showing forecast_error/weekly_forecast_error copy.
+    Branches its column set and first-column header on granularity; Monthly mode's
+    body is byte-identical to before Phase 22.
     """
-    table = rx.table.root(
-        rx.table.header(
-            rx.table.row(
-                rx.table.column_header_cell("Month"),
-                *[
-                    rx.table.column_header_cell(label)
-                    for _, label in FORECAST_TABLE_COLUMNS
-                ],
-            )
-        ),
-        rx.table.body(
-            rx.foreach(
-                DashboardState.forecast_table_rows,
-                lambda row: rx.table.row(
-                    rx.table.cell(row["month"], font_family="'IBM Plex Mono', monospace"),
-                    *[
-                        rx.table.cell(row[key], font_family="'IBM Plex Mono', monospace")
-                        for key, _ in FORECAST_TABLE_COLUMNS
-                    ],
-                ),
-            )
-        ),
+
+    def _table(columns: list[tuple[str, str]], first_header: str) -> rx.Component:
+        return rx.table.root(
+            rx.table.header(
+                rx.table.row(
+                    rx.table.column_header_cell(first_header),
+                    *[rx.table.column_header_cell(label) for _, label in columns],
+                )
+            ),
+            rx.table.body(
+                rx.foreach(
+                    DashboardState.forecast_table_rows,
+                    lambda row: rx.table.row(
+                        rx.table.cell(row["month"], font_family="'IBM Plex Mono', monospace"),
+                        *[
+                            rx.table.cell(row[key], font_family="'IBM Plex Mono', monospace")
+                            for key, _ in columns
+                        ],
+                    ),
+                )
+            ),
+        )
+
+    table = rx.cond(
+        DashboardState.granularity == "weekly",
+        _table(WEEKLY_FORECAST_TABLE_COLUMNS, "Week of"),
+        _table(FORECAST_TABLE_COLUMNS, "Month"),
     )
     warning_banner = rx.cond(
-        DashboardState.forecast_warning != "",
+        (DashboardState.forecast_warning != "") & (DashboardState.granularity == "monthly"),
         rx.hstack(
             rx.icon("triangle-alert", size=16, color="amber"),
-            rx.text(
-                DashboardState.forecast_warning,
-                size=RADIX_SIZE_BODY,
-                color="amber",
-            ),
+            rx.text(DashboardState.forecast_warning, size=RADIX_SIZE_BODY, color="amber"),
             spacing="2",
             align="center",
             margin_bottom="0.75rem",
@@ -462,7 +475,11 @@ def forecast_table() -> rx.Component:
             DashboardState.forecast_table_rows.length() > 0,
             table,
             rx.text(
-                DashboardState.forecast_error,
+                rx.cond(
+                    DashboardState.granularity == "weekly",
+                    DashboardState.weekly_forecast_error,
+                    DashboardState.forecast_error,
+                ),
                 size=RADIX_SIZE_BODY,
                 color=DashboardState.muted_text,
             ),
