@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.1
 milestone_name: Weekly Forecast UI
 status: verifying
-stopped_at: Completed 21-01-PLAN.md
-last_updated: "2026-09-02T00:14:34.267Z"
+stopped_at: Completed 21-02-PLAN.md
+last_updated: "2026-09-02T00:20:44.746Z"
 last_activity: 2026-09-02
 progress:
   total_phases: 19
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 5
-  completed_plans: 4
-  percent: 80
+  completed_plans: 5
+  percent: 100
 ---
 
 # Project State
@@ -33,7 +33,7 @@ no weekly data entry this milestone.
 
 ## Current Position
 
-Phase: 19 - Weekly Schema & Ingestion (complete)
+Phase: 21 - Weekly Forecasting Module (complete)
 Plan: 02 of 2 (both complete)
 Status: Phase complete — ready for verification
 Last activity: 2026-09-02
@@ -108,6 +108,7 @@ Last activity: 2026-09-02
 | Phase 19-weekly-schema-ingestion P02 | 20min | 2 tasks | 2 files |
 | Phase 20 P01 | 25min | 2 tasks | 4 files |
 | Phase 21-weekly-forecasting-module P01 | 25min | 2 tasks | 3 files |
+| Phase 21-weekly-forecasting-module P02 | 20min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -197,6 +198,7 @@ Recent decisions affecting current work:
 - [Phase 19-02]: seed_weekly.py parses AN Data.csv's native weekly HDAN/PPAN/Baltic AN rows and FX Data.csv's Weekly column (positional slice df.iloc[:, 3:5], layout-drift guarded), joined via pd.merge_asof(tolerance=Timedelta(days=3)) to bridge Friday-based AN vs Monday-based FX week-ending dates. Real-CSV smoke run seeded 206 rows into weeklypricerow (2022-08-05..2026-07-10) with 100% non-null fx_rate, confirming the 3-day tolerance assumption holds across the full dataset. Idempotent re-run verified (206 rows both times, no duplication). Phase 19 complete — WKUI-01 satisfied.
 - [Phase 20]: MIN_TRAIN_WEEKLY=104 for FX, independently examined; computed GO verdict (SARIMAX/ETS both beat 1.72% benchmark)
 - [Phase 21-weekly-forecasting-module]: 21-01: forecast_weekly_hdan/forecast_weekly_ppan added via shared _forecast_weekly_sarimax_exog engine, baltic_an used unlagged (not per-predictor-lagged like monthly HDAN); weekly section purely additive to forecasting.py (0 deletions), reuses _arima_forecast_se/_apply_se_spread/_forecast_predictor verbatim
+- [Phase 21-weekly-forecasting-module]: 21-02: forecast_weekly_fx added via ETS-HoltDamped with _apply_ets_spread (HoltWintersResults.simulate()-based, random_state=0 deterministic); WEEKLY_MODEL_INFO + forecast_all_weekly dispatcher complete Phase 21's hdan/ppan/fx_rate weekly forecasting surface (no diesel, no markup_pct)
 
 ### Pending Todos
 
@@ -247,6 +249,6 @@ Recent decisions affecting current work:
 
 ## Session Continuity
 
-Last session: 2026-09-02T00:14:34.263Z
-Stopped at: Completed 21-01-PLAN.md
+Last session: 2026-09-02T00:20:44.741Z
+Stopped at: Completed 21-02-PLAN.md
 Resume file: None

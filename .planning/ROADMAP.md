@@ -22,7 +22,7 @@
 - ~~Phase 18: Sentiment-Adjusted Scenario UI~~ — dropped, Phase 16 returned no-go (see [v2.0 archive](milestones/v2.0-ROADMAP.md))
 - [x] **Phase 19: Weekly Schema & Ingestion** - Genuine weekly-cadence historical data for HDAN, PPAN, and FX rate is persisted separately from the monthly table
 - [x] **Phase 20: FX Weekly Backtest** - A backtested weekly FX forecasting model exists with a documented, frozen go/no-go verdict against the monthly benchmark (completed 2026-09-01)
-- [ ] **Phase 21: Weekly Forecasting Module** - `forecast_all_weekly` and per-series weekly forecast functions exist, unit-testable in isolation from the UI
+- [x] **Phase 21: Weekly Forecasting Module** - `forecast_all_weekly` and per-series weekly forecast functions exist, unit-testable in isolation from the UI (completed 2026-09-02)
 - [ ] **Phase 22: Weekly Granularity Toggle & UI** - User can toggle Monthly/Weekly, see weekly forecasts for HDAN/PPAN/FX with correct provenance and dates, and see Diesel honestly marked monthly-only
 
 ## Phase Details
@@ -405,7 +405,7 @@ Plans:
 Plans:
 
 - [x] 21-01-PLAN.md — forecast_weekly_hdan/forecast_weekly_ppan: shared SARIMAX(0,1,0)+BalticAN(unlagged exog) engine (wave 1)
-- [ ] 21-02-PLAN.md — forecast_weekly_fx (ETS-HoltDamped + simulate()-based spread), WEEKLY_MODEL_INFO, forecast_all_weekly dispatcher (wave 2)
+- [x] 21-02-PLAN.md — forecast_weekly_fx (ETS-HoltDamped + simulate()-based spread), WEEKLY_MODEL_INFO, forecast_all_weekly dispatcher (wave 2)
 
 ### Phase 22: Weekly Granularity Toggle & UI
 
@@ -449,7 +449,7 @@ Plans:
 | 18. Sentiment-Adjusted Scenario UI | — | Dropped (Phase 16 no-go) | - |
 | 19. Weekly Schema & Ingestion | 1/2 | In Progress|  |
 | 20. FX Weekly Backtest | 1/1 | Complete   | 2026-09-01 |
-| 21. Weekly Forecasting Module | 1/2 | In Progress|  |
+| 21. Weekly Forecasting Module | 2/2 | Complete   | 2026-09-02 |
 | 22. Weekly Granularity Toggle & UI | 0/? | Not started | - |
 
 ---
