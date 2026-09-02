@@ -18,6 +18,7 @@ import numpy as np
 import pandas as pd
 import statsmodels.api as sm
 from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.holtwinters import ExponentialSmoothing
 
 # ---------------------------------------------------------------------------
 # Frozen constants -- every value below is transcribed from a named Phase 2
@@ -692,3 +693,108 @@ def forecast_weekly_ppan(history: pd.DataFrame, horizon: int) -> dict:
     forecast_weekly_hdan, different target column.
     """
     return _forecast_weekly_sarimax_exog(history, "ppan", horizon)
+
+
+def _apply_ets_spread(fitted_ets, base, horizon: int, n_reps: int = 500) -> dict:
+    """Apply an ETS-HoltDamped model's own simulated-path spread to a base forecast.
+
+    HoltWintersResults has no .get_forecast()/.se_mean the way ARIMA does (verified:
+    0.14.6 raises AttributeError on .get_forecast), so _arima_forecast_se cannot be
+    reused here. Instead, this uses the fitted ETS model's own .simulate() method to
+    draw n_reps simulated future paths and takes their per-horizon standard deviation
+    as the spread -- a model-native, backtest-fit uncertainty measure, not an arbitrary
+    flat percentage. random_state is fixed so repeated calls against identical history
+    produce an identical band (no un-memoized jitter between renders, per D-06's
+    no-caching rule).
+    """
+    base_arr = np.asarray(base, dtype=float)
+    sims = fitted_ets.simulate(horizon, repetitions=n_reps, error="add", random_state=0)
+    spread = np.std(sims, axis=1)
+    return {
+        "base": base_arr.tolist(),
+        "bull": (base_arr + spread).tolist(),
+        "bear": (base_arr - spread).tolist(),
+    }
+
+
+def forecast_weekly_fx(history: pd.DataFrame, horizon: int) -> dict:
+    """Forecast weekly FX via ETS-HoltDamped (trend=add, seasonal=None,
+    damped_trend=True), 0.86% MAPE (h=4), from
+    backend_research/results/weekly_fx.json. Univariate -- no exog driver, unlike
+    weekly HDAN/PPAN. Spread comes from the fitted model's own .simulate() output
+    (_apply_ets_spread), not _arima_forecast_se -- HoltWintersResults exposes no
+    .get_forecast()/.se_mean.
+    """
+    _require_weekly_horizon(horizon)
+    series = _require_series(history, "fx_rate", horizon, min_rows=MIN_HISTORY_ROWS_WEEKLY)
+
+    fitted = ExponentialSmoothing(
+        series.to_numpy(),
+        trend="add",
+        seasonal=None,
+        damped_trend=True,
+        initialization_method="estimated",
+    ).fit()
+
+    base = np.asarray(fitted.forecast(horizon), dtype=float)
+    assert len(base) == horizon
+
+    return _apply_ets_spread(fitted, base, horizon)
+
+
+# Single source of truth for weekly model provenance display (Phase 22's future
+# WKUI-07). Keys mirror forecast_all_weekly's 3 returned series exactly. Values
+# are (model_name, mape_pct) transcribed from backend_research/results/
+# weekly_sarimax_ets.json and weekly_fx.json's lowest-mape_h4 records per series
+# -- read at implementation time, not re-derived. Never add a diesel key here.
+WEEKLY_MODEL_INFO: dict[str, tuple[str, float]] = {
+    "hdan": ("SARIMAX+BalticAN(exog)", 7.25),
+    "ppan": ("SARIMAX+BalticAN(exog)", 6.96),
+    "fx_rate": ("ETS-HoltDamped", 0.86),
+}
+
+
+def _to_rows_weekly(columnar: dict, horizon: int) -> list[dict]:
+    """Transpose a columnar {"base": [...], "bull": [...], "bear": [...]} weekly
+    forecast dict into row-per-week shape, 1-indexed by 'week' (NOT 'month' --
+    monthly's _to_rows uses 'month', but mislabeling weekly rows as months would
+    contradict WKUI-08's real week-ending-date requirement). Phase 22 maps these
+    integer week indices to real week-ending dates; this module stays
+    date-agnostic, same as _to_rows.
+    """
+    return [
+        {
+            "week": h,
+            "base": columnar["base"][h - 1],
+            "bull": columnar["bull"][h - 1],
+            "bear": columnar["bear"][h - 1],
+        }
+        for h in range(1, horizon + 1)
+    ]
+
+
+def forecast_all_weekly(history: pd.DataFrame, horizon: int) -> dict:
+    """Weekly-cadence dispatcher (analogous to forecast_all, but no markup_pct
+    parameter -- weekly has no derived Diesel-MNT series to compute).
+
+    Returns a dict with EXACTLY three keys -- hdan, ppan, fx_rate -- each a list
+    of horizon row-dicts shaped {"week": int, "base": float, "bull": float,
+    "bear": float}, ordered h=1..horizon. Never includes diesel_usd_ton or
+    diesel_mnt: no weekly source data exists for Diesel, confirmed unavailable
+    across this milestone (21-CONTEXT.md non-goals). Do not add a stub/
+    placeholder Diesel entry.
+
+    D-06 forbids caching: every call refits all three models fresh from the
+    passed-in history, same discipline as forecast_all.
+    """
+    _require_weekly_horizon(horizon)
+
+    hdan_fc = forecast_weekly_hdan(history, horizon)
+    ppan_fc = forecast_weekly_ppan(history, horizon)
+    fx_fc = forecast_weekly_fx(history, horizon)
+
+    return {
+        "hdan": _to_rows_weekly(hdan_fc, horizon),
+        "ppan": _to_rows_weekly(ppan_fc, horizon),
+        "fx_rate": _to_rows_weekly(fx_fc, horizon),
+    }
