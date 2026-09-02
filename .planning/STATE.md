@@ -249,9 +249,10 @@ Recent decisions affecting current work:
 | # | Description | Date | Commit | Directory |
 |---|-------------|------|--------|-----------|
 | 260902-iao | Add weekly data to Excel export as a new Weekly sheet | 2026-09-02 | aa4edb5 | [260902-iao-add-weekly-data-to-excel-export-as-a-new](./quick/260902-iao-add-weekly-data-to-excel-export-as-a-new/) |
+| 260902-j37 | Add Export to Excel button to the Data Entry tab too | 2026-09-02 | db73d1b | [260902-j37-add-export-to-excel-button-to-the-data-e](./quick/260902-j37-add-export-to-excel-button-to-the-data-e/) |
 
 ## Session Continuity
 
-Last session: 2026-09-02T05:10:25.055Z
-Stopped at: Quick task 260902-iao complete (weekly Excel export sheet added, 435/435 tests passing). Live-fixed a separate bug: WeeklyPriceRow had no write path (weekly CSV import added, commit 3882efc) after a debug session confirmed the monthly reactivity chain was already correct.
+Last session: 2026-09-02T05:44:39.874Z
+Stopped at: Quick task 260902-j37 complete (Export to Excel button added to Data Entry tab too, reusing the existing export_button()/export_to_excel handler, 436/436 tests passing).
 Resume file: None
