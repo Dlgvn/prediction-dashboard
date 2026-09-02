@@ -1,11 +1,11 @@
 ---
 gsd_state_version: 1.0
-milestone: v2.1
-milestone_name: Weekly Forecast UI
-status: complete
-stopped_at: Phase 22 checkpoint approved — all 9 live-browser checks passed; milestone v2.1 fully done
-last_updated: "2026-09-02T01:30:00.000Z"
-last_activity: 2026-09-02
+milestone: none
+milestone_name: none
+status: idle
+stopped_at: v2.1 milestone archived
+last_updated: "2026-09-02T02:00:00.000Z"
+last_activity: 2026-09-02 -- v2.1 milestone audited (passed) and archived to .planning/milestones/. No open milestone; run /gsd-new-milestone to start the next one.
 progress:
   total_phases: 4
   completed_phases: 4
@@ -18,25 +18,18 @@ progress:
 
 ## Project Reference
 
-See: .planning/PROJECT.md (updated 2026-09-01)
+See: .planning/PROJECT.md (updated 2026-09-02)
 
-**Core value:** The user can enter a month's actuals, pick a forecast horizon (1-12 months),
-and see a chart with three price scenarios (bull/base/bear) for each of the four tracked
-series — without opening Excel.
-
-**Current focus:** v2.1 — ship weekly-cadence forecasting for HDAN, PPAN, and FX rate on the
-dashboard. Roadmap is now in place: Phase 19 (weekly schema + ingestion) and Phase 20 (FX
-weekly backtest) can run in parallel (no shared state), Phase 21 (weekly forecasting module)
-depends on both, and Phase 22 (granularity toggle + UI) depends on Phase 21. Diesel-USD/
-Diesel-MNT remain monthly-only (no weekly source exists for them). Forecast-viewing only —
-no weekly data entry this milestone.
+**Core value:** The user can enter a month's actuals, pick a forecast horizon (1-12 months,
+or weeks for HDAN/PPAN/FX), and see a chart with three price scenarios (bull/base/bear) for
+each of the four tracked series — without opening Excel.
 
 ## Current Position
 
-Phase: 22 - Weekly Granularity Toggle UI (complete)
-Plan: 3 of 3 (all complete — state foundation, summary cards, toggle+chart+checkpoint)
-Status: v2.1 milestone complete — all 4 phases (19-22) done, all 8 WKUI requirements satisfied. Ready for /gsd-complete-milestone.
-Last activity: 2026-09-02 — Phase 22's live-browser checkpoint approved (9/9 checks passed, including both blocking checks: monthly-mode regression and honest Diesel dimming)
+Phase: Not started (no open milestone)
+Plan: —
+Status: v2.1 archived. Run /gsd-new-milestone to start the next one.
+Last activity: 2026-09-02 -- v2.1 milestone audited (passed) and archived
 
 ## Performance Metrics
 

@@ -100,8 +100,10 @@ tracked series — without opening Excel.
 | Reflex + SQLite single-process monolith (not split FastAPI service, not Postgres) | Matches single-user, occasional-use scale; simplest to run/deploy | — Pending |
 | Fresh model design/research rather than porting the Excel workbook's exact coefficients | User explicitly chose this during brainstorming over reusing the workbook's VAR/AR models | — Pending |
 | No file-upload UI in v1 — manual in-app entry + Excel export instead | User explicitly requested this during brainstorming, reversing an earlier upload-first draft | — Pending |
-| v2 weekly-forecast-mode work is a research spike (re-research before shipping), not a committed build | v1.2-era backtest was a no-go: weekly-native VAR underperformed monthly (10.35%/16.01% vs 9.49%/10.08% MAPE) and no weekly Diesel/FX data exists at all — must clear a new backtest bar before any weekly UI ships | ✓ Cleared: Phase 17's SARIMAX/ETS re-research beat the monthly benchmark (best HDAN 7.25%, PPAN 6.96% vs 9.49%/10.08%) — but weekly UI itself remains deferred to a future milestone by design |
+| v2 weekly-forecast-mode work is a research spike (re-research before shipping), not a committed build | v1.2-era backtest was a no-go: weekly-native VAR underperformed monthly (10.35%/16.01% vs 9.49%/10.08% MAPE) and no weekly Diesel/FX data exists at all — must clear a new backtest bar before any weekly UI ships | ✓ Shipped in v2.1: Phase 17's SARIMAX/ETS re-research (v2.0) beat the monthly benchmark for HDAN/PPAN, and a genuine weekly FX data source (`FX Data.csv`'s Weekly column) was found and backtested (v2.1 Phase 20, also a "go"). The dashboard now has a live Monthly/Weekly granularity toggle for HDAN/PPAN/FX rate; Diesel-USD/Diesel-MNT remain honestly monthly-only (no weekly source exists for them) |
 | v2 news/sentiment scenario feature builds on the existing `archive/` dataset (news_sentiment_daily.csv, sentiment_market_panel.csv, ml_features.csv, raw news dump) rather than researching a provider from scratch | User confirmed this data was prepared for this purpose | ✓ Data used as planned; Phase 16's causality screen returned no-go (effective monthly sample size never reached the required floor) — sentiment UI (Phase 18) correctly dropped, not built degraded |
+| v2.1's weekly UI covers HDAN/PPAN/FX rate only, not Diesel-USD/Diesel-MNT, and ships forecast-viewing only (no weekly Data Entry) | No weekly source data exists for Diesel-USD/Diesel-MNT at all (confirmed across v1.2, v2.0, and v2.1); weekly data entry was explicitly out of scope to keep the milestone shippable | ✓ Shipped exactly as scoped: Diesel cards show an honest, always-visible "monthly only" dimmed state in Weekly mode; the existing monthly Data Entry tab is unchanged |
+| A 5th summary card (Diesel-USD) was added in v2.1, reversing the v1 decision to only show Diesel-MNT | The v2.1 requirement (WKUI-05) explicitly named both "Diesel-USD and Diesel-MNT" as needing an honest monthly-only state, which the original 4-card layout couldn't satisfy (only `diesel_mnt` had a card) | ✓ Shipped; confirmed by the integration audit as required by the requirement's literal text, not scope creep |
 
 ## Milestone History
 
@@ -121,33 +123,29 @@ VAR benchmark on both HDAN and PPAN — but weekly UI itself remains deferred to
 future milestone by design, regardless of this favorable result. Full detail:
 `.planning/milestones/v2.0-ROADMAP.md`.
 
-## Current Milestone: v2.1 Weekly Forecast UI
-
-**Goal:** Ship weekly-cadence forecasting for HDAN, PPAN, and FX rate on the dashboard, now
-that Phase 17's re-research cleared the backtest bar and a real weekly FX data source has
-been found.
-
-**Target features:**
-- Research/backtest weekly-cadence FX forecasting against `FX Data.csv`'s Weekly column
-  (865 rows, perfect 7-day cadence, 2010-01-04 to 2026-07-27) — a new, genuinely weekly
-  source, not a resample of monthly data. Produce a validated model + documented benchmark
-  comparison, following the project's existing "no un-backtested model ships" discipline.
-- Weekly-cadence forecast UI (granularity toggle) covering HDAN, PPAN, and FX rate.
-  Diesel-USD and derived Diesel-MNT have no weekly source data and remain monthly-only,
-  shown honestly as such in the mixed-cadence UI rather than hidden or faked.
-- Forecast-viewing only this milestone — no new weekly data-entry UI (existing monthly
-  Data Entry tab is unaffected).
-
-**Key context:** `FX Data.csv` also has a `Daily` column (not currently used) and a
-`Monthly` column (already the source for the existing monthly FX model) — same file, three
-cadences, so no new data source/ingestion pattern is needed, just a new column.
+### v2.1 Weekly Forecast UI (complete)
+Shipped genuine weekly-cadence forecasting for HDAN, PPAN, and FX rate. Added a new
+`WeeklyPriceRow` table sourced natively from `AN Data.csv` and `FX Data.csv`'s
+previously-unused Weekly column (865 rows, 2010-2026); backtested and validated a weekly
+FX model (ETS-HoltDamped, 0.86% MAPE vs. the 1.72% monthly benchmark — a "go"); wired
+Phase 17's (v2.0) already-validated weekly HDAN/PPAN models plus the new FX model into a
+weekly forecasting module; and shipped a Monthly/Weekly granularity toggle on the
+dashboard. Diesel-USD and Diesel-MNT — which have no weekly source data — show an honest,
+always-visible "monthly only" dimmed state rather than being hidden or faked. Forecast-
+viewing only; no weekly data entry. Full detail: `.planning/milestones/v2.1-ROADMAP.md`.
 
 ## Current State
 
-**Shipped:** v2.0 (2026-09-01). Full-scope monthly dashboard (data entry, bull/base/bear
+**Shipped:** v2.1 (2026-09-02). Full-scope monthly dashboard (data entry, bull/base/bear
 forecasting for HDAN/PPAN/Diesel-USD/FX + derived Diesel-MNT, historical/forecast charts,
-Excel export/CSV import, light/dark theming, tab navigation) plus two closed research
-spikes.
+Excel export/CSV import, light/dark theming, tab navigation) plus a Monthly/Weekly
+granularity toggle covering HDAN/PPAN/FX rate, and two closed v2.0 research spikes.
+No open milestone.
+
+**Next milestone goals (candidates, not committed):** see `.planning/REQUIREMENTS.md`'s
+Backlog section — most notably, weekly Data Entry UI (currently forecast-viewing only) if
+there's demand for entering weekly actuals in-app rather than relying on the seeded CSVs.
+Run `/gsd-new-milestone` to scope the next one.
 
 ## Evolution
 
@@ -167,4 +165,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-09-01 at start of v2.1 milestone*
+*Last updated: 2026-09-02 at completion of v2.1 milestone*

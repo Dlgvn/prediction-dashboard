@@ -1,60 +1,33 @@
 # Requirements — Prediction Dashboard (Reflex forecasting app)
 
-## v2.1 Requirements
+No active milestone requirements defined yet. Run `/gsd-new-milestone` to start the next
+milestone (questioning → research → requirements → roadmap).
 
-### Weekly Data Foundation
+Shipped milestones' requirements (v1 through v2.1) are archived in `.planning/milestones/`.
 
-- [x] **WKUI-01**: The app has genuine weekly-cadence historical data for HDAN, PPAN, and
-      FX rate — sourced from `AN Data.csv` (native weekly) and `FX Data.csv`'s Weekly
-      column, never resampled/interpolated from monthly data — persisted separately from
-      the existing monthly `PriceRow` table
-- [x] **WKUI-02**: A backtested weekly-cadence FX forecasting model exists, compared
-      explicitly against the existing monthly FX benchmark (1.72% MAPE, AR(1)/Naive), with
-      a documented, frozen go/no-go verdict — a "no-go" is a valid, complete outcome (FX
-      stays monthly-only in the UI if so), not a blocker to closing this requirement
+## Backlog
 
-### Weekly Forecast UI
-
-- [x] **WKUI-03**: User can toggle between Monthly and Weekly forecast granularity from the
-      dashboard, with the toggle driving both the Forecast tab chart and Summary cards
-      together (a single global setting, not independent per-series toggles)
-- [x] **WKUI-04**: The selected granularity persists across page reloads/visits
-- [x] **WKUI-05**: When Weekly is selected, Diesel-USD and Diesel-MNT cards show an
-      explicit, always-visible "monthly only" disabled/muted state — never hidden, never
-      showing fabricated or interpolated weekly data for these series
-- [x] **WKUI-06**: When Weekly is selected, the forecast horizon is controlled in weeks
-      (not a relabeled month slider), capped to the range actually covered by the weekly
-      backtest(s)
-- [x] **WKUI-07**: When Weekly is selected, each weekly-capable series' summary card shows
-      the correct weekly model name and its backtested MAPE (not a stale monthly figure)
-- [x] **WKUI-08**: Weekly forecast chart/table dates use real week-ending dates, not
-      relabeled monthly tick marks
-
-## Backlog carried forward from v2.0
-
-- **Sentiment-adjusted scenario UI (SENT-03..08)** — Phase 16's causality screen returned
-  "no-go" for all four series (effective monthly sample size never reached the required
-  floor). This branch is closed, not merely deferred — it would need materially more
-  sentiment-archive coverage (continuous, commodity/FX-relevant, spanning at least
+- **Weekly Data Entry UI** — v2.1 shipped weekly forecast *viewing* only (HDAN/PPAN/FX,
+  toggle-driven). Manually entering new weekly actuals in-app was explicitly deferred; the
+  existing monthly Data Entry tab remains the only way to add data. Would need its own
+  design pass (weekly-cadence table, validation, likely a per-series-aware UI since
+  Diesel-USD/Diesel-MNT have no weekly concept at all).
+- **Sentiment-adjusted scenario UI (SENT-03..08)** — Phase 16's (v2.0) causality screen
+  returned "no-go" for all four series (effective monthly sample size never reached the
+  required floor). This branch is closed, not merely deferred — it would need materially
+  more sentiment-archive coverage (continuous, commodity/FX-relevant, spanning at least
   `MIN_GRANGER_N=24` overlapping months) before it's worth re-attempting. See
   `backend_research/REPORT-SENTIMENT.md`'s "What would change this result" section.
 - Sentiment trend mini-chart (sent_ema3/sent_ema10/sent_momentum) — moot unless the
   sentiment-adjustment branch above is ever revisited.
 - Automatic API data-fetch from external price sources — only relevant if/when the
   "connect to a data API" idea is picked up as its own milestone.
-
-## v2.1+ Requirements (Deferred)
-
-- Weekly Data Entry UI (manual weekly actuals for HDAN/PPAN/FX) — this milestone is
-  forecast-viewing only; the existing monthly Data Entry tab is unaffected and unchanged.
-- Per-series granularity mixing/override — a single global Monthly/Weekly toggle is the
-  locked design (avoids "two reading speeds on one screen"); per-series overrides are an
-  anti-feature per FEATURES.md research.
-- Extending the weekly forecast horizon beyond what's actually backtested — any future
-  horizon extension needs its own backtest evidence first, per the project's "no
-  un-backtested model ships" discipline.
-- Auto-defaulting the dashboard to Weekly mode — default stays Monthly; Weekly is an
-  opt-in toggle, not a replacement default, even if weekly models prove more accurate.
+- Extending the weekly forecast horizon beyond 5 weeks — needs its own backtest evidence
+  first, per the project's "no un-backtested model ships" discipline. Current weekly
+  models (HDAN/PPAN from v2.0's Phase 17, FX from v2.1's Phase 20) are validated only to
+  h=5 weeks.
+- Weekly Daily-cadence data — `FX Data.csv`'s Daily column exists and is unused; no
+  stated need for daily-granularity forecasting has come up.
 
 ## Out of scope (standing, not milestone-specific)
 
@@ -71,25 +44,10 @@
 - CSV import column-mapping UI or fuzzy header matching
 - CSV import overwrite-on-duplicate-date
 - "Drivers" / forecast-attribution explanation text
+- Per-series granularity mixing/override — a single global Monthly/Weekly toggle is the
+  locked design (avoids "two reading speeds on one screen")
+- Auto-defaulting the dashboard to Weekly mode — default stays Monthly regardless of
+  which granularity's models are more accurate
 
-(Full rationale for each in `.planning/milestones/v2.0-REQUIREMENTS.md`'s "Out of Scope"
-section, carried forward unchanged.)
-
-## Traceability
-
-| Requirement | Phase | Status |
-|-------------|-------|--------|
-| WKUI-01 | Phase 19 | Complete |
-| WKUI-02 | Phase 20 | Complete |
-| WKUI-03 | Phase 22 | Complete |
-| WKUI-04 | Phase 22 | Complete |
-| WKUI-05 | Phase 22 | Complete |
-| WKUI-06 | Phase 22 | Complete |
-| WKUI-07 | Phase 22 | Complete |
-| WKUI-08 | Phase 22 | Complete |
-
----
-*Requirements defined: 2026-08-21 (v1 baseline); v2.1 requirements added: 2026-09-01*
-*Shipped milestones' requirements (v1 through v2.0) archived in `.planning/milestones/`.*
-*v2.1 traceability mapped to Phases 19-22: 2026-09-01*
-*v2.1 milestone complete: 2026-09-02 (all WKUI-01..08 satisfied)*
+(Full rationale for the v1-v2.0 items in `.planning/milestones/v2.0-REQUIREMENTS.md`'s
+"Out of Scope" section, carried forward unchanged.)
